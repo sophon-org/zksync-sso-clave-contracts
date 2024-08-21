@@ -1,0 +1,11 @@
+{
+  "_format": "hh-zksolc-artifact-1",
+  "contractName": "BootloaderAuth",
+  "sourceName": "src/auth/BootloaderAuth.sol",
+  "abi": [],
+  "bytecode": "0x",
+  "deployedBytecode": "0x",
+  "linkReferences": {},
+  "deployedLinkReferences": {},
+  "factoryDeps": {}
+}
