@@ -1,7 +1,9 @@
 {
   "name": "@matterlabs/smart-accounts-sdk",
   "version": "0.0.1",
-  "dependencies": {},
+  "dependencies": {
+    "@nx/rollup": "19.6.1"
+  },
   "main": "./index.cjs.js",
   "module": "./index.esm.js",
   "typings": "./src/index.d.ts",
