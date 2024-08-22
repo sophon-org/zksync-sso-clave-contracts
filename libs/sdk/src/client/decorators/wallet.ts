@@ -103,7 +103,7 @@ const getTotalFee = (fee: {
   maxFeePerGas?: bigint;
   maxPriorityFeePerGas?: bigint;
 }): bigint => {
-  if (!fee.gas) return BigInt(0);
+  if (!fee.gas) return 0n;
 
   if (fee.gasPrice) {
     return fee.gas * fee.gasPrice;
@@ -115,7 +115,7 @@ const getTotalFee = (fee: {
     return fee.gas * fee.maxPriorityFeePerGas;
   }
 
-  return BigInt(0);
+  return 0n;
 };
 
 /* const fetchTokenSpendLimit = async (_sessionContractAddress: Address, _tokenAddress: Address, _userAddress: Address): Promise<bigint> => {
@@ -165,7 +165,7 @@ const verifyTransactionData = async (
   };
 
   /* Verify transaction value */
-  const value = transaction.value || BigInt(0);
+  const value = transaction.value || 0n;
   if (await exceedsSpendLimit(getAddress(l2BaseTokenAddress), value)) {
     throw new Error(`Transaction value ${value} exceeds account spend limit`);
   }
@@ -197,7 +197,7 @@ const verifyTransactionData = async (
   /* Verify transfer amount */
   if (functionName === "transfer") {
     const [_to, _amount] = args;
-    const amount = _amount ? BigInt(_amount) : BigInt(0);
+    const amount = _amount ? BigInt(_amount) : 0n;
     if (await exceedsSpendLimit(tokenAddress, amount)) {
       throw new Error(`Amount ${amount} exceeds account spend limit`);
     }
