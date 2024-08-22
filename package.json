@@ -4,7 +4,11 @@
   "license": "MIT",
   "scripts": {},
   "private": true,
-  "dependencies": {},
+  "dependencies": {
+    "@wagmi/core": "^2.13.4",
+    "eventemitter3": "^5.0.1",
+    "viem": "^2.20.0"
+  },
   "devDependencies": {
     "@nx/eslint": "19.6.1",
     "@nx/eslint-plugin": "19.6.1",
