@@ -1,10 +1,10 @@
 {
-  "name": "embedded-wallet-example-contracts",
+  "name": "zksync-account-sdk-contracts",
   "description": "Smart contracts for modular account deployment",
   "private": true,
   "author": "Matter Labs",
   "license": "MIT",
-  "repository": "https://github.com/matter-labs/embedded-wallet-example.git",
+  "repository": "https://github.com/matter-labs/zk-account-sdk.git",
   "scripts": {
     "build": "hardhat compile",
     "clean": "hardhat clean",

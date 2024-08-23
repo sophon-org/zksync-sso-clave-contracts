@@ -1,0 +1,16 @@
+{
+	"taskRunnerOptions": {
+		"default": {
+			"runner": "nx/task-runners/default",
+			"options": {
+				"cacheableOperations": ["build"]
+			}
+		}
+	},
+	"targetDefaults": {
+		"build": {
+			"inputs": ["!{projectRoot}/**/*.md"],
+			"outputs": ["{projectRoot}/artifacts-zk"]
+		}
+	}
+}
