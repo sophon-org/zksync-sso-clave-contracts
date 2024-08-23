@@ -3,7 +3,7 @@
   - prettier --write --ignore-unknown
   - eslint --fix --max-warnings=0
 "*.ts":
-  - tsc-files --project ./tsconfig.base.json --noEmit
+  - tsc-files --project ./tsconfig.json --noEmit
 "*.md":
   - cspell lint --no-must-find-files --files
 "*.{yml,yaml,json}":
