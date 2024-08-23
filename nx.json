@@ -25,7 +25,16 @@
     }
   ],
   "namedInputs": {
-    "noMarkdown": ["!{projectRoot}/**/*.md"]
+    "noMarkdown": ["!{projectRoot}/**/*.md"],
+    "default": ["{projectRoot}/**/*", "sharedGlobals"],
+    "production": [
+      "default",
+      "!{projectRoot}/.eslintrc.json",
+      "!{projectRoot}/eslint.config.js",
+      "!{projectRoot}/**/?(*.)+(spec|test).[jt]s?(x)?(.snap)",
+      "!{projectRoot}/tsconfig.spec.json"
+    ],
+    "sharedGlobals": ["{workspaceRoot}/.github/workflows/ci.yml"]
   },
   "nxCloudAccessToken": "NTlkNjcyMzAtNzBhNy00N2U4LWEzYWYtZWQyZDdkNGQ1NTU1fHJlYWQtd3JpdGU=",
   "targetDefaults": {
@@ -36,11 +45,12 @@
     },
     "@nx/vite:test": {
       "cache": true,
-      "inputs": ["default", "^default"]
+      "inputs": ["default", "^default", "^production"]
     },
     "build": {
       "inputs": ["noMarkdown", "^noMarkdown"],
-      "dependsOn": ["^build"]
+      "dependsOn": ["^build"],
+      "cache": true
     },
     "dev": {
       "dependsOn": ["^build"]
