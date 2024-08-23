@@ -7,7 +7,7 @@ export const shortenAddress = (address: string, chars = 3): string => {
 export const formatAmount = (
   amount: bigint,
   decimals: number,
-  maxPrecision: number = 4
+  maxPrecision = 4,
 ): string => {
   const formattedAmount = formatUnits(amount, decimals);
 
@@ -67,7 +67,7 @@ export const formatPricePretty = (price: number): string => {
 export const formatTokenPrice = (
   amount: bigint,
   decimals: number,
-  price: number
+  price: number,
 ): string => {
   const formattedTokenAmount = formatUnits(amount, decimals);
   return formatPricePretty(parseFloat(formattedTokenAmount) * price);

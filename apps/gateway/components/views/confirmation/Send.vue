@@ -8,14 +8,14 @@
         :title="
           formatUnits(
             BigInt(tokenAndAmount.amount),
-            tokenAndAmount.token.decimals
+            tokenAndAmount.token.decimals,
           )
         "
       >
         -{{
           formatAmount(
             BigInt(tokenAndAmount.amount),
-            tokenAndAmount.token.decimals
+            tokenAndAmount.token.decimals,
           )
         }}
       </span>
@@ -30,7 +30,9 @@
       </div>
     </h2>
     <div class="text-lg flex justify-between mt-12">
-      <div class="text-neutral-400">Sending to</div>
+      <div class="text-neutral-400">
+        Sending to
+      </div>
       <div
         v-if="to"
         class="flex items-center"
@@ -43,7 +45,9 @@
       </div>
     </div>
     <div class="text-lg flex justify-between mt-4">
-      <div class="text-neutral-400">Fees</div>
+      <div class="text-neutral-400">
+        Fees
+      </div>
       <div
         v-if="totalFee"
         class="flex items-center"

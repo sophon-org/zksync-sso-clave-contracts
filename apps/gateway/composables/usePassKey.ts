@@ -1,8 +1,8 @@
 export const requestPassKey = async (username: string, name: string) => {
   if (
-    !window.PublicKeyCredential ||
-    !PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable ||
-    !PublicKeyCredential.isConditionalMediationAvailable
+    !window.PublicKeyCredential
+    || !PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable
+    || !PublicKeyCredential.isConditionalMediationAvailable
   ) {
     throw new Error("No platform authenticator available");
   }

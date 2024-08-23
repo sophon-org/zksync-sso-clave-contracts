@@ -2,7 +2,7 @@ const globals = require("globals");
 const { FlatCompat } = require("@eslint/eslintrc");
 const js = require("@eslint/js");
 const nxEslintPlugin = require("@nx/eslint-plugin");
-const eslintConfigPrettier = require("eslint-config-prettier");
+const stylistic = require("@stylistic/eslint-plugin");
 
 const compat = new FlatCompat({
   baseDirectory: __dirname,
@@ -10,7 +10,8 @@ const compat = new FlatCompat({
 });
 
 module.exports = [
-  { plugins: { "@nx": nxEslintPlugin } },
+  {ignores: ["**/.output", "dist", ".nx", "**/.nuxt"]},
+  { plugins: { "@nx": nxEslintPlugin, "@stylistic": stylistic } },
   {
     files: ["**/*.{ts,js,mjs,cjs}"],
     languageOptions: { globals: { ...globals.browser, ...globals.node } },
@@ -46,5 +47,4 @@ module.exports = [
       ...config.rules,
     },
   })),
-  eslintConfigPrettier,
 ];

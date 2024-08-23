@@ -18,7 +18,9 @@
       {{ domain }}
     </p>
     <div class="space-y-2 mt-4">
-      <div class="font-medium">Permissions</div>
+      <div class="font-medium">
+        Permissions
+      </div>
       <CommonButtonLine
         size="sm"
         as="div"
@@ -32,7 +34,9 @@
           <div>Expires {{ sessionExpiresIn }}</div>
         </div>
       </CommonButtonLine>
-      <div class="font-medium">Allowed spending</div>
+      <div class="font-medium">
+        Allowed spending
+      </div>
       <CommonLine>
         <template v-if="totalUsd > 0">
           <CommonButtonLine
@@ -40,7 +44,9 @@
             size="sm"
             class="flex justify-between"
           >
-            <div class="font-medium">Total</div>
+            <div class="font-medium">
+              Total
+            </div>
             <div>{{ formatPricePretty(totalUsd) }}</div>
           </CommonButtonLine>
           <div class="border border-dashed border-neutral-800" />
@@ -110,8 +116,8 @@ const props = defineProps({
 
 const { appMeta, origin } = useAppMeta();
 const { respond, deny } = useRequestsStore();
-const { request, responseInProgress, requestChain } =
-  storeToRefs(useRequestsStore());
+const { request, responseInProgress, requestChain }
+  = storeToRefs(useRequestsStore());
 const { address } = storeToRefs(useAccountStore());
 const { getWalletClient, createSessionKey } = useAccountStore();
 
@@ -134,7 +140,7 @@ const {
           iconURL: string;
         }[];
       }>(
-        `${blockExplorerApiByChain[requestChain.value!.id]}?module=token&action=tokeninfo&contractaddress=${tokenAddress}`
+        `${blockExplorerApiByChain[requestChain.value!.id]}?module=token&action=tokeninfo&contractaddress=${tokenAddress}`,
       );
       const tokenInfo = result[0];
       return {
@@ -146,7 +152,6 @@ const {
         iconUrl: tokenInfo.iconURL,
       };
     } catch (error) {
-       
       console.error(`Failed to fetch token info for ${tokenAddress}`, error);
       return {
         address: tokenAddress,
@@ -157,13 +162,13 @@ const {
     }
   };
   const promises = Object.keys(props.session.spendLimit).map(
-    async (tokenAddress) => fetchSingleToken(tokenAddress as Address)
+    async (tokenAddress) => fetchSingleToken(tokenAddress as Address),
   );
   if (!Object.keys(props.session.spendLimit).includes(BASE_TOKEN_ADDRESS)) {
     promises.push(fetchSingleToken(BASE_TOKEN_ADDRESS));
   }
   return Object.fromEntries(
-    (await Promise.all(promises)).map((e) => [e.address, e])
+    (await Promise.all(promises)).map((e) => [e.address, e]),
   );
 });
 
@@ -173,7 +178,7 @@ const spendLimitTokens = computed(() => {
     ([tokenAddress, amount]) => ({
       token: tokensList.value![tokenAddress],
       amount,
-    })
+    }),
   );
 });
 
@@ -182,10 +187,10 @@ const totalUsd = computed(() =>
     if (!item.token.price) return acc;
     const formattedTokenAmount = formatUnits(
       BigInt(item.amount),
-      item.token.decimals
+      item.token.decimals,
     );
     return acc + parseFloat(formattedTokenAmount) * item.token.price;
-  }, 0)
+  }, 0),
 );
 
 const confirmConnection = async () => {
@@ -198,13 +203,13 @@ const confirmConnection = async () => {
       validUntil: props.session.validUntil,
       spendLimit: props.session.spendLimit
         ? Object.fromEntries(
-            Object.entries(props.session.spendLimit).map(
-              ([tokenAddress, amount]) => [
-                getAddress(tokenAddress.toLowerCase()),
-                amount.toString(),
-              ]
-            )
-          )
+          Object.entries(props.session.spendLimit).map(
+            ([tokenAddress, amount]) => [
+              getAddress(tokenAddress.toLowerCase()),
+              amount.toString(),
+            ],
+          ),
+        )
         : {},
     };
     const response: HandshakeResponse = {

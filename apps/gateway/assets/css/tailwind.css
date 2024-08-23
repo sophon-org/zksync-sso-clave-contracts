@@ -14,24 +14,26 @@
     );
 
     display: grid;
-    grid-template-columns: [full-width-start] 3.5% [content-start] var(--content-columns) [content-end] 3.5% [full-width-end];
+    grid-template-columns:
+      [full-width-start] 3.5% [content-start] var(--content-columns)
+      [content-end] 3.5% [full-width-end];
     margin-right: auto;
     margin-left: auto;
   }
 
   @media (min-width: 1536px) {
-    .content-grid  {
+    .content-grid {
       max-width: 1536px;
     }
   }
-  
+
   .content-grid > :not(.full-width) {
     grid-column: content;
   }
-  
+
   .content-grid > .full-width {
     grid-column: full-width;
-    
+
     display: grid;
     grid-template-columns: inherit;
   }

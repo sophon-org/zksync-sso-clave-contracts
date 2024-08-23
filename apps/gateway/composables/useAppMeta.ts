@@ -8,7 +8,7 @@ export const useAppMeta = () => {
   const origin = computed(() => route.query.origin as string);
   const appMetaStorage = useStorage<{ [origin: string]: AppMetadata }>(
     "app-meta",
-    {}
+    {},
   );
   const appMeta = computed({
     get: () => appMetaStorage.value[origin.value],

@@ -1,14 +1,12 @@
-# sdk
-
-This library was generated with [Nx](https://nx.dev).
+# @matterlabs/smart-account-sdk
 
 ## Building
 
-Run `nx build sdk` to build the library.
+Run `npx nx build sdk` to build the library.
 
 ## Running unit tests
 
-Run `nx test sdk` to execute the unit tests via [Vitest](https://vitest.dev/).
+Run `npx nx test sdk` to execute the unit tests via [Vitest](https://vitest.dev/).
 
 ## Releasing
 

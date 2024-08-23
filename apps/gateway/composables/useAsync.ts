@@ -2,7 +2,7 @@
 type AsyncFunction<T extends any[], U> = (...args: T) => Promise<U>;
 
 export function useAsync<T extends any[], U>(
-  asyncFunction: AsyncFunction<T, U>
+  asyncFunction: AsyncFunction<T, U>,
 ) {
   const inProgress: Ref<boolean> = ref(false);
   const error: Ref<Error | null> = ref(null);
@@ -18,8 +18,8 @@ export function useAsync<T extends any[], U>(
       result.value = response;
       return response;
     } catch (e) {
-      const err =
-        e instanceof Error ? e : new Error("An unexpected error occurred.");
+      const err
+        = e instanceof Error ? e : new Error("An unexpected error occurred.");
       error.value = err;
       if (err) {
         throw err;

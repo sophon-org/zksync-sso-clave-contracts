@@ -24,7 +24,7 @@ export const useAccountStore = defineStore("account", () => {
     undefined,
     {
       serializer: StorageSerializers.object,
-    }
+    },
   );
   const login = (data: SmartAccount) => {
     accountData.value = data;
@@ -52,14 +52,14 @@ export const useAccountStore = defineStore("account", () => {
       if (data) createAccount();
       else destroyAccount();
     },
-    { immediate: true }
+    { immediate: true },
   );
 
   const getWalletClient = ({ chainId }: { chainId: number }) => {
     if (!account) throw new Error("No account data");
-    const chain =
-      supportedChains.find((chain) => chain.id === chainId) ||
-      supportedChains[0];
+    const chain
+      = supportedChains.find((chain) => chain.id === chainId)
+      || supportedChains[0];
     const walletClient = createWalletClient({
       account,
       chain,

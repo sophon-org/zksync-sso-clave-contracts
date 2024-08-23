@@ -9,7 +9,9 @@
     "package.json",
     "bin/**",
     "coverage/**",
-    "cspell.json"
+    "cspell.json",
+    ".nx/**",
+    ".nuxt/**"
   ],
   "caseSensitive": true,
   "dictionaries": [

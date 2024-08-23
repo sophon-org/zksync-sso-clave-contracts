@@ -7,3 +7,7 @@ bin
 dist
 coverage
 build
+*-lock.yaml
+*-lock.json
+.nuxt
+.nx

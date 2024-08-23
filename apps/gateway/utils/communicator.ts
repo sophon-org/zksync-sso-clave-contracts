@@ -13,6 +13,7 @@ class PopupCommunicator {
     (_: MessageEvent) => boolean,
     { reject: (_: Error) => void }
   >();
+
   private openerOrigin: string;
 
   constructor() {
@@ -48,7 +49,7 @@ class PopupCommunicator {
    * Waits for a specific message from the opener window
    */
   onMessage = async <M extends Message>(
-    predicate: (_: Partial<M>) => boolean
+    predicate: (_: Partial<M>) => boolean,
   ): Promise<M> => {
     return new Promise((resolve, reject) => {
       const listener = (event: MessageEvent) => {
@@ -86,9 +87,10 @@ class PopupCommunicator {
       id: crypto.randomUUID(),
     } as ConfigMessage);
 
-    this.onMessage<ConfigMessage>(({ event }) => event === "PopupUnload")
-      .then(this.disconnect)
-      .catch(() => {});
+    this.onMessage<ConfigMessage>(({ event }) => event === "PopupUnload").then(
+      this.disconnect,
+    );
+    // .catch(() => {});
 
     window.addEventListener("beforeunload", () => {
       this.postMessage({

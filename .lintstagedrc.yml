@@ -1,7 +1,6 @@
 "*.{js,ts,vue,mjs,cjs}":
   - cspell lint --no-must-find-files --files
-  - prettier --write --ignore-unknown
-  - eslint --fix --max-warnings=0
+  - eslint --fix
 "*.ts":
   - tsc-files --project ./tsconfig.base.json --noEmit
 "*.md":

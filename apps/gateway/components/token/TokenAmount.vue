@@ -73,7 +73,7 @@ const props = defineProps({
 
 const isZeroAmount = computed(() => !props.amount);
 const formattedAmount = computed(() =>
-  formatAmount(BigInt(props.amount), props.decimals)
+  formatAmount(BigInt(props.amount), props.decimals),
 );
 const tokenPrice = computed(() => {
   if (!props.price) return;

@@ -1,4 +1,3 @@
-import { communicator } from "@/utils/communicator";
 import { mapping as requestsMapping } from "@matterlabs/smart-account-sdk";
 
 import type {
@@ -9,6 +8,7 @@ import type {
   RPCRequestMessage,
   RPCResponseMessage,
 } from "@matterlabs/smart-account-sdk";
+import { communicator } from "@/utils/communicator";
 
 type Request = {
   id: MessageID;
@@ -24,7 +24,7 @@ export const useRequestsStore = defineStore("requests", () => {
     const method = request.value?.request.action.method;
     if (!method) return undefined;
     return Object.entries(requestsMapping).find(([_category, methods]) =>
-      methods.includes(method as Method)
+      methods.includes(method as Method),
     )?.[0];
   });
   const requestChain = computed(() => {
@@ -48,8 +48,8 @@ export const useRequestsStore = defineStore("requests", () => {
   const { inProgress: responseInProgress, execute: respond } = useAsync(
     async (
       responder: () =>
-        | RPCResponseMessage["content"]
-        | Promise<RPCResponseMessage["content"]>
+      | RPCResponseMessage["content"]
+      | Promise<RPCResponseMessage["content"]>,
     ) => {
       if (!request.value) throw new Error("No request to confirm");
 
@@ -60,7 +60,7 @@ export const useRequestsStore = defineStore("requests", () => {
         content: await responder(),
       });
       communicator.disconnect();
-    }
+    },
   );
 
   const deny = () => {

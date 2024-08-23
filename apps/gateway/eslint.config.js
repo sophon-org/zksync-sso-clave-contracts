@@ -1,9 +1,10 @@
-import { createConfigForNuxt } from "@nuxt/eslint-config/flat";
+import withNuxt from "./.nuxt/eslint.config.mjs";
 
-export default createConfigForNuxt({
+// https://eslint.nuxt.com/packages/module#config-customizations
+export default withNuxt().override("nuxt/vue/rules", {
   rules: {
-    "no-console": "warn",
-    "vue/multi-word-component-names": "off", // Allow multi-word component names
-    "vue/require-default-prop": "off", // Allow props without default values
+    // ...Override rules, for example:
+    "vue/require-default-prop": "off",
+    "vue/multi-word-component-names": "off",
   },
 });
