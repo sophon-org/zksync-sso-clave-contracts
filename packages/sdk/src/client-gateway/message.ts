@@ -19,7 +19,7 @@ interface RPCMessage<T = unknown> extends Message {
 }
 
 /* Request */
-export type RPCRequestMessage<T = unknown> = RPCMessage<T>
+export type RPCRequestMessage<T = unknown> = RPCMessage<T>;
 export interface RPCResponseMessageSuccessful<T = unknown>
   extends RPCMessage<RPCResponseSuccessful<T>> {
   requestId: MessageID;
