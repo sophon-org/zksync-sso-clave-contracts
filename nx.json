@@ -7,6 +7,12 @@
       "options": {
         "targetName": "lint"
       }
+    },
+    {
+      "plugin": "@nx/rollup/plugin",
+      "options": {
+        "buildTargetName": "build"
+      }
     }
   ],
   "nxCloudAccessToken": "NTlkNjcyMzAtNzBhNy00N2U4LWEzYWYtZWQyZDdkNGQ1NTU1fHJlYWQtd3JpdGU=",

@@ -1,0 +1,15 @@
+{
+  "name": "@matterlabs/smart-account-sdk",
+  "version": "0.0.1",
+  "main": "./index.ts",
+  "dependencies": {
+    "@wagmi/core": "^2.13.4",
+    "abitype": "^1.0.6",
+    "eventemitter3": "^5.0.1",
+    "viem": "^2.20.0"
+  },
+  "devDependencies": {
+    "tslib": "^2.6.3",
+    "typescript": "~5.5.2"
+  }
+}

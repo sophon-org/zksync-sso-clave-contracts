@@ -30,7 +30,12 @@ module.exports = [
         "error",
         {
           ignoredFiles: ["{projectRoot}/vite.config.{js,ts,mjs,mts}"],
-          ignoredDependencies: ["@eslint/eslintrc", "@eslint/js", "tslib"],
+          ignoredDependencies: [
+            "@eslint/eslintrc",
+            "@eslint/js",
+            "tslib",
+            "@nx/rollup",
+          ],
         },
       ],
     },

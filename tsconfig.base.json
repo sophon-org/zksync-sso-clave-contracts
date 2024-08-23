@@ -15,9 +15,7 @@
     "skipDefaultLibCheck": true,
     "baseUrl": ".",
     "paths": {
-      "@matterlabs/smart-account-sdk": [
-        "packages/smart-account-sdk/src/index.ts"
-      ]
+      "@matterlabs/smart-account-sdk": ["packages/sdk/src/index.ts"]
     }
   },
   "exclude": ["node_modules", "tmp"]
