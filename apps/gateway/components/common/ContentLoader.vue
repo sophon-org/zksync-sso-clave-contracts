@@ -3,10 +3,13 @@
     <span
       v-for="item in rows"
       :key="item"
-    ><template
-      v-for="lengthItem in length"
-      :key="lengthItem"
-    >&nbsp;</template><template v-if="item < rows"><br></template></span>
+    >
+      <template
+        v-for="lengthItem in length"
+        :key="lengthItem"
+      >&nbsp;</template>
+      <template v-if="item < rows"><br></template>
+    </span>
   </span>
 </template>
 

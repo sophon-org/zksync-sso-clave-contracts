@@ -6,5 +6,9 @@ export default withNuxt().override("nuxt/vue/rules", {
     // ...Override rules, for example:
     "vue/require-default-prop": "off",
     "vue/multi-word-component-names": "off",
+    "vue/singleline-html-element-content-newline": [
+      "error",
+      { ignoreWhenNoAttributes: false },
+    ],
   },
 });
