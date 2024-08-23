@@ -3,6 +3,9 @@
 This project is setup using pnpm with workspaces.
 NX is added to help with tasks and caching.
 
+For a quick rundown:
+[Setup a monorepo with PNPM workspaces and NX](https://www.youtube.com/watch?v=ngdoUQBvAjo)
+
 ## 💻 Development
 
 ### Running workspace projects
