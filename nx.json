@@ -13,8 +13,20 @@
       "options": {
         "buildTargetName": "build"
       }
+    },
+    {
+      "plugin": "@nx/nuxt/plugin",
+      "options": {
+        "buildTargetName": "build",
+        "serveTargetName": "serve",
+        "serveStaticTargetName": "serve-static",
+        "buildStaticTargetName": "build-static"
+      }
     }
   ],
+  "namedInputs": {
+    "noMarkdown": ["!{projectRoot}/**/*.md"]
+  },
   "nxCloudAccessToken": "NTlkNjcyMzAtNzBhNy00N2U4LWEzYWYtZWQyZDdkNGQ1NTU1fHJlYWQtd3JpdGU=",
   "targetDefaults": {
     "@nx/js:tsc": {
@@ -25,6 +37,16 @@
     "@nx/vite:test": {
       "cache": true,
       "inputs": ["default", "^default"]
+    },
+    "build": {
+      "inputs": ["noMarkdown", "^noMarkdown"],
+      "dependsOn": ["^build"]
+    },
+    "dev": {
+      "dependsOn": ["^build"]
+    },
+    "serve": {
+      "dependsOn": ["^build"]
     }
   },
   "release": {

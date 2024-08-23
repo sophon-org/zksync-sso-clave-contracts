@@ -50,3 +50,15 @@ Thumbs.db
 .env.local
 .env.*
 !.env.example
+
+# Nuxt dev/build outputs
+.output
+.data
+.nuxt
+.nitro
+.cache
+dist
+
+# Logs
+logs
+*.log

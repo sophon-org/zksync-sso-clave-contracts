@@ -10,3 +10,5 @@ vyper
 keccak
 Devs
 dapp
+vueuse
+ofetch
