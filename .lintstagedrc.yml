@@ -1,0 +1,10 @@
+"*.{js,ts,vue,mjs,cjs}":
+  - cspell lint --no-must-find-files --files
+  - prettier --write --ignore-unknown
+  - eslint --fix --max-warnings=0
+"*.ts":
+  - tsc-files --noEmit
+"*.md":
+  - cspell lint --no-must-find-files --files
+"*.{yml,yaml,json}":
+  - prettier --write --ignore-unknown
