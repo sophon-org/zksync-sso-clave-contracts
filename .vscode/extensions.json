@@ -1,7 +1,14 @@
 {
   "recommendations": [
-    
     "nrwl.angular-console",
-    "esbenp.prettier-vscode"
+    "esbenp.prettier-vscode",
+    "christian-kohler.npm-intellisense",
+    "christian-kohler.path-intellisense",
+    "dbaeumer.vscode-eslint",
+    "editorconfig.editor",
+    "streetsidesoftware.code-spell-checker",
+    "yoavbls.pretty-ts-errors",
+    "davidanson.vscode-markdownlint",
+    "stkb.rewrap"
   ]
 }

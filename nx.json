@@ -1,16 +1,13 @@
 {
   "$schema": "./node_modules/nx/schemas/nx-schema.json",
-  "namedInputs": {
-    "default": [
-      "{projectRoot}/**/*",
-      "sharedGlobals"
-    ],
-    "production": [
-      "default"
-    ],
-    "sharedGlobals": [
-      "{workspaceRoot}/.github/workflows/ci.yml"
-    ]
-  },
-  "nxCloudAccessToken": "YmRmM2RlNGUtYmNlOS00ZTc4LWI4ZTYtYzg2NDRlNDYwNmE4fHJlYWQtd3JpdGU="
+  "defaultBase": "main",
+  "plugins": [
+    {
+      "plugin": "@nx/eslint/plugin",
+      "options": {
+        "targetName": "lint"
+      }
+    }
+  ],
+  "nxCloudAccessToken": "NTlkNjcyMzAtNzBhNy00N2U4LWEzYWYtZWQyZDdkNGQ1NTU1fHJlYWQtd3JpdGU="
 }

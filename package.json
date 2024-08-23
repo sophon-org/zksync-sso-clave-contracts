@@ -1,13 +1,21 @@
 {
-  "name": "@zksync-account-sdk/source",
-  "version": "0.0.0",
-  "license": "MIT",
-  "scripts": {},
-  "private": true,
-  "dependencies": {},
+  "name": "zksync-account-sdk",
+  "version": "1.0.0",
+  "description": "",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
   "devDependencies": {
-    "@nx/js": "19.6.1",
-    "@nx/workspace": "19.6.1",
-    "nx": "19.6.1"
+    "@eslint/js": "^9.9.0",
+    "@ianvs/prettier-plugin-sort-imports": "^4.3.1",
+    "eslint": "^9.9.0",
+    "eslint-config-prettier": "^9.1.0",
+    "nx": "19.6.2",
+    "prettier": "^3.3.3",
+    "typescript-eslint": "^8.2.0",
+    "@nx/eslint": "19.6.2"
   }
 }

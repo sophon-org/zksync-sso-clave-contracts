@@ -1,0 +1,20 @@
+{
+  "plugins": ["@ianvs/prettier-plugin-sort-imports"],
+  "bracketSameLine": false,
+  "semi": true,
+  "trailingComma": "es5",
+  "singleQuote": false,
+  "bracketSpacing": true,
+  "vueIndentScriptAndStyle": false,
+  "singleAttributePerLine": true,
+  "importOrder": [
+    "<BUILTIN_MODULES>",
+    "<THIRD_PARTY_MODULES>",
+    "",
+    "^[.]",
+    "",
+    "<TYPES>^(node:)",
+    "<TYPES>",
+    "<TYPES>^[.]"
+  ]
+}
