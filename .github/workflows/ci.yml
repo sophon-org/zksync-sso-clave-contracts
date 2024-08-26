@@ -22,6 +22,9 @@ jobs:
 
       - run: npm ci
 
+      # used in CI to diff between head and base
+      - uses: nrwl/nx-set-shas@v4
+
       # Nx Affected runs only tasks affected by the changes in this PR/commit.
       # Learn more: https://nx.dev/ci/features/affected
       - run: npm exec nx affected -t test build
