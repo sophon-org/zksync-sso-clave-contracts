@@ -8,9 +8,11 @@ For a quick rundown:
 
 ## 💻 Development
 
+Install dependencies with `pnpm install`.
+
 ### Running workspace projects
 
-To run a workspace project, you can use the normal pnpm commands.
+To run a workspace project, you can still use the normal pnpm commands.
 To incorporate NX in the process, run commands using nx instead.
 
 ```sh
