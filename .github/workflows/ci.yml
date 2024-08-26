@@ -32,7 +32,34 @@ jobs:
       # used in CI to diff between head and base
       - uses: nrwl/nx-set-shas@v4
 
-      # Nx Affected runs only tasks affected by the changes in this PR/commit.
-      # Learn more: https://nx.dev/ci/features/affected
-      - run: npm exec nx affected -- -t test build
+      # https://nx.dev/ci/features/affected
+      - run: npm exec nx affected -- -t build test
+  onchain:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./packages/contracts
+    steps:
+    - uses: actions/checkout@v4
+      with:
+          fetch-depth: 0
+
+    - name: Era Test Node Action
+      uses: dutterbutter/era-test-node-action@v1
+      with:
+        mode: 'fork'
+        network: 'sepolia-testnet'
+
+    - name: Use latest Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: lts/Iron
+        cache: 'npm'
+        cache-dependency-path: 'packages/contracts'
+    - run: npm ci
+    - run: npm build
+    # Running a hardhat deploy command before running deployments in ethers tests appears
+    # to fix something related to the transaction (related? https://github.com/matter-labs/tutorials/issues/25)
+    - run: npm deployFactoryAccount
+    - run: npm test
 
