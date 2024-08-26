@@ -1,0 +1,38 @@
+<template>
+  <div class="flex items-center -mx-4 -mt-4 border-b border-neutral-900 p-4 mb-4">
+    <div class="text-sm flex items-center">
+      <span class="text-neutral-400">{{ message }}&nbsp;</span>
+      <Web3Avatar
+        :address="address!"
+        class="w-4 h-4 rounded-full"
+      />
+      <span class="font-medium">&nbsp;{{ shortenAddress(address!) }}</span>
+      <span
+        v-if="requestChain"
+        class="text-neutral-400"
+      >&nbsp;on {{ requestChain.name }}</span>
+    </div>
+    <button
+      class="ml-auto w-5 h-5 text-neutral-400 hover:text-white transition"
+      @click="logout()"
+    >
+      <ArrowLeftEndOnRectangleIcon />
+    </button>
+  </div>
+</template>
+
+<script lang="ts" setup>
+import Web3Avatar from "web3-avatar-vue";
+import { ArrowLeftEndOnRectangleIcon } from "@heroicons/vue/24/outline";
+
+defineProps({
+  message: {
+    type: String,
+    required: true,
+  },
+});
+
+const { logout } = useAccountStore();
+const { address } = storeToRefs(useAccountStore());
+const { requestChain } = storeToRefs(useRequestsStore());
+</script>
