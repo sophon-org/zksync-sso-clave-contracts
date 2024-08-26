@@ -19,7 +19,12 @@ export default async function (hre: HardhatRuntimeEnvironment) {
   const testAaArtifact = await deployer.loadArtifact("Account");
   const standardAaArtifact = await deployer.loadArtifact("ERC7579Account");
 
-  const factory = await deployer.deploy(factoryArtifact, [utils.hashBytecode(testAaArtifact.bytecode), utils.hashBytecode(standardAaArtifact.bytecode)], undefined, [testAaArtifact.bytecode, standardAaArtifact.bytecode]);
+  const factory = await deployer.deploy(
+    factoryArtifact,
+    [utils.hashBytecode(testAaArtifact.bytecode), utils.hashBytecode(standardAaArtifact.bytecode)],
+    undefined,
+    undefined,
+    [testAaArtifact.bytecode, standardAaArtifact.bytecode]);
   const factoryAddress = await factory.getAddress();
   console.log(`AA factory address: ${factoryAddress}`);
 
@@ -29,7 +34,6 @@ export default async function (hre: HardhatRuntimeEnvironment) {
   console.log("SC Account owner pk: ", owner.privateKey);
 
   const salt = ethers.ZeroHash;
-  //const tx = await aaFactory.deployAccount(salt, owner.address);
   const userId = BigInt(Math.floor((Math.random() * 10000))).toString()
   const tx = await aaFactory.deployLinkedSocialAccount(salt, userId, "hardhat", owner.address);
   await tx.wait();
