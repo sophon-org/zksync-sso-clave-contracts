@@ -1,15 +1,11 @@
 {
   "name": "zksync-account-sdk",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "keywords": [],
+  "description": "Account Abstraction tooling",
+  "keywords": ["zksync", "account-abstraction", "EIP7579"],
   "workspaces": ["packages/contracts"],
-  "author": "",
-  "license": "ISC",
+  "author": "@matterlabs",
+  "license": "MIT",
   "devDependencies": {
     "nx": "^19.6.2"
   }
