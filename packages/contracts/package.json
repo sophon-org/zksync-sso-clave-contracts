@@ -1,0 +1,51 @@
+{
+  "private": true,
+  "name": "contracts",
+  "version": "0.0.1",
+  "main": "./index.cjs",
+  "module": "./index.js",
+  "scripts": {
+    "build": "hardhat compile",
+    "clean": "hardhat clean",
+    "deployAccountFactory": "hardhat deploy-zksync --script deployAccountFactory.ts",
+    "deployFactoryAccount": "hardhat deploy-zksync --script deployFactoryAccount.ts",
+    "getAccount": "hardhat deploy-zksync --script getAccount.ts",
+    "test": "hardhat test --network hardhat"
+  },
+  "devDependencies": {
+    "@ethersproject/contracts": "^5.7.0",
+    "@ethersproject/providers": "^5.7.2",
+    "@hexagon/base64": "^1.1.28",
+    "@levischuck/tiny-cbor": "^0.2.2",
+    "@matterlabs/hardhat-zksync-deploy": "^1.1.2",
+    "@matterlabs/hardhat-zksync-verify": "^1.2.2",
+    "@nomicfoundation/hardhat-chai-matchers": "^2.0.6",
+    "@nomicfoundation/hardhat-ethers": "^3.0.6",
+    "@peculiar/asn1-ecc": "^2.3.8",
+    "@peculiar/asn1-schema": "^2.3.8",
+    "@types/chai": "^4.3.16",
+    "@types/elliptic": "^6",
+    "@types/ini": "^4.1.0",
+    "@types/mocha": "^10.0.1",
+    "@types/node": "^20.12.12",
+    "chai": "4",
+    "dotenv": "^16.0.3",
+    "elliptic": "^6.5.5",
+    "ethers": "^6.12.1",
+    "ini": "^4.1.2",
+    "mocha": "^10.2.0",
+    "zksync-ethers": "^6.0.0"
+  },
+  "dependencies": {
+    "@matterlabs/hardhat-zksync-node": "^1.0.1",
+    "@matterlabs/hardhat-zksync-solc": "^1.0.6",
+    "@matterlabs/hardhat-zksync-verify": "^1.2.2",
+    "@matterlabs/zksync-contracts": "^0.6.1",
+    "@openzeppelin/contracts": "4.9.6",
+    "@nomad-xyz/excessively-safe-call": "^0.0.1-rc.1",
+    "hardhat": "^2.22.6",
+    "@openzeppelin/contracts-upgradeable": "4.6",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.4.5"
+  }
+}

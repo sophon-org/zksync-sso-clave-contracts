@@ -15,6 +15,7 @@
     "skipDefaultLibCheck": true,
     "baseUrl": ".",
     "paths": {
+      "~abi": ["packages/contracts/artifacts-zk/src"],
       "@matterlabs/smart-account-sdk": ["packages/sdk/src/index.ts"]
     }
   },

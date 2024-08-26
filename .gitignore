@@ -62,3 +62,15 @@ dist
 # Logs
 logs
 *.log
+
+# hardhat artifacts
+artifacts
+cache
+
+# zksync artifacts
+artifacts-zk
+cache-zk
+
+# hardhat
+deployments-zk
+era_test_node.log

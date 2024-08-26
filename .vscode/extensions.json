@@ -9,6 +9,7 @@
     "streetsidesoftware.code-spell-checker",
     "yoavbls.pretty-ts-errors",
     "davidanson.vscode-markdownlint",
-    "stkb.rewrap"
+    "stkb.rewrap",
+    "firsttris.vscode-jest-runner"
   ]
 }
