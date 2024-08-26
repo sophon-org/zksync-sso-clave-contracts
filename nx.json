@@ -6,7 +6,6 @@
 			"runner": "nx/task-runners/default"
 		}
 	},
-	"nxCloudAccessToken": "NTlkNjcyMzAtNzBhNy00N2U4LWEzYWYtZWQyZDdkNGQ1NTU1fHJlYWQtd3JpdGU=",
 	"targetDefaults": {
 		"build": {
 			"inputs": [
