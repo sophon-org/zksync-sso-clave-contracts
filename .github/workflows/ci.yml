@@ -15,6 +15,13 @@ jobs:
         with:
           fetch-depth: 0
 
+
+      - name: Era Test Node Action
+        uses: dutterbutter/era-test-node-action@v1
+        with:
+          mode: 'fork'
+          network: 'sepolia-testnet'
+
       - uses: actions/setup-node@v4
         with:
           node-version: 'lts/Iron'
@@ -27,5 +34,5 @@ jobs:
 
       # Nx Affected runs only tasks affected by the changes in this PR/commit.
       # Learn more: https://nx.dev/ci/features/affected
-      - run: npm exec nx affected -t test build
+      - run: npm exec nx affected -- -t test build
 
