@@ -57,9 +57,9 @@ jobs:
         cache: 'npm'
         cache-dependency-path: 'packages/contracts'
     - run: npm ci
-    - run: npm build
+    - run: npm run build
     # Running a hardhat deploy command before running deployments in ethers tests appears
     # to fix something related to the transaction (related? https://github.com/matter-labs/tutorials/issues/25)
-    - run: npm deployFactoryAccount
-    - run: npm test
+    - run: npm run deployFactoryAccount
+    - run: npm run test
 
