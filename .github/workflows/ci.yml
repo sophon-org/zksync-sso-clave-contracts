@@ -32,6 +32,9 @@ jobs:
       # used in CI to diff between head and base
       - uses: nrwl/nx-set-shas@v4
 
+      # setup some gas estimates?
+      - run: npm run deployFactoryAccount
+
       # https://nx.dev/ci/features/affected
       - run: npm exec nx affected -- -t test
   onchain:
