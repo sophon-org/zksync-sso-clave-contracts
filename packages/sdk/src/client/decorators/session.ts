@@ -12,6 +12,7 @@ export type ZksyncAccountSessionActions<chain extends Chain> = {
   // requestPasskeySignature: (args: RequestPasskeySignatureArgs) => Promise<RequestPasskeySignatureReturnType>;
   requestSession: (args: RequestSessionArgs) => Promise<RequestSessionReturnType<chain>>;
   getTokenSpendLimit: (args: GetTokenSpendLimitArgs) => Promise<GetTokenSpendLimitReturnType>;
+  addAccountOwnerPasskey: (args: AddAccountOwnerPasskeyArgs) => Promise<Hash>;
 };
 
 export function zksyncAccountSessionActions<
@@ -40,6 +41,9 @@ export function zksyncAccountSessionActions<
         sessionKey: client.sessionKey,
         contracts: client.contracts,
       });
+    },
+    addAccountOwnerPasskey: async (args: AddAccountOwnerPasskeyArgs) => {
+      return await addAccountOwnerPasskey(client, args);
     },
   }
 }
@@ -183,20 +187,19 @@ export const createSessionWithPasskey = async <
   return transactionHash;
 }
 
-type SetOwnerPasskeyArgs = {
-  sessionKeyPublicAddress: Address;
-  passkeyRegistrationResponse: RegistrationResponseJSON;
+type AddAccountOwnerPasskeyArgs = {
+  passkeyPublicKey: Uint8Array;
   contracts: { session: Address };
 };
-export const setOwnerPasskey = async <
+export const addAccountOwnerPasskey = async <
   transport extends Transport,
   chain extends Chain,
   account extends Account
->(client: Client<transport, chain, account>, args: SetOwnerPasskeyArgs): Promise<Hash> => {
+>(client: Client<transport, chain, account>, args: AddAccountOwnerPasskeyArgs): Promise<Hash> => {
   /* TODO: Implement set owner passkey */
   const transactionHash = await writeContract(client, {
     address: args.contracts.session,
-    args: [args.sessionKeyPublicAddress, args.passkeyRegistrationResponse],
+    args: [args.passkeyPublicKey],
     abi: [] as const,
     functionName: "USE_ACTUAL_METHOD_HERE",
   } as any);
