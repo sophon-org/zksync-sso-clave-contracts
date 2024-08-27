@@ -17,14 +17,14 @@ export default async function (hre: HardhatRuntimeEnvironment) {
   const deployer = new Deployer(hre, wallet);
   const factoryArtifact = await deployer.loadArtifact("AAFactory");
   const testAaArtifact = await deployer.loadArtifact("Account");
-  const standardAaArtifact = await deployer.loadArtifact("ERC7579Account");
 
+  // this deploys 2 copies of the test harness 
   const factory = await deployer.deploy(
     factoryArtifact,
-    [utils.hashBytecode(testAaArtifact.bytecode), utils.hashBytecode(standardAaArtifact.bytecode)],
+    [utils.hashBytecode(testAaArtifact.bytecode), utils.hashBytecode(testAaArtifact.bytecode)],
     undefined,
     undefined,
-    [testAaArtifact.bytecode, standardAaArtifact.bytecode]);
+    [testAaArtifact.bytecode, testAaArtifact.bytecode]);
   const factoryAddress = await factory.getAddress();
   console.log(`AA factory address: ${factoryAddress}`);
 
