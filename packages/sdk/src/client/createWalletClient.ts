@@ -1,5 +1,6 @@
 import { createClient, getAddress, publicActions, type Account, type Address, type Chain, type Client, type Hash, type Prettify, type PublicRpcSchema, type RpcSchema, type Transport, type WalletClientConfig, type WalletRpcSchema } from 'viem'
 import { privateKeyToAccount } from 'viem/accounts';
+/* import { toSmartAccount } from 'viem/zksync'; */
 
 import { zksyncAccountWalletActions, type ZksyncAccountWalletActions } from './decorators/wallet.js';
 import { zksyncAccountSessionActions, type ZksyncAccountSessionActions } from './decorators/session.js';
@@ -66,6 +67,14 @@ export function createZksyncWalletClient<
     name: _parameters.name || 'Wallet Client',
   };
   
+  /* const _account = toSmartAccount({
+    address: parameters.address,
+    sign: async ({ hash }) => {
+      const sessionKeySigner = privateKeyToAccount(parameters.sessionKey);
+      return sessionKeySigner.sign({ hash });
+    },
+  }); */
+  /* TODO: use smart account instead of EOA (basically use commented code from above) */
   const account = parameters.sessionKey ? privateKeyToAccount(parameters.sessionKey) : parameters.address;
   const client = createClient<transport, chain, Account, rpcSchema>({
     ...parameters,

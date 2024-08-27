@@ -27,6 +27,8 @@ export function zksyncAccountSessionActions<
         validUntil: args.validUntil,
         sessionKey: args.sessionKey || client.sessionKey,
         contracts: client.contracts,
+        passkeyRegistrationOptions: args.passkeyRegistrationOptions,
+        passkeyRegistrationResponse: args.passkeyRegistrationResponse,
       });
       if (args.updateClientSessionKey !== false) client.sessionKey = response.sessionKey;
       return response;
@@ -126,17 +128,27 @@ type RequestSessionArgs = Prettify<SessionPreferences & {
    * @default true
    * @description If true, client will be updated with the new session key after the transaction is confirmed
    */
-  updateClientSessionKey?: boolean
+  updateClientSessionKey?: boolean;
+  passkeyRegistrationResponse?: RegistrationResponseJSON;
+  passkeyRegistrationOptions?: GeneratePasskeyRegistrationOptionsArgs;
 }>;
 export const requestSession = async <
   transport extends Transport,
   chain extends Chain,
   account extends Account
->(client: Client<transport, chain, account>, args: Omit<RequestSessionArgs, 'updateClientSessionKey'> & { contracts: { session: Address } }): Promise<RequestSessionReturnType<chain>> => {
-  const registrationResponse: RegistrationResponseJSON = await startRegistration(args);
+>(client: Client<transport, chain, account>, args: Omit<RequestSessionArgs, 'updateClientSessionKey'> & {
+  contracts: { session: Address }
+}): Promise<RequestSessionReturnType<chain>> => {
+  /* TODO: do this check via types */
+  if (!args.passkeyRegistrationOptions && !args.passkeyRegistrationResponse) throw new Error("Either passkeyRegistrationOptions or passkeyRegistrationResponse must be provided");
+  
+  const registrationResponse: RegistrationResponseJSON =
+    args.passkeyRegistrationResponse
+      ? args.passkeyRegistrationResponse!
+      : (await requestPasskeySignature(args.passkeyRegistrationOptions!)).passkeyRegistrationResponse;
   const sessionKey = args.sessionKey || generatePrivateKey();
   const sessionKeyPublicAddress = publicKeyToAddress(sessionKey);
-  const transactionHash = await setSessionPasskey(client, {
+  const transactionHash = await createSessionWithPasskey(client, {
     sessionKeyPublicAddress,
     passkeyRegistrationResponse: registrationResponse,
     contracts: args.contracts,
@@ -151,16 +163,16 @@ export const requestSession = async <
   };
 }
 
-type SetSessionPasskeyArgs = Prettify<SessionPreferences & {
+type CreateSessionWithPasskeyArgs = Prettify<SessionPreferences & {
   sessionKeyPublicAddress: Address;
   passkeyRegistrationResponse: RegistrationResponseJSON;
   contracts: { session: Address };
 }>
-export const setSessionPasskey = async <
+export const createSessionWithPasskey = async <
   transport extends Transport,
   chain extends Chain,
-  account extends Account
->(client: Client<transport, chain, account>, args: SetSessionPasskeyArgs): Promise<Hash> => {
+  account extends Account,
+>(client: Client<transport, chain, account>, args: CreateSessionWithPasskeyArgs): Promise<Hash> => {
   /* TODO: Implement set session */
   const transactionHash = await writeContract(client, {
     address: args.contracts.session,

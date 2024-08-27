@@ -15,10 +15,9 @@
     "typecheck": "tsc --noEmit"
   },
   "peerDependencies": {
-    "@wagmi/core": "2.x",
-    "viem": "2.x",
     "@simplewebauthn/browser": "10.x",
-    "@simplewebauthn/server": "10.x"
+    "@simplewebauthn/server": "10.x",
+    "@wagmi/core": "2.x"
   },
   "peerDependenciesMeta": {
     "typescript": {
@@ -37,6 +36,7 @@
   "sideEffects": false,
   "type": "module",
   "main": "./dist/esm/index.js",
+  "module": "./esm/index.js",
   "types": "./dist/types/index.d.ts",
   "typings": "./dist/types/index.d.ts",
   "exports": {
@@ -65,6 +65,13 @@
       "default": "./dist/esm/errors/index.js"
     },
     "./package.json": "./package.json"
+  },
+  "typesVersions": {
+    "*": {
+      "client": [
+        "./dist/types/client/index.d.ts"
+      ]
+    }
   },
   "keywords": [
     "zksync",
