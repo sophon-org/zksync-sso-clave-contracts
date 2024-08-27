@@ -33,7 +33,7 @@ jobs:
       - uses: nrwl/nx-set-shas@v4
 
       # https://nx.dev/ci/features/affected
-      - run: npm exec nx affected -- -t build test
+      - run: npm exec nx affected -- -t test
   onchain:
     runs-on: ubuntu-latest
     defaults:
