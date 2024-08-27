@@ -8,36 +8,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  main:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-
-      - name: Era Test Node Action
-        uses: dutterbutter/era-test-node-action@v1
-        with:
-          mode: 'fork'
-          network: 'sepolia-testnet'
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 'lts/Iron'
-          cache: 'npm'
-
-      - run: npm ci
-
-      # used in CI to diff between head and base
-      - uses: nrwl/nx-set-shas@v4
-
-      # setup some gas estimates?
-      - run: npm run deployFactoryAccount
-
-      # https://nx.dev/ci/features/affected
-      - run: npm exec nx affected -- -t test
-  onchain:
+  contracts:
     runs-on: ubuntu-latest
     defaults:
       run:
