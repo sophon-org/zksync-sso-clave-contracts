@@ -27,7 +27,9 @@ contract AAFactory {
 
     function deploy7579Account(
         bytes32 salt,
-        bytes calldata passkey
+        bytes calldata passkey,
+        address validatorAddress,
+        bytes[] memory modules
     ) external returns (address accountAddress) {
         (bool success, bytes memory returnData) = SystemContractsCaller
             .systemCallWithReturndata(
@@ -39,7 +41,7 @@ contract AAFactory {
                     (
                         salt,
                         defaultAaBytecodeHash,
-                        abi.encode(passkey),
+                        abi.encode(passkey, validatorAddress, modules),
                         IContractDeployer.AccountAbstractionVersion.Version1
                     )
                 )

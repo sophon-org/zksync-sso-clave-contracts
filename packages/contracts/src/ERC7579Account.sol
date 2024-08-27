@@ -74,9 +74,11 @@ contract ERC7579Account is
     * R1 validator is the address of the module (where is this deployed on sepolia?)
     * the module list includes all other modules to install
     */
-    constructor(bytes memory initialR1Owner,
+    constructor(
+        bytes memory initialR1Owner,
         address initialR1Validator,
-        bytes[] memory modules) {
+        bytes[] memory modules
+    ) {
         this.initialize(initialR1Owner, initialR1Validator, modules,
             Call({ target: address(0), allowFailure: true, value: 0, callData: "" }));
     }

@@ -5,3 +5,6 @@
 
 # nodejs
 node_modules/
+
+# era-test-node
+era_test_node.log
