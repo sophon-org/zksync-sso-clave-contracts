@@ -4,8 +4,6 @@ pragma solidity ^0.8.24;
 import "@matterlabs/zksync-contracts/l2/system-contracts/Constants.sol";
 import "@matterlabs/zksync-contracts/l2/system-contracts/libraries/SystemContractsCaller.sol";
 
-import "hardhat/console.sol";
-
 contract AAFactory {
     bytes32 public testAaBytecodeHash;
     bytes32 public proxyAaBytecodeHash;

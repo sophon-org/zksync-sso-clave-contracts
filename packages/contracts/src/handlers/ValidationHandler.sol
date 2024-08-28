@@ -8,18 +8,12 @@ import {ValidatorManager} from "../managers/ValidatorManager.sol";
 
 import {IK1Validator, IR1Validator} from "../interfaces/IValidator.sol";
 
-import "hardhat/console.sol";
-
 /**
  * @title ValidationHandler
  * @notice Contract which calls validators for signature validation
  * @author https://getclave.io
  */
 abstract contract ValidationHandler is OwnerManager, ValidatorManager {
-
-    function _testValidationHandler() internal {
-        console.log("ValidationHandler");
-    }
 
     function _handleValidation(
         address validator,

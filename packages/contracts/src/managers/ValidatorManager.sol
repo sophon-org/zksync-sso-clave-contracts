@@ -10,8 +10,6 @@ import {AddressLinkedList} from "../libraries/LinkedList.sol";
 import {IR1Validator, IK1Validator} from "../interfaces/IValidator.sol";
 import {IValidatorManager} from "../interfaces/IValidatorManager.sol";
 
-import "hardhat/console.sol";
-
 /**
  * @title Manager contract for validators
  * @notice Abstract contract for managing the validators of the account
@@ -24,17 +22,11 @@ abstract contract ValidatorManager is IValidatorManager, Auth {
     // Interface helper library
     using ERC165Checker for address;
 
-    function _testValidatorManager(address testValidator) internal {
-        console.log("TestValidatorManager");
-        _supportsR1(testValidator);
-    }
-
     /// @inheritdoc IValidatorManager
     function r1AddValidator(
         address validator
     ) external override onlySelfOrModule {
-        console.log("r1AddValidator (external)");
-        _supportsR1(validator);
+        _r1AddValidator(validator);
     }
 
     /// @inheritdoc IValidatorManager
@@ -100,7 +92,6 @@ abstract contract ValidatorManager is IValidatorManager, Auth {
     }
 
     function _r1AddValidator(address validator) internal {
-        console.log("r1AddValidator (internal)");
         if (!_supportsR1(validator)) {
             revert Errors.VALIDATOR_ERC165_FAIL();
         }

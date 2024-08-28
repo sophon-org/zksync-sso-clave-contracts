@@ -24,8 +24,6 @@ import {Call} from './batch/BatchCaller.sol';
 
 import {IClaveAccount} from './interfaces/IClave.sol';
 
-import "hardhat/console.sol";
-
 /**
  * @title Main account contract from the Clave wallet infrastructure in zkSync Era
  * @author https://getclave.io
@@ -64,18 +62,8 @@ contract ClaveAccount is
         bytes calldata initialR1Owner,
         address initialR1Validator
     ) external initializer {
-        console.log("initializing!");
-        // _r1AddOwner(initialR1Owner);
-        console.log("adding validator!");
-
-        // ClaveAccount => ERC1271 handler
-        _testERC1271Handler();
-        // ERC1271 handler => validator handler 
-        _testValidationHandler();
-        // validatorhandler => validator manager
-        // _r1AddValidator(initialR1Validator);
-        _testValidatorManager(initialR1Validator);
-        console.log("initialized!");
+        _r1AddOwner(initialR1Owner);
+        _r1AddValidator(initialR1Validator);
     }
 
     // Receive function to allow ETHs
