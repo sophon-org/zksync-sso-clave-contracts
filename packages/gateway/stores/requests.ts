@@ -1,5 +1,11 @@
-import { mapping as requestsMapping } from "zksync-account/client-gateway";
-import type { MethodCategory, Method, MessageID, RPCRequestMessage, RPCResponseMessageSuccessful } from "zksync-account/client-gateway";
+import { mapping as requestsMapping } from "@matterlabs/zksync-account/client-gateway";
+import type {
+  MethodCategory,
+  Method,
+  MessageID,
+  RPCRequestMessage,
+  RPCResponseMessageSuccessful,
+} from "@matterlabs/zksync-account";
 import { communicator } from "@/utils/communicator";
 
 type Request = {
@@ -16,15 +22,17 @@ export const useRequestsStore = defineStore("requests", () => {
   const requestType = computed<MethodCategory | undefined>(() => {
     const method = request.value?.request.action.method;
     if (!method) return undefined;
-    return Object.entries(requestsMapping)
-      .find(([_category, methods]) => methods.includes(method as Method))?.[0];
+    return Object.entries(requestsMapping).find(([_category, methods]) =>
+      methods.includes(method as Method),
+    )?.[0];
   });
   const requestChain = computed(() => {
     const chainId = request.value?.request.chainId;
     return supportedChains.find((chain) => chain.id === chainId);
   });
 
-  communicator.onMessage<RPCRequestMessage>((message) => "content" in message)
+  communicator
+    .onMessage<RPCRequestMessage>((message) => "content" in message)
     .then(async (message) => {
       if (message.content.action.method === "eth_requestAccounts") {
         appMeta.value = message.content.action.params.metadata;
@@ -36,17 +44,23 @@ export const useRequestsStore = defineStore("requests", () => {
       };
     });
 
-  const { inProgress: responseInProgress, execute: respond } = useAsync(async (responder: () => RPCResponseMessageSuccessful["content"] | Promise<RPCResponseMessageSuccessful["content"]>) => {
-    if (!request.value) throw new Error("No request to confirm");
+  const { inProgress: responseInProgress, execute: respond } = useAsync(
+    async (
+      responder: () =>
+        | RPCResponseMessageSuccessful["content"]
+        | Promise<RPCResponseMessageSuccessful["content"]>,
+    ) => {
+      if (!request.value) throw new Error("No request to confirm");
 
-    communicator.postMessage<RPCResponseMessageSuccessful>({
-      requestId: request.value.id,
-      id: crypto.randomUUID(),
-      timestamp: new Date(),
-      content: await responder(),
-    });
-    communicator.disconnect();
-  });
+      communicator.postMessage<RPCResponseMessageSuccessful>({
+        requestId: request.value.id,
+        id: crypto.randomUUID(),
+        timestamp: new Date(),
+        content: await responder(),
+      });
+      communicator.disconnect();
+    },
+  );
 
   const deny = () => {
     communicator.disconnect();

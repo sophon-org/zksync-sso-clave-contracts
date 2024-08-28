@@ -1,5 +1,5 @@
-import type { Message } from "zksync-account/client-gateway";
-import type { PopupConfigMessage } from "zksync-account/communicator";
+import type { Message } from "@matterlabs/zksync-account/client-gateway";
+import type { PopupConfigMessage } from "@matterlabs/zksync-account/communicator";
 
 /**
  * Communicates within a popup window to receive and respond to messages.
@@ -10,11 +10,14 @@ import type { PopupConfigMessage } from "zksync-account/communicator";
  * It also handles cleanup of event listeners when necessary.
  */
 class PopupCommunicator {
-  private listeners = new Map<(_: MessageEvent) => boolean, { reject: (_: Error) => void }>();
+  private listeners = new Map<
+    (_: MessageEvent) => boolean,
+    { reject: (_: Error) => void }
+  >();
   private openerOrigin: string;
 
   constructor() {
-    const origin = (new URLSearchParams(window.location.search)).get("origin");
+    const origin = new URLSearchParams(window.location.search).get("origin");
     if (!origin) throw new Error("Origin not defined in query params");
     this.openerOrigin = origin;
     window.addEventListener("message", this.messageHandler);
@@ -45,7 +48,9 @@ class PopupCommunicator {
   /**
    * Waits for a specific message from the opener window
    */
-  onMessage = async <M extends Message>(predicate: (_: Partial<M>) => boolean): Promise<M> => {
+  onMessage = async <M extends Message>(
+    predicate: (_: Partial<M>) => boolean,
+  ): Promise<M> => {
     return new Promise((resolve, reject) => {
       const listener = (event: MessageEvent) => {
         const message = event.data as M;
