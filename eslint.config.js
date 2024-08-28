@@ -1,8 +1,8 @@
-const { FlatCompat } = require('@eslint/eslintrc');
-const nxEslintPlugin = require('@nx/eslint-plugin');
-const stylistic = require('@stylistic/eslint-plugin');
+const { FlatCompat } = require("@eslint/eslintrc");
+const nxEslintPlugin = require("@nx/eslint-plugin");
+const stylistic = require("@stylistic/eslint-plugin");
 
-const js = require('@eslint/js');
+const js = require("@eslint/js");
 
 const compat = new FlatCompat({
   baseDirectory: __dirname,
@@ -10,35 +10,36 @@ const compat = new FlatCompat({
 });
 
 module.exports = [
-  { plugins: { '@nx': nxEslintPlugin, '@stylistic': stylistic } },
+  { ignores: ["node_modules", "dist"] },
+  { plugins: { "@nx": nxEslintPlugin, "@stylistic": stylistic } },
   {
-    files: ['**/*.ts', '**/*.tsx', '**/*.js', '**/*.jsx'],
+    files: ["**/*.ts", "**/*.tsx", "**/*.js", "**/*.jsx"],
     rules: {
-      '@nx/enforce-module-boundaries': [
-        'error',
+      "@nx/enforce-module-boundaries": [
+        "error",
         {
           enforceBuildableLibDependency: true,
           allow: [],
           depConstraints: [
             {
-              sourceTag: '*',
-              onlyDependOnLibsWithTags: ['*'],
+              sourceTag: "*",
+              onlyDependOnLibsWithTags: ["*"],
             },
           ],
         },
       ],
     },
   },
-  ...compat.config({ extends: ['plugin:@nx/typescript'] }).map((config) => ({
+  ...compat.config({ extends: ["plugin:@nx/typescript"] }).map((config) => ({
     ...config,
-    files: ['**/*.ts', '**/*.tsx'],
+    files: ["**/*.ts", "**/*.tsx"],
     rules: {
       ...config.rules,
     },
   })),
-  ...compat.config({ extends: ['plugin:@nx/javascript'] }).map((config) => ({
+  ...compat.config({ extends: ["plugin:@nx/javascript"] }).map((config) => ({
     ...config,
-    files: ['**/*.js', '**/*.jsx'],
+    files: ["**/*.js", "**/*.jsx"],
     rules: {
       ...config.rules,
     },

@@ -196,8 +196,8 @@ importers:
         specifier: ^2.1.5
         version: 2.1.5(vue@3.4.38(typescript@5.5.4))
       '@matterlabs/zksync-account':
-        specifier: workspace:*
-        version: link:../sdk
+        specifier: 0.0.0
+        version: 0.0.0(@simplewebauthn/browser@10.0.0)(@simplewebauthn/server@10.0.1)(@wagmi/core@2.13.4(react@18.3.1)(typescript@5.5.4)(viem@2.20.1(typescript@5.5.4)))(eventemitter3@5.0.1)(typescript@5.5.4)(viem@2.20.1(typescript@5.5.4))
       '@nuxt/eslint':
         specifier: ^0.3.13
         version: 0.3.13(eslint@8.57.0)(magicast@0.3.5)(rollup@4.21.1)(typescript@5.5.4)(vite@5.4.2(@types/node@22.5.1)(sass@1.77.8)(terser@5.31.6))
@@ -275,6 +275,12 @@ importers:
       '@types/node':
         specifier: ^22.1.0
         version: 22.5.1
+
+  packages/testing:
+    dependencies:
+      '@matterlabs/zksync-account':
+        specifier: 0.0.0
+        version: 0.0.0(@simplewebauthn/browser@10.0.0)(@simplewebauthn/server@10.0.1)(@wagmi/core@2.13.4(react@18.3.1)(typescript@5.5.4)(viem@2.20.1(typescript@5.5.4)))(eventemitter3@5.0.1)(typescript@5.5.4)(viem@2.20.1(typescript@5.5.4))
 
 packages:
 
@@ -1591,6 +1597,19 @@ packages:
     peerDependencies:
       '@nomicfoundation/hardhat-verify': ^2.0.8
       hardhat: ^2.22.5
+
+  '@matterlabs/zksync-account@0.0.0':
+    resolution: {integrity: sha512-10qyWDEAC0hizrrg/Wf82CmkFu6CNZF9u8imHW+Tgs1IQduIh2RVUitGxxFCh/BAMNC2rxHgDymnzkw7/DC2kw==}
+    peerDependencies:
+      '@simplewebauthn/browser': 10.x
+      '@simplewebauthn/server': 10.x
+      '@wagmi/core': 2.x
+      eventemitter3: ^5.0.1
+      typescript: '*'
+      viem: ^2.20.0
+    peerDependenciesMeta:
+      typescript:
+        optional: true
 
   '@matterlabs/zksync-contracts@0.6.1':
     resolution: {integrity: sha512-+hucLw4DhGmTmQlXOTEtpboYCaOm/X2VJcWmnW4abNcOgQXEHX+mTxQrxEfPjIZT0ZE6z5FTUrOK9+RgUZwBMQ==}
@@ -10003,6 +10022,19 @@ snapshots:
     transitivePeerDependencies:
       - encoding
       - supports-color
+
+  '@matterlabs/zksync-account@0.0.0(@simplewebauthn/browser@10.0.0)(@simplewebauthn/server@10.0.1)(@wagmi/core@2.13.4(react@18.3.1)(typescript@5.5.4)(viem@2.20.1(typescript@5.5.4)))(eventemitter3@5.0.1)(typescript@5.5.4)(viem@2.20.1(typescript@5.5.4))':
+    dependencies:
+      '@simplewebauthn/browser': 10.0.0
+      '@simplewebauthn/server': 10.0.1
+      '@wagmi/core': 2.13.4(react@18.3.1)(typescript@5.5.4)(viem@2.20.1(typescript@5.5.4))
+      abitype: 1.0.6(typescript@5.5.4)
+      eventemitter3: 5.0.1
+      viem: 2.20.1(typescript@5.5.4)
+    optionalDependencies:
+      typescript: 5.5.4
+    transitivePeerDependencies:
+      - zod
 
   '@matterlabs/zksync-contracts@0.6.1(@openzeppelin/contracts-upgradeable@4.9.6)(@openzeppelin/contracts@4.9.6)':
     dependencies:

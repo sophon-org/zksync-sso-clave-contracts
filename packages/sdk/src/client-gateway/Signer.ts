@@ -13,20 +13,20 @@ import type {
   RPCRequestMessage,
   RPCResponseMessage,
   RPCResponseMessageSuccessful,
-} from "./message.js";
+} from "./message";
 import type {
   AppMetadata,
   RequestArguments,
   SessionPreferences,
   SessionData,
-} from "./interface.js";
-import type { Method } from "./method.js";
-import type { Communicator } from "../communicator/index.js";
-import { StorageItem } from "../utils/storage.js";
+} from "./interface";
+import type { Method } from "./method";
+import type { Communicator } from "../communicator/index";
+import { StorageItem } from "../utils/storage";
 import {
   createZksyncWalletClient,
   type ZksyncAccountWalletClient,
-} from "../client/index.js";
+} from "../client/index";
 
 type Account = {
   address: Address;

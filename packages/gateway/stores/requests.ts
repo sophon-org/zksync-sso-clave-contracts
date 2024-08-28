@@ -5,7 +5,7 @@ import type {
   MessageID,
   RPCRequestMessage,
   RPCResponseMessageSuccessful,
-} from "@matterlabs/zksync-account";
+} from "@matterlabs/zksync-account/client-gateway";
 import { communicator } from "@/utils/communicator";
 
 type Request = {

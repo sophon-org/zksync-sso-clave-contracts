@@ -4,7 +4,9 @@
   "peerDependencies": {
     "@simplewebauthn/browser": "10.x",
     "@simplewebauthn/server": "10.x",
-    "@wagmi/core": "2.x"
+    "@wagmi/core": "2.x",
+    "viem": "^2.20.0",
+    "eventemitter3": "^5.0.1"
   },
   "peerDependenciesMeta": {
     "typescript": {
@@ -13,9 +15,7 @@
   },
   "dependencies": {
     "@wagmi/core": "^2.13.4",
-    "abitype": "^1.0.6",
-    "eventemitter3": "^5.0.1",
-    "viem": "^2.20.0"
+    "abitype": "^1.0.6"
   },
   "devDependencies": {
     "@simplewebauthn/types": "10.x"

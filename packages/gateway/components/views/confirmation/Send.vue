@@ -81,7 +81,8 @@
 <script lang="ts" setup>
 import Web3Avatar from "web3-avatar-vue";
 import { formatUnits, type Hash } from "viem";
-import { type SerializedEthereumRpcError } from "@matterlabs/zksync-account/errors";
+// import { type SerializedEthereumRpcError } from "@matterlabs/zksync-account/errors";
+import type { SerializedEthereumRpcError } from "@matterlabs/zksync-account/errors";
 
 const { appMeta } = useAppMeta();
 const { respond, deny } = useRequestsStore();

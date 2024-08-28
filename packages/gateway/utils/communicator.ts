@@ -1,5 +1,5 @@
-import type { Message } from "@matterlabs/zksync-account/client-gateway";
-import type { PopupConfigMessage } from "@matterlabs/zksync-account/communicator";
+import { type Message } from "@matterlabs/zksync-account/client-gateway";
+import { type PopupConfigMessage } from "@matterlabs/zksync-account/communicator";
 
 /**
  * Communicates within a popup window to receive and respond to messages.

@@ -90,11 +90,11 @@
 
 <script lang="ts" setup>
 import { useTimeAgo } from "@vueuse/core";
-import {
-  type SessionPreferences,
-  type SessionData,
-  type HandshakeResponse,
-} from "@matterlabs/zksync-account";
+import type {
+  SessionPreferences,
+  SessionData,
+  HandshakeResponse,
+} from "@matterlabs/zksync-account/client-gateway";
 import { $fetch } from "ofetch";
 import { formatUnits, getAddress, type Address } from "viem";
 import { ClockIcon, FingerPrintIcon } from "@heroicons/vue/24/outline";

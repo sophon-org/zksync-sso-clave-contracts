@@ -1,26 +1,31 @@
-import { EventEmitter } from 'eventemitter3';
+import { EventEmitter } from "eventemitter3";
 
-import { standardErrorCodes, standardErrors } from '../errors/index.js';
-import { serializeError } from '../errors/serialize.js';
+import { standardErrorCodes, standardErrors } from "../errors/index";
+import { serializeError } from "../errors/serialize";
 import type {
   AppMetadata,
   ProviderInterface,
   RequestArguments,
   SessionPreferences,
-} from './interface.js';
-import { checkErrorForInvalidRequestArgs, fetchRPCRequest } from '../utils/provider.js';
-import { PopupCommunicator } from '../communicator/PopupCommunicator.js';
-import { determineMethodCategory } from './method.js';
-import { Signer } from './Signer.js';
-import type { Address, Chain, Transport } from 'viem';
+} from "./interface";
+import {
+  checkErrorForInvalidRequestArgs,
+  fetchRPCRequest,
+} from "../utils/provider";
+import { PopupCommunicator } from "../communicator/PopupCommunicator";
+import { determineMethodCategory } from "./method";
+import { Signer } from "./Signer";
+import type { Address, Chain, Transport } from "viem";
 
-const DEFAULT_GATEWAY_URL = 'http://localhost:3001/confirm';
+const DEFAULT_GATEWAY_URL = "http://localhost:3001/confirm";
 
 export type WalletProviderConstructorOptions = {
   metadata: AppMetadata;
   chains: readonly Chain[];
   transports?: Record<number, Transport>;
-  session?: SessionPreferences | (() => SessionPreferences | Promise<SessionPreferences>);
+  session?:
+    | SessionPreferences
+    | (() => SessionPreferences | Promise<SessionPreferences>);
   gatewayUrl?: string;
 };
 
@@ -28,16 +33,24 @@ export class WalletProvider extends EventEmitter implements ProviderInterface {
   readonly isZksyncAccount = true;
   private signer: Signer;
 
-  constructor({ metadata, chains, transports, session, gatewayUrl }: WalletProviderConstructorOptions) {
+  constructor({
+    metadata,
+    chains,
+    transports,
+    session,
+    gatewayUrl,
+  }: WalletProviderConstructorOptions) {
     super();
-    const communicator = new PopupCommunicator(gatewayUrl || DEFAULT_GATEWAY_URL);
+    const communicator = new PopupCommunicator(
+      gatewayUrl || DEFAULT_GATEWAY_URL,
+    );
     this.signer = new Signer({
       metadata,
       updateListener: this.updateListener,
       communicator: communicator,
       chains,
       transports,
-      session: typeof session === 'object' ? () => session : session,
+      session: typeof session === "object" ? () => session : session,
     });
   }
 
@@ -52,7 +65,7 @@ export class WalletProvider extends EventEmitter implements ProviderInterface {
     try {
       checkErrorForInvalidRequestArgs(args);
       // unrecognized methods are treated as fetch requests
-      const category = determineMethodCategory(args.method) ?? 'fetch';
+      const category = determineMethodCategory(args.method) ?? "fetch";
       return this.handlers[category](args) as T;
     } catch (error) {
       this.handleUnauthorizedError(error);
@@ -64,20 +77,20 @@ export class WalletProvider extends EventEmitter implements ProviderInterface {
     // eth_requestAccounts
     handshake: async (_: RequestArguments): Promise<Address[]> => {
       if (this.connected) {
-        this.emit('connect', { chainId: this.chain.id });
+        this.emit("connect", { chainId: this.chain.id });
         return this.signer.accounts;
       }
 
       const accounts = await this.signer.handshake();
 
-      this.emit('connect', { chainId: this.chain.id });
+      this.emit("connect", { chainId: this.chain.id });
       return accounts;
     },
 
     sign: async (request: RequestArguments) => {
       if (!this.connected) {
         throw standardErrors.provider.unauthorized(
-          "Must call 'eth_requestAccounts' before other methods"
+          "Must call 'eth_requestAccounts' before other methods",
         );
       }
       return await this.signer.request(request);
@@ -91,14 +104,14 @@ export class WalletProvider extends EventEmitter implements ProviderInterface {
       const getConnectedAccounts = (): Address[] => {
         if (this.connected) return this.signer.accounts;
         throw standardErrors.provider.unauthorized(
-          "Must call 'eth_requestAccounts' before other methods"
+          "Must call 'eth_requestAccounts' before other methods",
         );
       };
       switch (request.method) {
-        case 'eth_chainId':
-        case 'net_version':
+        case "eth_chainId":
+        case "net_version":
           return this.chain.id;
-        case 'eth_accounts':
+        case "eth_accounts":
           return getConnectedAccounts();
         default:
           return this.handlers.unsupported(request);
@@ -106,11 +119,15 @@ export class WalletProvider extends EventEmitter implements ProviderInterface {
     },
 
     deprecated: ({ method }: RequestArguments) => {
-      throw standardErrors.rpc.methodNotSupported(`Method ${method} is deprecated.`);
+      throw standardErrors.rpc.methodNotSupported(
+        `Method ${method} is deprecated.`,
+      );
     },
 
     unsupported: ({ method }: RequestArguments) => {
-      throw standardErrors.rpc.methodNotSupported(`Method ${method} is not supported.`);
+      throw standardErrors.rpc.methodNotSupported(
+        `Method ${method} is not supported.`,
+      );
     },
   };
 
@@ -121,15 +138,18 @@ export class WalletProvider extends EventEmitter implements ProviderInterface {
 
   async disconnect(): Promise<void> {
     this.signer.disconnect();
-    this.emit('disconnect', standardErrors.provider.disconnected('User initiated disconnection'));
+    this.emit(
+      "disconnect",
+      standardErrors.provider.disconnected("User initiated disconnection"),
+    );
   }
 
   protected readonly updateListener = {
     onAccountsUpdate: (accounts: Address[]) => {
-      this.emit('accountsChanged', accounts);
+      this.emit("accountsChanged", accounts);
     },
     onChainUpdate: (chainId: number) => {
-      this.emit('chainChanged', chainId);
+      this.emit("chainChanged", chainId);
     },
   };
 }
