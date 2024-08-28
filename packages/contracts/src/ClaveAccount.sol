@@ -24,6 +24,8 @@ import {Call} from './batch/BatchCaller.sol';
 
 import {IClaveAccount} from './interfaces/IClave.sol';
 
+import "hardhat/console.sol";
+
 /**
  * @title Main account contract from the Clave wallet infrastructure in zkSync Era
  * @author https://getclave.io
@@ -54,31 +56,26 @@ contract ClaveAccount is
 
     /**
      * @notice Initializer function for the account contract
+     * @dev Sets passkey and passkey validator within account storage
      * @param initialR1Owner bytes calldata - The initial r1 owner of the account
      * @param initialR1Validator address    - The initial r1 validator of the account
-     * @param modules bytes[] calldata      - The list of modules to enable for the account
-     * @param initCall Call calldata         - The initial call to be executed after the account is created
      */
     function initialize(
         bytes calldata initialR1Owner,
-        address initialR1Validator,
-        bytes[] calldata modules,
-        Call calldata initCall
+        address initialR1Validator
     ) external initializer {
-        _r1AddOwner(initialR1Owner);
-        _r1AddValidator(initialR1Validator);
+        console.log("initializing!");
+        // _r1AddOwner(initialR1Owner);
+        console.log("adding validator!");
 
-        for (uint256 i = 0; i < modules.length; ) {
-            _addModule(modules[i]);
-            unchecked {
-                i++;
-            }
-        }
-
-        if (initCall.target != address(0)) {
-            uint128 value = Utils.safeCastToU128(initCall.value);
-            _executeCall(initCall.target, value, initCall.callData, initCall.allowFailure);
-        }
+        // ClaveAccount => ERC1271 handler
+        _testERC1271Handler();
+        // ERC1271 handler => validator handler 
+        _testValidationHandler();
+        // validatorhandler => validator manager
+        // _r1AddValidator(initialR1Validator);
+        _testValidatorManager(initialR1Validator);
+        console.log("initialized!");
     }
 
     // Receive function to allow ETHs

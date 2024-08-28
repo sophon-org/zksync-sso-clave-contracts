@@ -10,6 +10,8 @@ import {AddressLinkedList} from "../libraries/LinkedList.sol";
 import {IR1Validator, IK1Validator} from "../interfaces/IValidator.sol";
 import {IValidatorManager} from "../interfaces/IValidatorManager.sol";
 
+import "hardhat/console.sol";
+
 /**
  * @title Manager contract for validators
  * @notice Abstract contract for managing the validators of the account
@@ -22,11 +24,24 @@ abstract contract ValidatorManager is IValidatorManager, Auth {
     // Interface helper library
     using ERC165Checker for address;
 
+    function _testValidatorManager(address testValidator) internal {
+        console.log("TestValidatorManager");
+        _supportsR1(testValidator);
+    }
+
     /// @inheritdoc IValidatorManager
     function r1AddValidator(
         address validator
     ) external override onlySelfOrModule {
-        _r1AddValidator(validator);
+        console.log("r1AddValidator (external)");
+        _supportsR1(validator);
+    }
+
+    /// @inheritdoc IValidatorManager
+    function addModuleValidator(
+        address validator
+    ) external override onlySelfOrModule {
+        _addModuleValidator(validator);
     }
 
     /// @inheritdoc IValidatorManager
@@ -85,6 +100,7 @@ abstract contract ValidatorManager is IValidatorManager, Auth {
     }
 
     function _r1AddValidator(address validator) internal {
+        console.log("r1AddValidator (internal)");
         if (!_supportsR1(validator)) {
             revert Errors.VALIDATOR_ERC165_FAIL();
         }
@@ -92,6 +108,10 @@ abstract contract ValidatorManager is IValidatorManager, Auth {
         _r1ValidatorsLinkedList().add(validator);
 
         emit R1AddValidator(validator);
+    }
+
+    function _addModuleValidator(address validator) internal {
+        _moduleValidatorsLinkedList().add(validator);
     }
 
     function _k1AddValidator(address validator) internal {
@@ -124,6 +144,10 @@ abstract contract ValidatorManager is IValidatorManager, Auth {
         return _r1ValidatorsLinkedList().exists(validator);
     }
 
+    function _isModuleValidator(address validator) internal view returns (bool) {
+        return _moduleValidatorsLinkedList().exists(validator);
+    }
+
     function _k1IsValidator(address validator) internal view returns (bool) {
         return _k1ValidatorsLinkedList().exists(validator);
     }
@@ -142,6 +166,14 @@ abstract contract ValidatorManager is IValidatorManager, Auth {
         returns (mapping(address => address) storage r1Validators)
     {
         r1Validators = ClaveStorage.layout().r1Validators;
+    }
+
+    function _moduleValidatorsLinkedList()
+        private
+        view
+        returns (mapping(address => address) storage moduleValidators)
+    {
+        moduleValidators = ClaveStorage.layout().moduleValidators;
     }
 
     function _k1ValidatorsLinkedList()

@@ -44,7 +44,6 @@ contract AAFactory {
                     )
                 )
             );
-        accountAddress = address(0);
         require(success, "Deployment failed");
 
         (accountAddress) = abi.decode(returnData, (address));

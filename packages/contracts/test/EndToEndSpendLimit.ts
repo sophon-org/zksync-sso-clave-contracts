@@ -1,17 +1,19 @@
 
 import { SmartAccount, utils, types, EIP712Signer } from "zksync-ethers";
 import { deployFactory } from "./AccountAbstraction"
-import { Contract, ethers } from "ethers";
+import { Contract, ContractTransactionResponse, ethers, ZeroAddress } from "ethers";
 import { promises } from "fs";
 import { it } from "mocha";
 import { deployContract, getWallet } from "./utils";
-import { assert } from "chai";
+import { assert, expect } from "chai";
+import { readFile } from "fs/promises";
 
 describe("Spend limit validation", function () {
 
     // era test node location
     const eraTestNodeRichKey = "0x3d3cbc973389cb26f657686445bcc75662b415b656078503592ac8c1abb8810e"
     const wallet = getWallet(eraTestNodeRichKey);
+    let aaFactory: Contract;
 
     it("should deploy module", async () => {
         const passkeyModuleAddress = await deployContract("SessionPasskeySpendLimitModule", [], { wallet });
@@ -23,12 +25,12 @@ describe("Spend limit validation", function () {
         assert(expensiveVerifier != null, "No verifier deployed")
     });
 
-    it.only("should deploy implemention", async () => {
+    it("should deploy implemention", async () => {
         const accountImpl = await deployContract("ClaveAccount", [], { wallet });
         assert(accountImpl != null, "No account impl deployed")
     });
 
-    it("should deploy proxy", async () => {
+    it("should deploy proxy directly", async () => {
         const accountImpl = await deployContract("ClaveAccount", [], { wallet });
         const accountImplAddress = await accountImpl.getAddress();
 
@@ -36,16 +38,41 @@ describe("Spend limit validation", function () {
         assert(proxyAccount != null, "No account proxy deployed")
     });
 
-    it("should deploy account with module", async () => {
-        const passkeyModuleContract= await deployContract("SessionPasskeySpendLimitModule", [], { wallet });
-
-        const expensiveVerifierContract = await deployContract("P256VerifierExpensive", [], { wallet });
-
+    it("should deploy proxy account via factory", async () => {
         const accountImpl = await deployContract("ClaveAccount", [], { wallet });
         const accountImplAddress = await accountImpl.getAddress();
-        const proxyAccount = await deployContract("ERC7579Account", [accountImplAddress], { wallet });
 
-        const aaFactory = await deployFactory("AAFactory", wallet)
+        aaFactory = await deployFactory("AAFactory", wallet)
+
+        const proxyTx: ContractTransactionResponse = await aaFactory.deployProxy7579Account(
+            ethers.ZeroHash,
+            accountImplAddress
+        );
+
+        assert(proxyTx != null, "new account setup failed")
+
+        const proxyAccountReciept = await proxyTx.wait();
+
+        assert(proxyAccountReciept != null, "new account deployment failed")
+        expect(proxyAccountReciept, "the proxy account location").to.not.equal(ZeroAddress, "be a valid address")
+    });
+
+    it("should add passkey and verifier to account", async () => {
+        const accountImpl = await deployContract("ClaveAccount", [], { wallet });
+        const accountImplAddress = await accountImpl.getAddress();
+
+        if (!aaFactory) {
+            aaFactory = await deployFactory("AAFactory", wallet)
+        }
+
+        console.log("accountImplAddress", accountImplAddress)
+        const proxyTx: ContractTransactionResponse = await aaFactory.deployProxy7579Account(
+            ethers.ZeroHash,
+            accountImplAddress
+        );
+
+        console.log("proxyTx", proxyTx)
+        const proxyAccountReciept = await proxyTx.wait();
 
         // this is a binary object formatted by @simplewebauthn that contains the alg type and public key
         const publicKeyEs256Bytes = new Uint8Array([
@@ -57,19 +84,15 @@ describe("Spend limit validation", function () {
             235, 81, 41, 196, 37, 216, 117, 201, 244, 128, 8, 73,
             37, 195, 20, 194, 9
         ]);
-        const passkeyAddress = await passkeyModuleContract.getAddress()
-        const p265VerifyAddress = await expensiveVerifierContract.getAddress();
 
-        console.log("deployment inputs", publicKeyEs256Bytes, p265VerifyAddress, [passkeyAddress])
-        const passkeyTx = await aaFactory.deployProxy7579Account(
-            ethers.ZeroHash,
-        );
-        console.log("what is this", passkeyTx)
-        assert(passkeyTx != null, "new account setup failed")
+        const claveArtifact = JSON.parse(await readFile('artifacts-zk/src/ClaveAccount.sol/ClaveAccount.json', 'utf8'));
+        const smartAccountProxy = new Contract(proxyAccountReciept.contractAddress, claveArtifact.abi, wallet);
 
-        await passkeyTx.wait();
+        const expensiveVerifier = await deployContract("P256VerifierExpensive", [], { wallet });
+        const expensiveVerifierAddress = await expensiveVerifier.getAddress();
 
-        assert(passkeyTx != null, "new account deployment failed")
+        const initTx = await smartAccountProxy.initialize(publicKeyEs256Bytes, expensiveVerifierAddress);
+        console.log("initTx", initTx)
     });
 
     xit("should set spend limit via module", async () => {

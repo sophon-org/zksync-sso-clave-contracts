@@ -22,6 +22,8 @@ import {ExecutionHelper} from "./helpers/Execution.sol";
 import {ClaveAccount} from "./ClaveAccount.sol";
 import {PackedUserOperation} from "./interfaces/PackedUserOperation.sol";
 
+import "hardhat/console.sol";
+
 /**
  * @author zeroknots.eth | rhinestone.wtf
  * Reference implementation of a very simple ERC7579 Account.
@@ -360,6 +362,7 @@ contract ERC7579Account is
      * @dev Fallback function that delegates the call to the implementation contract.
      */
     fallback() external payable {
+        console.log("fallback proxy!");
         address impl;
         assembly {
             impl := and(
@@ -381,6 +384,9 @@ contract ERC7579Account is
             }
         }
     }
+
+    // Receive function to allow ETHs
+    receive() external payable {}
 
     /**
      * @inheritdoc IERC7579Account

@@ -1,6 +1,6 @@
 import { utils, Wallet, Provider, ContractFactory } from "zksync-ethers";
 import * as ethers from "ethers";
-import { expect, assert } from 'chai';
+import { assert, should } from 'chai';
 import { promises } from "fs";
 
 export async function deployFactory(factoryName: string, wallet: Wallet): Promise<ethers.ethers.Contract> {
@@ -22,7 +22,7 @@ describe("Account abstraction", function () {
     const wallet = new Wallet(eraTestNodeRichKey, new Provider("http://localhost:8011"));
     it("should deploy AA factory", async function () {
         const aaFactory = await deployFactory("AAFactory", wallet)
-        expect(aaFactory).to.not.be.undefined(null, "Factory failed")
+        should().exist(aaFactory, "factory created")
     });
 
     it("should deploy AA factory and account", async function () {
@@ -88,14 +88,14 @@ describe("Account abstraction", function () {
         assert(createdAccount, "No account created")
         assert(emptyCreatedLinkedPasskey == ethers.ZeroAddress || emptyCreatedLinkedPasskey == '', "CLP == empty")
 
-        const newPasskey ="public-passkey-test,1,2,3,4"
+        const newPasskey = "public-passkey-test,1,2,3,4"
         const updateTx = await aaFactory.setLinkedEmbeddedAccountPasskey(
             appName,
             userId.toString(),
             createdAccount,
             wallet.address,
             newPasskey
-            );
+        );
         await updateTx.wait();
 
         const accountMappingWithPasskey = await aaFactory.accountMappings(appName, userId.toString(), wallet.address);
@@ -105,7 +105,7 @@ describe("Account abstraction", function () {
 
         // should have an address, but not have a passkey set by default
         assert(createdAccountAfterPasskey, "No account!")
-        assert(createdLinkedPasskey != ethers.ZeroAddress || createdLinkedPasskey != '', `CLP == zero: ${ethers.ZeroAddress}`, )
+        assert(createdLinkedPasskey != ethers.ZeroAddress || createdLinkedPasskey != '', `CLP == zero: ${ethers.ZeroAddress}`,)
         assert(newPasskey == createdLinkedPasskey, 'mismatch')
     });
 });

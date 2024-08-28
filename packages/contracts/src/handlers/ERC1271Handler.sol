@@ -7,6 +7,8 @@ import {SignatureDecoder} from "../libraries/SignatureDecoder.sol";
 import {ValidationHandler} from "./ValidationHandler.sol";
 import {EIP712} from "../helpers/EIP712.sol";
 
+import "hardhat/console.sol";
+
 /**
  * @title ERC1271Handler
  * @notice Contract which provides ERC1271 signature validation
@@ -25,6 +27,10 @@ abstract contract ERC1271Handler is
         keccak256("ClaveMessage(bytes32 signedHash)");
 
     bytes4 private constant _ERC1271_MAGIC = 0x1626ba7e;
+
+    function _testERC1271Handler() internal {
+        console.log("TestERC1271Handler");
+    }
 
     /**
      * @dev Should return whether the signature provided is valid for the provided data
