@@ -8,7 +8,7 @@ import "hardhat/console.sol";
 
 contract AAFactory {
     bytes32 public testAaBytecodeHash;
-    bytes32 public defaultAaBytecodeHash;
+    bytes32 public proxyAaBytecodeHash;
 
     struct MetaAccountConnection {
         address accountLocation;
@@ -20,16 +20,14 @@ contract AAFactory {
     mapping(string => mapping(string => mapping(address => MetaAccountConnection)))
         public accountMappings;
 
-    constructor(bytes32 _testAaBytecodeHash, bytes32 _defaultAaBytecodeHash) {
+    constructor(bytes32 _testAaBytecodeHash, bytes32 _proxyAaBytecodeHash) {
         testAaBytecodeHash = _testAaBytecodeHash;
-        defaultAaBytecodeHash = _defaultAaBytecodeHash;
+        proxyAaBytecodeHash = _proxyAaBytecodeHash;
     }
 
-    function deploy7579Account(
+    function deployProxy7579Account(
         bytes32 salt,
-        bytes calldata passkey,
-        address validatorAddress,
-        bytes[] memory modules
+        address accountImplementionLocation
     ) external returns (address accountAddress) {
         (bool success, bytes memory returnData) = SystemContractsCaller
             .systemCallWithReturndata(
@@ -40,17 +38,21 @@ contract AAFactory {
                     DEPLOYER_SYSTEM_CONTRACT.create2Account,
                     (
                         salt,
-                        defaultAaBytecodeHash,
-                        abi.encode(passkey, validatorAddress, modules),
+                        proxyAaBytecodeHash,
+                        abi.encode(accountImplementionLocation),
                         IContractDeployer.AccountAbstractionVersion.Version1
                     )
                 )
             );
+        accountAddress = address(0);
         require(success, "Deployment failed");
 
         (accountAddress) = abi.decode(returnData, (address));
     }
 
+    /**
+     * This is a test harness to deploy a simple account with the factory-registry
+     */
     function deployLinkedSocialAccount(
         bytes32 salt,
         string calldata uniqueUserId,
