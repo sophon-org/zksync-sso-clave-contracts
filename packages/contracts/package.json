@@ -1,5 +1,5 @@
 {
-  "name": "zksync-account-sdk-contracts",
+  "name": "contracts",
   "description": "Smart contracts for modular account deployment",
   "private": true,
   "author": "Matter Labs",

@@ -1,0 +1,23 @@
+{
+  "name": "@matterlabs/zksync-account",
+  "version": "0.0.0",
+  "peerDependencies": {
+    "@simplewebauthn/browser": "10.x",
+    "@simplewebauthn/server": "10.x",
+    "@wagmi/core": "2.x"
+  },
+  "peerDependenciesMeta": {
+    "typescript": {
+      "optional": true
+    }
+  },
+  "dependencies": {
+    "@wagmi/core": "^2.13.4",
+    "abitype": "^1.0.6",
+    "eventemitter3": "^5.0.1",
+    "viem": "^2.20.0"
+  },
+  "devDependencies": {
+    "@simplewebauthn/types": "10.x"
+  }
+}
