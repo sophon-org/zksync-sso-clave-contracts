@@ -2,11 +2,14 @@
   "name": "zksync-account-sdk",
   "version": "1.0.0",
   "description": "Account Abstraction tooling",
-  "keywords": ["zksync", "account-abstraction", "EIP7579"],
-  "workspaces": ["packages/contracts"],
+  "keywords": [
+    "zksync",
+    "account-abstraction",
+    "EIP7579"
+  ],
   "author": "@matterlabs",
   "license": "MIT",
   "devDependencies": {
-    "nx": "^19.6.2"
+    "nx": "^19.6.3"
   }
 }
