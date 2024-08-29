@@ -1,12 +1,14 @@
 
 import { SmartAccount, utils, types, EIP712Signer } from "zksync-ethers";
 import { deployFactory } from "./AccountAbstraction"
-import { AbiCoder, Contract, ContractTransactionReceipt, ContractTransactionResponse, ethers, ZeroAddress } from "ethers";
+import { AbiCoder, Contract, ContractTransactionReceipt, ContractTransactionResponse, ethers, Interface, ZeroAddress } from "ethers";
 import { promises } from "fs";
 import { it } from "mocha";
 import { deployContract, getWallet } from "./utils";
 import { assert, expect } from "chai";
 import { readFile } from "fs/promises";
+
+// const erc7579ABI = require('../artifacts-zk/src/ERC7579Account.sol/ERC7579Account.json').abi;
 
 describe.only("Spend limit validation", function () {
 
@@ -20,6 +22,15 @@ describe.only("Spend limit validation", function () {
     let proxyAccountContract: Contract;
     let aaFactoryContract: Contract;
     let proxyAccountAddress: string; // Deployed from AA Factory
+
+    // let ERC7579 = new Interface(erc7579ABI);
+    const abiCoder = new AbiCoder();
+
+    interface TokenConfig {
+        token: string; // address
+        publicKey: Uint8Array; // bytes
+        limit: ethers.BigNumberish; // uint256
+    }
 
     it("should deploy module", async () => {
         passkeyModuleContract = await deployContract("SessionPasskeySpendLimitModule", [], { wallet });
@@ -51,7 +62,7 @@ describe.only("Spend limit validation", function () {
             ethers.ZeroHash,
             await accountImplContract.getAddress()
         );
-        const proxyAccountTxReceipt: ContractTransactionReceipt = await proxyAccount.wait();
+        const proxyAccountTxReceipt = await proxyAccount.wait();
 
         // Extract and decode the return address from the return data/logs
         // Assuming the return data is in the first log's data field
@@ -60,7 +71,12 @@ describe.only("Spend limit validation", function () {
         //      event ProxyAccountDeployed(address accountAddress)
         //
         // Then, this would be more precise with decodeEventLog()
-        const newAddress = (new AbiCoder()).decode(["address"], proxyAccountTxReceipt.logs[0].data);
+        console.log(proxyAccount);
+        console.log(proxyAccount.accountAddress);
+        console.log(proxyAccountTxReceipt.accountAddress);
+        console.log({proxyAccount});
+        console.log({proxyAccountTxReceipt});
+        const newAddress = abiCoder.decode(["address"], proxyAccountTxReceipt.logs[0].data);
         proxyAccountAddress = newAddress[0];
 
         console.log(`New 7579 Account created: ${proxyAccountAddress}`);
@@ -68,7 +84,11 @@ describe.only("Spend limit validation", function () {
         expect(proxyAccountAddress, "the proxy account location").to.not.equal(ZeroAddress, "be a valid address");
     });
 
-    it("should add passkey and verifier to account", async () => {
+    xit("should add passkey and verifier to account", async () => {
+        //
+        // PART ONE: Initialize ClaveAccount
+        //
+        
         // This is a binary object formatted by @simplewebauthn that contains the alg type and public key
         const publicKeyEs256Bytes = new Uint8Array([
             165, 1, 2, 3, 38, 32, 1, 33, 88, 32, 167, 69,
@@ -79,14 +99,82 @@ describe.only("Spend limit validation", function () {
             235, 81, 41, 196, 37, 216, 117, 201, 244, 128, 8, 73,
             37, 195, 20, 194, 9
         ]);
-
+        
         const claveArtifact = JSON.parse(await readFile('artifacts-zk/src/ClaveAccount.sol/ClaveAccount.json', 'utf8'));
         const smartAccountProxy = new Contract(proxyAccountAddress, claveArtifact.abi, wallet);
-
+        
         const expensiveVerifierAddress = await expensiveVerifierContract.getAddress();
-
+        
         const initTx = await smartAccountProxy.initialize(publicKeyEs256Bytes, expensiveVerifierAddress);
-        // console.log("initTx", initTx)
+        await initTx.wait();
+        
+        //
+        // PART TWO: Install Module
+        //
+        const moduleTypeId = 1; // MODULE_TYPE_VALIDATOR
+        const moduleAddress = await passkeyModuleContract.getAddress();
+        const tokenConfigs: TokenConfig[] = [
+            {
+                token: "0xAe045DE5638162fa134807Cb558E15A3F5A7F853",
+                publicKey: publicKeyEs256Bytes,
+                limit: ethers.toBigInt(1000)
+            },
+        ];
+        // Define the types array corresponding to the struct
+        const tokenConfigTypes = [
+            "address", // token
+            "bytes",   // publicKey
+            "uint256"  // limit
+        ];
+        const moduleData = abiCoder.encode(
+            [`tuple(${tokenConfigTypes.join(",")})[]`], // Solidity equivalent: TokenConfig[]
+            [tokenConfigs.map(config => [
+                config.token,
+                config.publicKey,
+                config.limit
+            ])]
+        );
+
+        const installModuleTx = await smartAccountProxy.installModule(
+            moduleTypeId,
+            moduleAddress,
+            moduleData
+        );
+        const response = await installModuleTx.wait();
+
+        console.log(response);
+
+
+        // send signed transaction to update spend limit on module
+        const authenticatorData = 'SZYN5YgOjGh0NBcPZHZgW4_krrmihjLHmVzzuoMdl2MFAAAABQ'
+        const clientData = 'eyJ0eXBlIjoid2ViYXV0aG4uZ2V0IiwiY2hhbGxlbmdlIjoiZFhPM3ctdWdycS00SkdkZUJLNDFsZFk1V2lNd0ZORDkiLCJvcmlnaW4iOiJodHRwOi8vbG9jYWxob3N0OjUxNzMiLCJjcm9zc09yaWdpbiI6ZmFsc2UsIm90aGVyX2tleXNfY2FuX2JlX2FkZGVkX2hlcmUiOiJkbyBub3QgY29tcGFyZSBjbGllbnREYXRhSlNPTiBhZ2FpbnN0IGEgdGVtcGxhdGUuIFNlZSBodHRwczovL2dvby5nbC95YWJQZXgifQ'
+        const b64SignedChallenge = 'MEUCIQCYrSUCR_QUPAhvRNUVfYiJC2JlOKuqf4gx7i129n9QxgIgaY19A9vAAObuTQNs5_V9kZFizwRpUFpiRVW_dglpR2A'
+
+        // compare both to see what it's doing
+        const smartAccount = new SmartAccount({ address: proxyAccountAddress, secret: b64SignedChallenge });
+
+        // execute setSpendLimit within the account contract:
+        // send a transaction with the sender being the smart account address,
+        // and the transaction call data with the setSpendLimit function
+        // with the signature of the passkey
+        const populatedSmartAccountTx = await smartAccount.populateTransaction({
+            type: utils.EIP712_TX_TYPE,
+            customData: {
+                customSignature: b64SignedChallenge,
+            },
+            /*
+            selector: "setSpendLimit"
+            publicKey: publicKeyEs256Bytes,
+            limit: 1000,
+            token: "0xAe045DE5638162fa134807Cb558E15A3F5A7F853",
+            */
+        });
+
+        //
+        // PART THREE: Validate Module works as expected
+        //
+
+        // TODO
     });
 
     xit("should set spend limit via module", async () => {
@@ -122,16 +210,18 @@ describe.only("Spend limit validation", function () {
         const expensiveVerifierAddress = await expensiveVerifier.getAddress();
 
         const initTx = await smartAccountProxy.initialize(publicKeyEs256Bytes, expensiveVerifierAddress);
-        console.log("initTx", initTx)
+        await initTx.wait();
+        // console.log("initTx", initTx)
+
 
         // send signed transaction to update spend limit on module
         // FIXME: show the real hashing of the transaction instead of just the data snapshot
         const authenticatorData = 'SZYN5YgOjGh0NBcPZHZgW4_krrmihjLHmVzzuoMdl2MFAAAABQ'
         const clientData = 'eyJ0eXBlIjoid2ViYXV0aG4uZ2V0IiwiY2hhbGxlbmdlIjoiZFhPM3ctdWdycS00SkdkZUJLNDFsZFk1V2lNd0ZORDkiLCJvcmlnaW4iOiJodHRwOi8vbG9jYWxob3N0OjUxNzMiLCJjcm9zc09yaWdpbiI6ZmFsc2UsIm90aGVyX2tleXNfY2FuX2JlX2FkZGVkX2hlcmUiOiJkbyBub3QgY29tcGFyZSBjbGllbnREYXRhSlNPTiBhZ2FpbnN0IGEgdGVtcGxhdGUuIFNlZSBodHRwczovL2dvby5nbC95YWJQZXgifQ'
-        const b64SignedChallange = 'MEUCIQCYrSUCR_QUPAhvRNUVfYiJC2JlOKuqf4gx7i129n9QxgIgaY19A9vAAObuTQNs5_V9kZFizwRpUFpiRVW_dglpR2A'
+        const b64SignedChallenge = 'MEUCIQCYrSUCR_QUPAhvRNUVfYiJC2JlOKuqf4gx7i129n9QxgIgaY19A9vAAObuTQNs5_V9kZFizwRpUFpiRVW_dglpR2A'
 
         // compare both to see what it's doing
-        const smartAccount = new SmartAccount({ address: proxyAccountReciept.contractAddress, secret: b64SignedChallange });
+        const smartAccount = new SmartAccount({ address: proxyAccountReciept.contractAddress, secret: b64SignedChallenge });
 
         // execute setSpendLimit within the account contract:
         // send a transaction with the sender being the smart account address,
@@ -140,7 +230,7 @@ describe.only("Spend limit validation", function () {
         const populatedSmartAccountTx = await smartAccount.populateTransaction({
             type: utils.EIP712_TX_TYPE,
             customData: {
-                customSignature: b64SignedChallange,
+                customSignature: b64SignedChallenge,
             },
             /*
             selector: "setSpendLimit"

@@ -24,6 +24,8 @@ import {Call} from './batch/BatchCaller.sol';
 
 import {IClaveAccount} from './interfaces/IClave.sol';
 
+import "hardhat/console.sol";
+
 /**
  * @title Main account contract from the Clave wallet infrastructure in zkSync Era
  * @author https://getclave.io
@@ -50,6 +52,7 @@ contract ClaveAccount is
      */
     constructor() { // address batchCaller
         _disableInitializers();
+        console.log("ClaveAccount.sol: constructor() called");
     }
 
     /**
