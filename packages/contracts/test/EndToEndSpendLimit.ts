@@ -6,6 +6,7 @@ import { it } from "mocha";
 import { deployContract, getWallet } from "./utils";
 import { assert, expect } from "chai";
 import { readFile } from "fs/promises";
+import { getPublicKeyBytes } from "./PasskeyModule";
 
 // const erc7579ABI = require('../artifacts-zk/src/ERC7579Account.sol/ERC7579Account.json').abi;
 
@@ -34,7 +35,7 @@ class ContractFixtures {
     private _expensiveVerifierContract: Contract;
     async getExpensiveVerifierContract() {
         if (!this._expensiveVerifierContract) {
-            this._expensiveVerifierContract = await deployContract("P256VerifierExpensive", [], { wallet: this.wallet });
+            this._expensiveVerifierContract = await deployContract("PasskeyValidator", [], { wallet: this.wallet });
         }
         return this._expensiveVerifierContract
     }
@@ -127,7 +128,7 @@ describe.only("Spend limit validation", function () {
         expect(proxyAccountAddress, "the proxy account location").to.not.equal(ZeroAddress, "be a valid address");
     });
 
-    it("should add passkey and verifier to account", async () => {
+    it.only("should add passkey and verifier to account", async () => {
         //
         // PART ONE: Initialize ClaveAccount
         //
@@ -142,13 +143,17 @@ describe.only("Spend limit validation", function () {
             235, 81, 41, 196, 37, 216, 117, 201, 244, 128, 8, 73,
             37, 195, 20, 194, 9
         ]);
+        const xyPublicKey = getPublicKeyBytes(publicKeyEs256Bytes); //convert from 77 to 64 bytes
         const proxyAccountAddress = await (await fixtures.getProxyAccountContract()).getAddress();
         const claveArtifact = JSON.parse(await readFile('artifacts-zk/src/ClaveAccount.sol/ClaveAccount.json', 'utf8'));
-        const smartAccountProxy = new Contract(proxyAccountAddress, claveArtifact.abi, fixtures.wallet);
+        const eip7579Artifact = JSON.parse(await readFile('artifacts-zk/src/ERC7579Account.sol/ERC7579Account.json', 'utf8'));
+        const claveAccountFunctions = new Contract(proxyAccountAddress, claveArtifact.abi, fixtures.wallet);
+        const erc7579AccountFunctions = new Contract(proxyAccountAddress, eip7579Artifact.abi, fixtures.wallet);
 
+        // 0x100 ? will need to see if this works
         const expensiveVerifierAddress = await (await fixtures.getExpensiveVerifierContract()).getAddress();
 
-        const initTx = await smartAccountProxy.initialize(publicKeyEs256Bytes, expensiveVerifierAddress);
+        const initTx = await claveAccountFunctions.initialize(xyPublicKey, expensiveVerifierAddress);
         await initTx.wait();
 
         //
@@ -178,7 +183,8 @@ describe.only("Spend limit validation", function () {
             ])]
         );
 
-        const installModuleTx = await smartAccountProxy.installModule(
+        // TODO: sign this transaction with the passkey!
+        const installModuleTx = await erc7579AccountFunctions.installModule(
             moduleTypeId,
             moduleAddress,
             moduleData

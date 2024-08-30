@@ -10,6 +10,12 @@ pragma solidity ^0.8.0;
  * https://github.com/tdrerup/elliptic-curve-solidity/blob/master/contracts/curves/EllipticCurve.sol
  **/
 contract P256VerifierExpensive {
+
+    function supportsInterface(bytes4) external pure returns (bool)
+    {
+        return true;
+    }
+
     /**
      * Precompiles don't use a function signature. The first byte of callldata
      * is the first byte of an input argument. In this case:

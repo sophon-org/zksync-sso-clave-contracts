@@ -7,6 +7,8 @@ import "../interfaces/IERC7579Module.sol";
 import {IERC7579Module} from "../interfaces/IERC7579Module.sol";
 import {IR1Validator} from "../interfaces/IValidator.sol";
 
+import "hardhat/console.sol";
+
 /**
  * Looking to combine with the validator to ensure that the spend limit is touched
  * Working on using the 7579 module + zksync validator
@@ -48,6 +50,7 @@ contract SessionPasskeySpendLimitModule is IERC7579Module {
      * @param data TokenConfig[]
      */
     function onInstall(bytes calldata data) external override {
+        console.log("installing passkey module");
         TokenConfig[] memory configs = abi.decode(data, (TokenConfig[]));
         for (uint256 i = 0; i < configs.length; i++) {
             spendingLimits[msg.sender][configs[i].token].limit = configs[i]

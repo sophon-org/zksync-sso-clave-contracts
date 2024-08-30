@@ -156,6 +156,21 @@ async function getPublicKey(publicPasskey: Uint8Array) {
     return ["0x" + Buffer.from(x).toString('hex'), "0x" + Buffer.from(y).toString('hex')]
 }
 
+export async function getPublicKeyBytes(publicPasskey: Uint8Array) {
+    const cosePublicKey = decodeFirst<Map<number, any>>(publicPasskey);
+    console.log("decodeFirst", cosePublicKey)
+    const alg = cosePublicKey.get(COSEKEYS.alg) as COSEALG;
+    const crv = cosePublicKey.get(COSEKEYS.crv);
+    console.log("alg, crv", alg, crv)
+    const x = cosePublicKey.get(COSEKEYS.x);
+    const y = cosePublicKey.get(COSEKEYS.y);
+    console.log("raw x, y", x, y)
+    const kty = cosePublicKey.get(COSEKEYS.kty) as COSEKTY;
+    console.log("kty", kty)
+
+    return Buffer.concat([Buffer.from(x), Buffer.from(y)])
+}
+
 /**
  * Combine multiple Uint8Arrays into a single Uint8Array
  */
