@@ -2,7 +2,6 @@
 import { SmartAccount, utils, types, EIP712Signer } from "zksync-ethers";
 import { deployFactory } from "./AccountAbstraction"
 import { AbiCoder, Contract, ContractTransactionReceipt, ContractTransactionResponse, ethers, Interface, ZeroAddress } from "ethers";
-import { promises } from "fs";
 import { it } from "mocha";
 import { deployContract, getWallet } from "./utils";
 import { assert, expect } from "chai";
@@ -10,18 +9,64 @@ import { readFile } from "fs/promises";
 
 // const erc7579ABI = require('../artifacts-zk/src/ERC7579Account.sol/ERC7579Account.json').abi;
 
+class ContractFixtures {
+
+    // eraTestNodeRichKey
+    wallet = getWallet("0x3d3cbc973389cb26f657686445bcc75662b415b656078503592ac8c1abb8810e");
+
+    private _aaFactory: Contract;
+    async getAaFactory() {
+        if (!this._aaFactory) {
+            this._aaFactory = await deployFactory("AAFactory", this.wallet);
+        }
+        return this._aaFactory;
+    }
+
+    private _passkeyModuleContract: Contract;
+
+    async getPasskeyModuleContract() {
+        if (!this._passkeyModuleContract) {
+            this._passkeyModuleContract = await deployContract("SessionPasskeySpendLimitModule", [], { wallet: this.wallet });
+        }
+        return this._passkeyModuleContract
+    }
+
+    private _expensiveVerifierContract: Contract;
+    async getExpensiveVerifierContract() {
+        if (!this._expensiveVerifierContract) {
+            this._expensiveVerifierContract = await deployContract("P256VerifierExpensive", [], { wallet: this.wallet });
+        }
+        return this._expensiveVerifierContract
+    }
+    private _accountImplContract: Contract;
+    async getAccountImplContract() {
+        if (!this._accountImplContract) {
+            this._accountImplContract = await deployContract("ClaveAccount", [], { wallet: this.wallet });
+        }
+        return this._accountImplContract;
+    }
+
+    private _accountImplAddress: string;
+
+    async getAccountImplAddress() {
+        if (!this._accountImplAddress) {
+            const accountImpl = await this.getAccountImplContract();
+            this._accountImplAddress = await accountImpl.getAddress();
+        }
+        return this._accountImplAddress
+    } 
+    private _proxyAccountContract: Contract;
+    async getProxyAccountContract() {
+        if (!this._proxyAccountContract) {
+            this._proxyAccountContract = await deployContract("ERC7579Account", [await this.getAccountImplAddress()], { wallet: this.wallet });
+        }
+        return this._proxyAccountContract;
+    }
+}
+
 describe.only("Spend limit validation", function () {
 
-    // era test node location
-    const eraTestNodeRichKey = "0x3d3cbc973389cb26f657686445bcc75662b415b656078503592ac8c1abb8810e"
-    const wallet = getWallet(eraTestNodeRichKey);
-    let aaFactory: Contract;
-    let passkeyModuleContract: Contract;
-    let expensiveVerifierContract: Contract;
-    let accountImplContract: Contract;
-    let proxyAccountContract: Contract;
-    let aaFactoryContract: Contract;
-    let proxyAccountAddress: string; // Deployed from AA Factory
+    const fixtures = new ContractFixtures()
 
     // let ERC7579 = new Interface(erc7579ABI);
     const abiCoder = new AbiCoder();
@@ -33,34 +78,32 @@ describe.only("Spend limit validation", function () {
     }
 
     it("should deploy module", async () => {
-        passkeyModuleContract = await deployContract("SessionPasskeySpendLimitModule", [], { wallet });
+        const passkeyModuleContract = await fixtures.getPasskeyModuleContract();
         assert(passkeyModuleContract != null, "No module deployed");
     });
 
     it("should deploy verifier", async () => {
-        expensiveVerifierContract = await deployContract("P256VerifierExpensive", [], { wallet });
+        const expensiveVerifierContract = await fixtures.getExpensiveVerifierContract();
         assert(expensiveVerifierContract != null, "No verifier deployed");
     });
 
     it("should deploy implemention", async () => {
-        accountImplContract = await deployContract("ClaveAccount", [], { wallet });
+        const accountImplContract = await fixtures.getAccountImplContract();
         assert(accountImplContract != null, "No account impl deployed");
     });
 
     it("should deploy proxy directly", async () => {
-        const accountImplAddress = await accountImplContract.getAddress();
-
-        proxyAccountContract = await deployContract("ERC7579Account", [accountImplAddress], { wallet });
+        const proxyAccountContract = await fixtures.getProxyAccountContract();
         assert(proxyAccountContract != null, "No account proxy deployed");
     });
 
     it("should deploy proxy account via factory", async () => {
-        aaFactoryContract = await deployFactory("AAFactory", wallet);
+        const aaFactoryContract = await fixtures.getAaFactory();
         assert(aaFactoryContract != null, "No AA Factory deployed");
 
         const proxyAccount = await aaFactoryContract.deployProxy7579Account(
             ethers.ZeroHash,
-            await accountImplContract.getAddress()
+            await fixtures.getAccountImplAddress()
         );
         const proxyAccountTxReceipt = await proxyAccount.wait();
 
@@ -74,21 +117,21 @@ describe.only("Spend limit validation", function () {
         console.log(proxyAccount);
         console.log(proxyAccount.accountAddress);
         console.log(proxyAccountTxReceipt.accountAddress);
-        console.log({proxyAccount});
-        console.log({proxyAccountTxReceipt});
+        console.log({ proxyAccount });
+        console.log({ proxyAccountTxReceipt });
         const newAddress = abiCoder.decode(["address"], proxyAccountTxReceipt.logs[0].data);
-        proxyAccountAddress = newAddress[0];
+        const proxyAccountAddress = newAddress[0];
 
         console.log(`New 7579 Account created: ${proxyAccountAddress}`);
 
         expect(proxyAccountAddress, "the proxy account location").to.not.equal(ZeroAddress, "be a valid address");
     });
 
-    xit("should add passkey and verifier to account", async () => {
+    it("should add passkey and verifier to account", async () => {
         //
         // PART ONE: Initialize ClaveAccount
         //
-        
+
         // This is a binary object formatted by @simplewebauthn that contains the alg type and public key
         const publicKeyEs256Bytes = new Uint8Array([
             165, 1, 2, 3, 38, 32, 1, 33, 88, 32, 167, 69,
@@ -99,20 +142,20 @@ describe.only("Spend limit validation", function () {
             235, 81, 41, 196, 37, 216, 117, 201, 244, 128, 8, 73,
             37, 195, 20, 194, 9
         ]);
-        
+        const proxyAccountAddress = await (await fixtures.getProxyAccountContract()).getAddress();
         const claveArtifact = JSON.parse(await readFile('artifacts-zk/src/ClaveAccount.sol/ClaveAccount.json', 'utf8'));
-        const smartAccountProxy = new Contract(proxyAccountAddress, claveArtifact.abi, wallet);
-        
-        const expensiveVerifierAddress = await expensiveVerifierContract.getAddress();
-        
+        const smartAccountProxy = new Contract(proxyAccountAddress, claveArtifact.abi, fixtures.wallet);
+
+        const expensiveVerifierAddress = await (await fixtures.getExpensiveVerifierContract()).getAddress();
+
         const initTx = await smartAccountProxy.initialize(publicKeyEs256Bytes, expensiveVerifierAddress);
         await initTx.wait();
-        
+
         //
         // PART TWO: Install Module
         //
         const moduleTypeId = 1; // MODULE_TYPE_VALIDATOR
-        const moduleAddress = await passkeyModuleContract.getAddress();
+        const moduleAddress = await (await fixtures.getPasskeyModuleContract()).getAddress();
         const tokenConfigs: TokenConfig[] = [
             {
                 token: "0xAe045DE5638162fa134807Cb558E15A3F5A7F853",
@@ -178,16 +221,10 @@ describe.only("Spend limit validation", function () {
     });
 
     xit("should set spend limit via module", async () => {
-        const accountImpl = await deployContract("ClaveAccount", [], { wallet });
-        const accountImplAddress = await accountImpl.getAddress();
 
-        if (!aaFactory) {
-            aaFactory = await deployFactory("AAFactory", wallet)
-        }
-
-        const proxyTx: ContractTransactionResponse = await aaFactory.deployProxy7579Account(
+        const proxyTx: ContractTransactionResponse = await (await fixtures.getAaFactory()).deployProxy7579Account(
             ethers.ZeroHash,
-            accountImplAddress
+            await fixtures.getAccountImplAddress(),
         );
 
         const proxyAccountReciept = await proxyTx.wait();
@@ -204,14 +241,13 @@ describe.only("Spend limit validation", function () {
         ]);
 
         const claveArtifact = JSON.parse(await readFile('artifacts-zk/src/ClaveAccount.sol/ClaveAccount.json', 'utf8'));
-        const smartAccountProxy = new Contract(proxyAccountReciept.contractAddress, claveArtifact.abi, wallet);
+        const smartAccountProxy = new Contract(proxyAccountReciept.contractAddress, claveArtifact.abi, fixtures.wallet);
 
-        const expensiveVerifier = await deployContract("P256VerifierExpensive", [], { wallet });
-        const expensiveVerifierAddress = await expensiveVerifier.getAddress();
-
-        const initTx = await smartAccountProxy.initialize(publicKeyEs256Bytes, expensiveVerifierAddress);
+        const initTx = await smartAccountProxy.initialize(
+            publicKeyEs256Bytes,
+            await (await fixtures.getExpensiveVerifierContract()).getAddress());
         await initTx.wait();
-        // console.log("initTx", initTx)
+        console.log("initTx", initTx)
 
 
         // send signed transaction to update spend limit on module
