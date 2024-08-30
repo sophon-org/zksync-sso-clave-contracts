@@ -4,6 +4,7 @@ pragma solidity ^0.8.24;
 import "@matterlabs/zksync-contracts/l2/system-contracts/Constants.sol";
 import "@matterlabs/zksync-contracts/l2/system-contracts/libraries/SystemContractsCaller.sol";
 
+import {IERC7579Account} from "./interfaces/IERC7579Account.sol";
 import "hardhat/console.sol";
 
 contract AAFactory {
@@ -27,7 +28,10 @@ contract AAFactory {
 
     function deployProxy7579Account(
         bytes32 salt,
-        address accountImplementionLocation
+        address accountImplementionLocation,
+        uint256 moduleTypeId,
+        address module,
+        bytes calldata initData
     ) external returns (address accountAddress) {
         (bool success, bytes memory returnData) = SystemContractsCaller
             .systemCallWithReturndata(
@@ -39,16 +43,18 @@ contract AAFactory {
                     (
                         salt,
                         proxyAaBytecodeHash,
-                        abi.encode(accountImplementionLocation),
+                        abi.encode(accountImplementionLocation, accountImplementionLocation), // address(this)
                         IContractDeployer.AccountAbstractionVersion.Version1
                     )
                 )
             );
         require(success, "Deployment failed");
-        console.log("(AAFactory:deployProxy7579Account) ", "success:", success);
-        console.log("(AAFactory:deployProxy7579Account) ", "New 7579 Account:", accountAddress);
 
         (accountAddress) = abi.decode(returnData, (address));
+
+        // add session-key/spend-limit module
+        IERC7579Account(accountAddress).installModule(moduleTypeId, module, initData);
+
     }
 
     /**

@@ -49,6 +49,7 @@ contract ERC7579Account is
     error MismatchModuleTypeId(uint256 moduleTypeId);
 
     bytes4 constant EIP1271_SUCCESS_RETURN_VALUE = 0x1626ba7e;
+    address private _factory = address(0);
 
     // keccak-256 of "eip1967.proxy.implementation" subtracted by 1
     bytes32 private constant _ZKSYNC_IMPLEMENTATION_SLOT =
@@ -61,7 +62,8 @@ contract ERC7579Account is
     modifier onlyEntryPointOrSelf() virtual {
         if (
             !(msg.sender == BOOTLOADER_FORMAL_ADDRESS ||
-                msg.sender == address(this))
+                msg.sender == address(this) ||
+                msg.sender == _factory)
         ) {
             revert AccountAccessUnauthorized();
         }
@@ -337,7 +339,8 @@ contract ERC7579Account is
      * @notice Sets the initial implementation contract.
      * @param implementation address - Address of the implementation contract.
      */
-    constructor(address implementation) {
+    constructor(address implementation, address factory) {
+        _factory = factory;
         assembly {
             sstore(_ZKSYNC_IMPLEMENTATION_SLOT, implementation)
         }

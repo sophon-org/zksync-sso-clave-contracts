@@ -59,7 +59,8 @@ class ContractFixtures {
     private _proxyAccountContract: Contract;
     async getProxyAccountContract() {
         if (!this._proxyAccountContract) {
-            this._proxyAccountContract = await deployContract("ERC7579Account", [await this.getAccountImplAddress()], { wallet: this.wallet });
+            const claveAddress = await this.getAccountImplAddress();
+            this._proxyAccountContract = await deployContract("ERC7579Account", [claveAddress, this.wallet.address], { wallet: this.wallet });
         }
         return this._proxyAccountContract;
     }
@@ -155,6 +156,7 @@ describe.only("Spend limit validation", function () {
 
         const initTx = await claveAccountFunctions.initialize(xyPublicKey, expensiveVerifierAddress);
         await initTx.wait();
+        console.log("initalized!");
 
         //
         // PART TWO: Install Module
@@ -183,7 +185,7 @@ describe.only("Spend limit validation", function () {
             ])]
         );
 
-        // TODO: sign this transaction with the passkey!
+        // TODO: move this into the factory, as the direct deploy grants owner permissions
         const installModuleTx = await erc7579AccountFunctions.installModule(
             moduleTypeId,
             moduleAddress,
@@ -191,7 +193,7 @@ describe.only("Spend limit validation", function () {
         );
         const response = await installModuleTx.wait();
 
-        console.log(response);
+        console.log("Module installed", response);
 
 
         // send signed transaction to update spend limit on module
