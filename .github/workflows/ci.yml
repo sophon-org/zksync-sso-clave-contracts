@@ -31,6 +31,7 @@ jobs:
       with:
         node-version: lts/Iron
         cache: 'npm'
+        cache-dependency-path: '**/package-lock.json'
     - name: Install contracts dependencies
       working-directory: ./packages/contracts
       run: npm ci
