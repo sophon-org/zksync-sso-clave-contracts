@@ -12,28 +12,68 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: ./packages/contracts
+        working-directory: ./packages
     steps:
     - uses: actions/checkout@v4
       with:
           fetch-depth: 0
 
+    # Start node
     - name: Era Test Node Action
       uses: dutterbutter/era-test-node-action@v1
       with:
         mode: 'fork'
         network: 'sepolia-testnet'
 
+    # NPM install for contracts/gateway/sdk
     - name: Use latest Node.js
       uses: actions/setup-node@v4
       with:
         node-version: lts/Iron
         cache: 'npm'
-        cache-dependency-path: 'packages/contracts'
-    - run: npm ci
-    - run: npm run build
+    - name: Install contracts dependencies
+      working-directory: ./contracts
+      run: npm ci
+    - name: Install gateway dependencies
+      working-directory: ./gateway
+      run: npm ci
+    - name: Install sdk dependencies
+      working-directory: ./sdk
+      run: npm ci
+    
+    # Build SDK
+    - name: Build SDK
+      working-directory: ./sdk
+      run: npm run build
+
+    # Link SDK to other packages
+    - name: Link SDK to contracts
+      run: |
+        cd sdk
+        npm link
+        cd ../contracts
+        npm link zksync-account
+    - name: Link SDK to gateway
+      run: |
+        cd sdk
+        npm link
+        cd ../gateway
+        npm link zksync-account
+
+    # Start the Gateway
+    - name: Run Gateway in the background
+      working-directory: ./gateway
+      run: |
+        npm run dev &
+        for attempt in {1..20}; do sleep 1; if (curl localhost:3000| head -n1 | grep -Ev 'Nuxt Dev server is starting...|Starting Nuxt...'); then echo ready; break; fi; echo waiting...; done
+    
     # Running a hardhat deploy command before running deployments in ethers tests appears
     # to fix something related to the transaction (related? https://github.com/matter-labs/tutorials/issues/25)
-    - run: npm run deployFactoryAccount
-    - run: npm run test
+    - name: Initialize smart contracts on node
+      working-directory: ./contracts
+      run: npm run deployFactoryAccount
+
+    - name: Run e2e test
+      working-directory: ./contracts
+      run: npm run test
 

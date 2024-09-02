@@ -116,11 +116,6 @@ describe.only("Spend limit validation", function () {
         //      event ProxyAccountDeployed(address accountAddress)
         //
         // Then, this would be more precise with decodeEventLog()
-        console.log(proxyAccount);
-        console.log(proxyAccount.accountAddress);
-        console.log(proxyAccountTxReceipt.accountAddress);
-        console.log({ proxyAccount });
-        console.log({ proxyAccountTxReceipt });
         const newAddress = abiCoder.decode(["address"], proxyAccountTxReceipt.logs[0].data);
         const proxyAccountAddress = newAddress[0];
 
