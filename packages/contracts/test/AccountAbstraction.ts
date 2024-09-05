@@ -6,7 +6,7 @@ import { promises } from "fs";
 export async function deployFactory(factoryName: string, wallet: Wallet): Promise<ethers.ethers.Contract> {
     const factoryArtifact = JSON.parse(await promises.readFile(`artifacts-zk/src/${factoryName}.sol/${factoryName}.json`, 'utf8'))
     const testAaArtifact = JSON.parse(await promises.readFile('artifacts-zk/src/Account.sol/Account.json', 'utf8'))
-    const proxyAaArtifact = JSON.parse(await promises.readFile('artifacts-zk/src/ERC7579Account.sol/ERC7579Account.json', 'utf8'))
+    const proxyAaArtifact = JSON.parse(await promises.readFile('artifacts-zk/src/AccountProxy.sol/AccountProxy.json', 'utf8'))
 
     const deployer = new ContractFactory(factoryArtifact.abi, factoryArtifact.bytecode, wallet)
     const factory = await deployer.deploy(utils.hashBytecode(testAaArtifact.bytecode), utils.hashBytecode(proxyAaArtifact.bytecode));

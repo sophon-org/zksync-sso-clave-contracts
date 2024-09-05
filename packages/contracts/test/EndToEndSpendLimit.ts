@@ -8,8 +8,6 @@ import { assert, expect } from "chai";
 import { readFile } from "fs/promises";
 import { getPublicKeyBytes } from "./PasskeyModule";
 
-// const erc7579ABI = require('../artifacts-zk/src/ERC7579Account.sol/ERC7579Account.json').abi;
-
 class ContractFixtures {
 
     // eraTestNodeRichKey
@@ -42,7 +40,7 @@ class ContractFixtures {
     private _accountImplContract: Contract;
     async getAccountImplContract() {
         if (!this._accountImplContract) {
-            this._accountImplContract = await deployContract("ClaveAccount", [], { wallet: this.wallet });
+            this._accountImplContract = await deployContract("ERC7579Account", [], { wallet: this.wallet });
         }
         return this._accountImplContract;
     }
@@ -55,12 +53,12 @@ class ContractFixtures {
             this._accountImplAddress = await accountImpl.getAddress();
         }
         return this._accountImplAddress
-    } 
+    }
     private _proxyAccountContract: Contract;
     async getProxyAccountContract() {
         if (!this._proxyAccountContract) {
             const claveAddress = await this.getAccountImplAddress();
-            this._proxyAccountContract = await deployContract("ERC7579Account", [claveAddress, this.wallet.address], { wallet: this.wallet });
+            this._proxyAccountContract = await deployContract("AccountProxy", [claveAddress], { wallet: this.wallet });
         }
         return this._proxyAccountContract;
     }
@@ -73,11 +71,45 @@ describe.only("Spend limit validation", function () {
     // let ERC7579 = new Interface(erc7579ABI);
     const abiCoder = new AbiCoder();
 
+    // This is a binary object formatted by @simplewebauthn that contains the alg type and public key
+    // that needs to be converted from 77 to 64 bytes
+    const xyPublicKey = getPublicKeyBytes(new Uint8Array([
+        165, 1, 2, 3, 38, 32, 1, 33, 88, 32, 167, 69,
+        109, 166, 67, 163, 110, 143, 71, 60, 77, 232, 220, 7,
+        121, 156, 141, 24, 71, 28, 210, 116, 124, 90, 115, 166,
+        213, 190, 89, 4, 216, 128, 34, 88, 32, 193, 67, 151,
+        85, 245, 24, 139, 246, 220, 204, 228, 76, 247, 65, 179,
+        235, 81, 41, 196, 37, 216, 117, 201, 244, 128, 8, 73,
+        37, 195, 20, 194, 9
+    ]));
+
     interface TokenConfig {
         token: string; // address
-        publicKey: Uint8Array; // bytes
+        publicKey: Buffer; // bytes
         limit: ethers.BigNumberish; // uint256
     }
+
+    const tokenConfigs: TokenConfig[] = [
+        {
+            token: "0xAe045DE5638162fa134807Cb558E15A3F5A7F853",
+            publicKey: xyPublicKey,
+            limit: ethers.toBigInt(1000)
+        },
+    ];
+    // Define the types array corresponding to the struct
+    const tokenConfigTypes = [
+        "address", // token
+        "bytes",   // publicKey
+        "uint256"  // limit
+    ];
+    const moduleData = abiCoder.encode(
+        [`tuple(${tokenConfigTypes.join(",")})[]`], // Solidity equivalent: TokenConfig[]
+        [tokenConfigs.map(config => [
+            config.token,
+            config.publicKey,
+            config.limit
+        ])]
+    );
 
     it("should deploy module", async () => {
         const passkeyModuleContract = await fixtures.getPasskeyModuleContract();
@@ -99,13 +131,23 @@ describe.only("Spend limit validation", function () {
         assert(proxyAccountContract != null, "No account proxy deployed");
     });
 
-    it("should deploy proxy account via factory", async () => {
+    it.only("should deploy proxy account via factory", async () => {
         const aaFactoryContract = await fixtures.getAaFactory();
         assert(aaFactoryContract != null, "No AA Factory deployed");
 
+        const passkeyModule = await fixtures.getPasskeyModuleContract();
+        assert(passkeyModule != null, "no module available");
+
+        const expensiveVerifierContract = await fixtures.getExpensiveVerifierContract();
+        assert(expensiveVerifierContract != null, "no verifier available");
+
         const proxyAccount = await aaFactoryContract.deployProxy7579Account(
             ethers.ZeroHash,
-            await fixtures.getAccountImplAddress()
+            await fixtures.getAccountImplAddress(),
+            xyPublicKey,
+            expensiveVerifierContract,
+            await passkeyModule.getAddress(),
+            moduleData
         );
         const proxyAccountTxReceipt = await proxyAccount.wait();
 
@@ -124,72 +166,33 @@ describe.only("Spend limit validation", function () {
         expect(proxyAccountAddress, "the proxy account location").to.not.equal(ZeroAddress, "be a valid address");
     });
 
-    it.only("should add passkey and verifier to account", async () => {
+    it("should add passkey and verifier to account", async () => {
         //
         // PART ONE: Initialize ClaveAccount
         //
 
-        // This is a binary object formatted by @simplewebauthn that contains the alg type and public key
-        const publicKeyEs256Bytes = new Uint8Array([
-            165, 1, 2, 3, 38, 32, 1, 33, 88, 32, 167, 69,
-            109, 166, 67, 163, 110, 143, 71, 60, 77, 232, 220, 7,
-            121, 156, 141, 24, 71, 28, 210, 116, 124, 90, 115, 166,
-            213, 190, 89, 4, 216, 128, 34, 88, 32, 193, 67, 151,
-            85, 245, 24, 139, 246, 220, 204, 228, 76, 247, 65, 179,
-            235, 81, 41, 196, 37, 216, 117, 201, 244, 128, 8, 73,
-            37, 195, 20, 194, 9
-        ]);
-        const xyPublicKey = getPublicKeyBytes(publicKeyEs256Bytes); //convert from 77 to 64 bytes
+
         const proxyAccountAddress = await (await fixtures.getProxyAccountContract()).getAddress();
         const claveArtifact = JSON.parse(await readFile('artifacts-zk/src/ClaveAccount.sol/ClaveAccount.json', 'utf8'));
-        const eip7579Artifact = JSON.parse(await readFile('artifacts-zk/src/ERC7579Account.sol/ERC7579Account.json', 'utf8'));
         const claveAccountFunctions = new Contract(proxyAccountAddress, claveArtifact.abi, fixtures.wallet);
-        const erc7579AccountFunctions = new Contract(proxyAccountAddress, eip7579Artifact.abi, fixtures.wallet);
 
         // 0x100 ? will need to see if this works
         const expensiveVerifierAddress = await (await fixtures.getExpensiveVerifierContract()).getAddress();
 
-        const initTx = await claveAccountFunctions.initialize(xyPublicKey, expensiveVerifierAddress);
-        await initTx.wait();
-        console.log("initalized!");
-
         //
         // PART TWO: Install Module
         //
-        const moduleTypeId = 1; // MODULE_TYPE_VALIDATOR
         const moduleAddress = await (await fixtures.getPasskeyModuleContract()).getAddress();
-        const tokenConfigs: TokenConfig[] = [
-            {
-                token: "0xAe045DE5638162fa134807Cb558E15A3F5A7F853",
-                publicKey: publicKeyEs256Bytes,
-                limit: ethers.toBigInt(1000)
-            },
-        ];
-        // Define the types array corresponding to the struct
-        const tokenConfigTypes = [
-            "address", // token
-            "bytes",   // publicKey
-            "uint256"  // limit
-        ];
-        const moduleData = abiCoder.encode(
-            [`tuple(${tokenConfigTypes.join(",")})[]`], // Solidity equivalent: TokenConfig[]
-            [tokenConfigs.map(config => [
-                config.token,
-                config.publicKey,
-                config.limit
-            ])]
-        );
+
 
         // TODO: move this into the factory, as the direct deploy grants owner permissions
-        const installModuleTx = await erc7579AccountFunctions.installModule(
-            moduleTypeId,
+        const initTx = await claveAccountFunctions.initialize(
+            xyPublicKey,
+            expensiveVerifierAddress,
             moduleAddress,
-            moduleData
-        );
-        const response = await installModuleTx.wait();
-
-        console.log("Module installed", response);
-
+            moduleData);
+        await initTx.wait();
+        console.log("initalized with module!", initTx);
 
         // send signed transaction to update spend limit on module
         const authenticatorData = 'SZYN5YgOjGh0NBcPZHZgW4_krrmihjLHmVzzuoMdl2MFAAAABQ'

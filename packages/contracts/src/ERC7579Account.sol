@@ -33,7 +33,8 @@ contract ERC7579Account is
     IERC7579Account,
     HookManager,
     ModuleManager,
-    ExecutionHelper
+    ExecutionHelper,
+    ClaveAccount
 {
     using ModeLib for ModeCode;
     error AccountAccessUnauthorized();
@@ -50,10 +51,6 @@ contract ERC7579Account is
 
     bytes4 constant EIP1271_SUCCESS_RETURN_VALUE = 0x1626ba7e;
     address private _factory = address(0);
-
-    // keccak-256 of "eip1967.proxy.implementation" subtracted by 1
-    bytes32 private constant _ZKSYNC_IMPLEMENTATION_SLOT =
-        0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc;
 
     /////////////////////////////////////////////////////
     // Access Control
@@ -336,17 +333,6 @@ contract ERC7579Account is
     }
 
     /**
-     * @notice Sets the initial implementation contract.
-     * @param implementation address - Address of the implementation contract.
-     */
-    constructor(address implementation, address factory) {
-        _factory = factory;
-        assembly {
-            sstore(_ZKSYNC_IMPLEMENTATION_SLOT, implementation)
-        }
-    }
-
-    /**
      * @inheritdoc IERC7579Account
      */
     function supportsModule(
@@ -358,35 +344,6 @@ contract ERC7579Account is
         else if (modulTypeId == MODULE_TYPE_HOOK) return true;
         else return false;
     }
-
-    /**
-     * @dev Fallback function that delegates the call to the implementation contract.
-     */
-    fallback() external payable {
-        address impl;
-        assembly {
-            impl := and(
-                sload(_ZKSYNC_IMPLEMENTATION_SLOT),
-                0xffffffffffffffffffffffffffffffffffffffff
-            )
-        }
-
-        bool success = EfficientCall.rawDelegateCall(gasleft(), impl, msg.data);
-
-        assembly {
-            returndatacopy(0, 0, returndatasize())
-            switch success
-            case 0 {
-                revert(0, returndatasize())
-            }
-            default {
-                return(0, returndatasize())
-            }
-        }
-    }
-
-    // Receive function to allow ETHs
-    receive() external payable {}
 
     /**
      * @inheritdoc IERC7579Account

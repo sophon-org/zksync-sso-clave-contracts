@@ -46,7 +46,7 @@ async function deployWithEthers(deployerPrivateKey: string) {
     const wallet = new Wallet(deployerPrivateKey, provider);
     const factoryArtifact = JSON.parse(await promises.readFile('artifacts-zk/src/AAFactory.sol/AAFactory.json', 'utf8'))
     const testAaArtifact = JSON.parse(await promises.readFile('artifacts-zk/src/Account.sol/Account.json', 'utf8'))
-    const standardArtifact = JSON.parse(await promises.readFile('artifacts-zk/src/ERC7579Account.sol/ERC7579Account.json', 'utf8'))
+    const standardArtifact = JSON.parse(await promises.readFile('artifacts-zk/src/AccountProxy.sol/AccountProxy.json', 'utf8'))
 
     // dont? Bridge funds if the wallet on zkSync doesn't have enough funds.
     console.log("loaded artifacts")

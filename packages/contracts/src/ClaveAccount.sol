@@ -22,9 +22,7 @@ import {ModeCode} from "./libraries/ERC7579Mode.sol";
 import {ERC1271Handler} from './handlers/ERC1271Handler.sol';
 import {Call} from './batch/BatchCaller.sol';
 
-import {IClaveAccount} from './interfaces/IClave.sol';
-
-import "hardhat/console.sol";
+import {IClaveAccount} from './interfaces/IClaveAccount.sol';
 
 /**
  * @title Main account contract from the Clave wallet infrastructure in zkSync Era
@@ -52,7 +50,6 @@ contract ClaveAccount is
      */
     constructor() { // address batchCaller
         _disableInitializers();
-        console.log("ClaveAccount.sol: constructor() called");
     }
 
     /**
@@ -63,10 +60,13 @@ contract ClaveAccount is
      */
     function initialize(
         bytes calldata initialR1Owner,
-        address initialR1Validator
+        address initialR1Validator,
+        address initialModule,
+        bytes calldata initData
     ) external initializer {
         _r1AddOwner(initialR1Owner);
         _r1AddValidator(initialR1Validator);
+        _addNativeModule(initialModule, initData);
     }
 
     // Receive function to allow ETHs
