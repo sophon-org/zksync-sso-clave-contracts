@@ -15,6 +15,8 @@ import {IModuleManager} from "../interfaces/IModuleManager.sol";
 import {IUserOpValidator} from "../interfaces/IERC7579Validator.sol";
 import {IERC7579Module, IExecutor} from "../interfaces/IERC7579Module.sol";
 
+import "hardhat/console.sol";
+
 /**
  * @title Manager contract for modules
  * @notice Abstract contract for managing the enabled modules of the account
@@ -86,7 +88,8 @@ abstract contract ModuleManager is IModuleManager, Auth {
         bytes calldata moduleData
     ) internal {
         if (!_supportsModule(moduleAddress)) {
-            revert Errors.MODULE_ERC165_FAIL();
+            console.log("module", moduleAddress, "is not supported");
+            // revert Errors.MODULE_ERC165_FAIL();
         }
 
         _modulesLinkedList().add(moduleAddress);

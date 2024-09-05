@@ -4,6 +4,8 @@ pragma solidity ^0.8.23;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "../interfaces/IERC7579Module.sol";
 
+import {IModule} from "../interfaces/IModule.sol";
+
 import {IERC7579Module} from "../interfaces/IERC7579Module.sol";
 import {IR1Validator} from "../interfaces/IValidator.sol";
 
@@ -16,7 +18,7 @@ import "hardhat/console.sol";
  * have that passkey create a time & spend limited session key,
  * then reject transactions (as a validator) when the session key expires.
  */
-contract SessionPasskeySpendLimitModule is IERC7579Module {
+contract SessionPasskeySpendLimitModule is IERC7579Module, IModule {
     struct SessionKey {
         address publicKey; // usable for ecrecover
         uint256 validUntilBlockTimestamp; // to stop validation after this timestamp
@@ -46,12 +48,20 @@ contract SessionPasskeySpendLimitModule is IERC7579Module {
     // session key to account mapping (flattening spending limit)
     mapping(address sessionPublicKey => mapping(address accountAddress => uint256 expiration)) sessionToAccount;
 
+    function init(bytes calldata initData) external {
+        _install(initData);
+    }
+
     /* array of token spend limit configurations (sane defaults)
      * @param data TokenConfig[]
      */
     function onInstall(bytes calldata data) external override {
+        _install(data);
+    }
+
+    function _install(bytes calldata installData) internal {
         console.log("installing passkey module");
-        TokenConfig[] memory configs = abi.decode(data, (TokenConfig[]));
+        TokenConfig[] memory configs = abi.decode(installData, (TokenConfig[]));
         for (uint256 i = 0; i < configs.length; i++) {
             spendingLimits[msg.sender][configs[i].token].limit = configs[i]
                 .limit;
@@ -65,10 +75,25 @@ contract SessionPasskeySpendLimitModule is IERC7579Module {
      * @param data (unused, but needed to satisfy interfaces)
      */
     function onUninstall(bytes calldata) external override {
+        _clearSender();
+    }
+
+    function disable() external {
+        _clearSender();
+    }
+
+    function _clearSender() internal {
         for (uint256 i = 0; i < tokens[msg.sender].length; i++) {
             delete spendingLimits[msg.sender][tokens[msg.sender][i]];
         }
         delete tokens[msg.sender];
+    }
+
+    function supportsInterface(
+        bytes4 interfaceId
+    ) external pure override returns (bool) {
+        // found by example
+        return interfaceId == 0x01ffc9a7 || interfaceId == 0xffffffff;
     }
 
     /*

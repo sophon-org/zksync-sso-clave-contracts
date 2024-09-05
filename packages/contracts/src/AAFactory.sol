@@ -44,10 +44,7 @@ contract AAFactory {
                     (
                         salt,
                         proxyAaBytecodeHash,
-                        abi.encode(
-                            accountImplementionLocation,
-                            accountImplementionLocation
-                        ), // address(this)
+                        abi.encode(accountImplementionLocation),
                         IContractDeployer.AccountAbstractionVersion.Version1
                     )
                 )
@@ -55,6 +52,7 @@ contract AAFactory {
         require(success, "Deployment failed");
 
         (accountAddress) = abi.decode(returnData, (address));
+        console.log("accountAddress %s", accountAddress);
 
         // add session-key/spend-limit module (similar code)
         IClaveAccount(accountAddress).initialize(
