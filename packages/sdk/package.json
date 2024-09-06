@@ -68,8 +68,23 @@
   },
   "typesVersions": {
     "*": {
+      ".": [
+        "./dist/types/index.d.ts"
+      ],
       "client": [
         "./dist/types/client/index.d.ts"
+      ],
+      "client-gateway": [
+        "./dist/types/client-gateway/index.d.ts"
+      ],
+      "communicator": [
+        "./dist/types/communicator/index.d.ts"
+      ],
+      "connector": [
+        "./dist/types/connector/index.d.ts"
+      ],
+      "errors": [
+        "./dist/types/errors/index.d.ts"
       ]
     }
   },
