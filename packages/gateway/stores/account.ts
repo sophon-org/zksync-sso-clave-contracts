@@ -2,6 +2,7 @@ import { useStorage, StorageSerializers } from "@vueuse/core";
 import { type Address } from "viem";
 
 type SmartAccount = {
+  username: string;
   address: Address;
 };
 
@@ -12,6 +13,7 @@ export const useAccountStore = defineStore("account", () => {
   const address = computed(() => accountData.value?.address || null);
   const isLoggedIn = computed(() => !!address.value);
   const login = (data: SmartAccount) => {
+    console.log("login", data);
     accountData.value = data;
   };
   const logout = () => {

@@ -9,8 +9,9 @@
     "url": "https://github.com/matter-labs/zksync-account-sdk.git"
   },
   "scripts": {
-    "build": "npm run clean && npm run build:esm+types",
+    "build": "npm run clean && npm run build:esm+types && npm run build:cjs",
     "build:esm+types": "tsc --project tsconfig.build.json --outDir ./dist/esm --declaration --declarationMap --declarationDir ./dist/types",
+    "build:cjs": "tsc --project tsconfig.build.cjs.json",
     "clean": "rm -rf dist tsconfig.tsbuildinfo",
     "typecheck": "tsc --noEmit"
   },
@@ -35,34 +36,40 @@
   ],
   "sideEffects": false,
   "type": "module",
-  "main": "./dist/esm/index.js",
-  "module": "./esm/index.js",
+  "main": "./dist/cjs/index.js",
+  "module": "./dist/esm/index.js",
   "types": "./dist/types/index.d.ts",
   "typings": "./dist/types/index.d.ts",
   "exports": {
     ".": {
       "types": "./dist/types/index.d.ts",
-      "default": "./dist/esm/index.js"
+      "import": "./dist/esm/index.js",
+      "require": "./dist/cjs/index.js"
     },
     "./connector": {
       "types": "./dist/types/connector/index.d.ts",
-      "default": "./dist/esm/connector/index.js"
+      "import": "./dist/esm/connector/index.js",
+      "require": "./dist/cjs/connector/index.js"
     },
     "./client-gateway": {
       "types": "./dist/types/client-gateway/index.d.ts",
-      "default": "./dist/esm/client-gateway/index.js"
+      "import": "./dist/esm/client-gateway/index.js",
+      "require": "./dist/cjs/client-gateway/index.js"
     },
     "./client": {
       "types": "./dist/types/client/index.d.ts",
-      "default": "./dist/esm/client/index.js"
+      "import": "./dist/esm/client/index.js",
+      "require": "./dist/cjs/client/index.js"
     },
     "./communicator": {
       "types": "./dist/types/communicator/index.d.ts",
-      "default": "./dist/esm/communicator/index.js"
+      "import": "./dist/esm/communicator/index.js",
+      "require": "./dist/cjs/communicator/index.js"
     },
     "./errors": {
       "types": "./dist/types/errors/index.d.ts",
-      "default": "./dist/esm/errors/index.js"
+      "import": "./dist/esm/errors/index.js",
+      "require": "./dist/cjs/errors/index.js"
     },
     "./package.json": "./package.json"
   },

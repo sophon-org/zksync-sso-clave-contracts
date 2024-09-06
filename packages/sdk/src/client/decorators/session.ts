@@ -3,7 +3,7 @@ import { readContract, waitForTransactionReceipt, writeContract } from 'viem/act
 import { generatePrivateKey, publicKeyToAddress } from 'viem/accounts';
 import { type PublicKeyCredentialCreationOptionsJSON, type RegistrationResponseJSON, type PublicKeyCredentialRequestOptionsJSON } from "@simplewebauthn/types";
 import { startRegistration } from '@simplewebauthn/browser';
-import { generateAuthenticationOptions, generateRegistrationOptions, type GenerateAuthenticationOptionsOpts, type GenerateRegistrationOptionsOpts } from '@simplewebauthn/server';
+import { generateAuthenticationOptions, generateRegistrationOptions, verifyRegistrationResponse, type GenerateAuthenticationOptionsOpts, type GenerateRegistrationOptionsOpts } from '@simplewebauthn/server';
 
 import type { ClientWithZksyncAccountData } from '../createWalletClient.js';
 import type { SessionPreferences } from '../../client-gateway/interface.js';
@@ -54,7 +54,7 @@ export const generatePasskeyRegistrationOptions = async (args: GeneratePasskeyRe
   let rpID: string = args.rpID || "";
   try {
     rpName = window.location.hostname;
-    rpID = window.location.host;
+    rpID = window.location.hostname;
   } catch {
     // ignore
   }
@@ -87,7 +87,7 @@ type GeneratePasskeyAuthenticationOptionsArgs = Partial<GenerateAuthenticationOp
 export const generatePasskeyAuthenticationOptions = async (args: GeneratePasskeyAuthenticationOptionsArgs): Promise<PublicKeyCredentialRequestOptionsJSON> => {
   let rpID: string = args.rpID || "";
   try {
-    rpID = window.location.host;
+    rpID = window.location.hostname;
   } catch {
     // ignore
   }
@@ -111,14 +111,22 @@ export const generatePasskeyAuthenticationOptions = async (args: GeneratePasskey
 type RequestPasskeySignatureReturnType = {
   passkeyRegistrationResponse: RegistrationResponseJSON;
   passkeyRegistrationOptions: PublicKeyCredentialCreationOptionsJSON;
+  passkeyPublicKey: Uint8Array;
 }
 type RequestPasskeySignatureArgs = { passkeyRegistrationOptions: PublicKeyCredentialCreationOptionsJSON } | GeneratePasskeyRegistrationOptionsArgs;
 export const requestPasskeySignature = async (args: RequestPasskeySignatureArgs): Promise<RequestPasskeySignatureReturnType> => {
   const passkeyRegistrationOptions = 'passkeyRegistrationOptions' in args ? args.passkeyRegistrationOptions : await generatePasskeyRegistrationOptions(args);
   const registrationResponse: RegistrationResponseJSON = await startRegistration(passkeyRegistrationOptions);
+  const verification = await verifyRegistrationResponse({
+    response: registrationResponse,
+    expectedChallenge: passkeyRegistrationOptions.challenge,
+    expectedOrigin: window.location.origin,
+  });
+  if (!verification.verified || !verification.registrationInfo) throw new Error("Passkey validation failed"); 
   return {
     passkeyRegistrationResponse: registrationResponse,
     passkeyRegistrationOptions,
+    passkeyPublicKey: verification.registrationInfo.credentialPublicKey,
   };
 }
 

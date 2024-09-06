@@ -1,4 +1,4 @@
-import { http } from "viem";
+import { http, createPublicClient } from "viem";
 import { zksync, zksyncSepoliaTestnet, zksyncInMemoryNode } from "viem/chains";
 import { createZksyncWalletClient, type ZksyncAccountContracts } from "zksync-account/client";
 
@@ -12,12 +12,15 @@ export const blockExplorerApiByChain: Record<SupportedChainId, string> = {
 export const contractsByChain: Record<SupportedChainId, ZksyncAccountContracts> = {
   [zksync.id]: {
     session: "0xa00e749EAC6d9C1b78b916ab69f2B7E5990Eea77",
+    accountFactory: "0xa00e749EAC6d9C1b78b916ab69f2B7E5990Eea77",
   },
   [zksyncSepoliaTestnet.id]: {
     session: "0xa00e749EAC6d9C1b78b916ab69f2B7E5990Eea77",
+    accountFactory: "0xa00e749EAC6d9C1b78b916ab69f2B7E5990Eea77",
   },
   [zksyncInMemoryNode.id]: {
     session: "0xa00e749EAC6d9C1b78b916ab69f2B7E5990Eea77",
+    accountFactory: "0xa00e749EAC6d9C1b78b916ab69f2B7E5990Eea77",
   },
 };
 
@@ -39,6 +42,18 @@ export const useClientStore = defineStore("client", () => {
       transport: http(),
     });
   }; */
+
+  const getPublicClient = ({ chainId }: { chainId: SupportedChainId }) => {
+    const chain = supportedChains.find((chain) => chain.id === chainId);
+    if (!chain) throw new Error(`Chain with id ${chainId} is not supported`);
+
+    const client = createPublicClient({
+      chain,
+      transport: http(),
+    });
+
+    return client;
+  };
 
   const getClient = ({ chainId }: { chainId: SupportedChainId }) => {
     if (!address.value) throw new Error("Address is not set");
@@ -72,6 +87,7 @@ export const useClientStore = defineStore("client", () => {
   if (address.value) createClient(); */
 
   return {
+    getPublicClient,
     getClient,
   };
 });
