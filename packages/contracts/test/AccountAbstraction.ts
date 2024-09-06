@@ -2,6 +2,7 @@ import { utils, Wallet, Provider, ContractFactory } from "zksync-ethers";
 import * as ethers from "ethers";
 import { expect, assert } from 'chai';
 import { promises } from "fs";
+import { createZksyncWalletClient } from "zksync-account/client";
 
 export async function deployFactory(factoryName: string, wallet: Wallet): Promise<ethers.ethers.Contract> {
     const factoryArtifact = JSON.parse(await promises.readFile(`artifacts-zk/src/${factoryName}.sol/${factoryName}.json`, 'utf8'))
