@@ -70,7 +70,7 @@ type DeployContractOptions = {
    */ 
   wallet?: Wallet
 }
-export const deployContract = async (contractArtifactName: string, constructorArguments?: any[], options?: DeployContractOptions) => {
+export const deployContract = async (contractArtifactName: string, constructorArguments?: any[], options?: DeployContractOptions, expectedAddress?: string) => {
   const log = (message: string) => {
     if (!options?.silent) console.log(message);
   }
@@ -106,6 +106,12 @@ export const deployContract = async (contractArtifactName: string, constructorAr
   log(` - Contract address: ${address}`);
   log(` - Contract source: ${fullContractSource}`);
   log(` - Encoded constructor arguments: ${constructorArgs}\n`);
+
+  if (expectedAddress && address != expectedAddress) {
+    console.warn(`!!! ${artifact.contractName} address is not the expected default address (${expectedAddress}). !!!`);
+    console.warn(`!!! Please update the default value in your tests or restart Era Test Node. Proceeding with expected default address... !!!`);
+    return new ethers.Contract(expectedAddress, artifact.abi, wallet);
+  }
 
   if (!options?.noVerify && hre.network.config.verifyURL) {
     log(`Requesting contract verification...`);

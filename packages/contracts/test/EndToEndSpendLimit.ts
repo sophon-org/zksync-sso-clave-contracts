@@ -20,7 +20,8 @@ class ContractFixtures {
     private _aaFactory: Contract;
     async getAaFactory() {
         if (!this._aaFactory) {
-            this._aaFactory = await deployFactory("AAFactory", this.wallet);
+            const expectedAddress = "0x23b13d016E973C9915c6252271fF06cCA2098885";
+            this._aaFactory = await deployFactory("AAFactory", this.wallet, expectedAddress);
         }
         return this._aaFactory;
     }
@@ -29,7 +30,8 @@ class ContractFixtures {
 
     async getPasskeyModuleContract() {
         if (!this._passkeyModuleContract) {
-            this._passkeyModuleContract = await deployContract("SessionPasskeySpendLimitModule", [], { wallet: this.wallet });
+            const expectedAddress = "0x9c1a3d7C98dBF89c7f5d167F2219C29c2fe775A7";
+            this._passkeyModuleContract = await deployContract("SessionPasskeySpendLimitModule", [], { wallet: this.wallet }, expectedAddress);
         }
         return this._passkeyModuleContract
     }
@@ -37,14 +39,16 @@ class ContractFixtures {
     private _expensiveVerifierContract: Contract;
     async getExpensiveVerifierContract() {
         if (!this._expensiveVerifierContract) {
-            this._expensiveVerifierContract = await deployContract("PasskeyValidator", [], { wallet: this.wallet });
+            const expectedAddress = "0xCeAB1fc2693930bbad33024D270598c620D7A52B";
+            this._expensiveVerifierContract = await deployContract("PasskeyValidator", [], { wallet: this.wallet }, expectedAddress);
         }
         return this._expensiveVerifierContract
     }
     private _accountImplContract: Contract;
     async getAccountImplContract() {
         if (!this._accountImplContract) {
-            this._accountImplContract = await deployContract("ERC7579Account", [], { wallet: this.wallet });
+            const expectedAddress = "0x99E12239CBf8112fBB3f7Fd473d0558031abcbb5";
+            this._accountImplContract = await deployContract("ERC7579Account", [], { wallet: this.wallet }, expectedAddress);
         }
         return this._accountImplContract;
     }
@@ -62,7 +66,8 @@ class ContractFixtures {
     async getProxyAccountContract() {
         if (!this._proxyAccountContract) {
             const claveAddress = await this.getAccountImplAddress();
-            this._proxyAccountContract = await deployContract("AccountProxy", [claveAddress], { wallet: this.wallet });
+            const expectedAddress = "0xaAF5f437fB0524492886fbA64D703df15BF619AE";
+            this._proxyAccountContract = await deployContract("AccountProxy", [claveAddress], { wallet: this.wallet }, expectedAddress);
         }
         return this._proxyAccountContract;
     }
@@ -205,7 +210,7 @@ describe.only("Spend limit validation", function () {
         assert(proxyAccountTxReceipt.contractAddress != ethers.ZeroAddress, "valid proxy account address");
     });
 
-    it.only("should set spend limit via module", async () => {
+    it("should set spend limit via module", async () => {
         const verifierContract = await fixtures.getExpensiveVerifierContract();
         const expensiveVerifierAddress = await verifierContract.getAddress();
         const moduleContract = await fixtures.getPasskeyModuleContract();

@@ -3,7 +3,7 @@ import * as ethers from "ethers";
 import { assert, should } from 'chai';
 import { promises } from "fs";
 
-export async function deployFactory(factoryName: string, wallet: Wallet): Promise<ethers.ethers.Contract> {
+export async function deployFactory(factoryName: string, wallet: Wallet, expectedAddress?: string): Promise<ethers.ethers.Contract> {
     const factoryArtifact = JSON.parse(await promises.readFile(`artifacts-zk/src/${factoryName}.sol/${factoryName}.json`, 'utf8'))
     const testAaArtifact = JSON.parse(await promises.readFile('artifacts-zk/src/Account.sol/Account.json', 'utf8'))
     const proxyAaArtifact = JSON.parse(await promises.readFile('artifacts-zk/src/AccountProxy.sol/AccountProxy.json', 'utf8'))
@@ -11,6 +11,15 @@ export async function deployFactory(factoryName: string, wallet: Wallet): Promis
     const deployer = new ContractFactory(factoryArtifact.abi, factoryArtifact.bytecode, wallet)
     const factory = await deployer.deploy(utils.hashBytecode(testAaArtifact.bytecode), utils.hashBytecode(proxyAaArtifact.bytecode));
     const factoryAddress = await factory.getAddress();
+
+    console.log(`\n"${factoryName}" was successfully deployed:`);
+    console.log(` - Contract address: ${factoryAddress}`);
+
+    if (expectedAddress && factoryAddress != expectedAddress) {
+        console.warn(`${factoryName}.sol address is not the expected default address (${expectedAddress}).`);
+        console.warn(`Please update the default value in your tests or restart Era Test Node. Proceeding with expected default address...`);
+        return new ethers.Contract(expectedAddress, factoryArtifact.abi, wallet);
+    }
 
     return new ethers.Contract(factoryAddress, factoryArtifact.abi, wallet);
 }
