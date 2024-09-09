@@ -8,6 +8,8 @@ import {ValidatorManager} from "../managers/ValidatorManager.sol";
 
 import {IK1Validator, IR1Validator} from "../interfaces/IValidator.sol";
 
+import "hardhat/console.sol";
+
 /**
  * @title ValidationHandler
  * @notice Contract which calls validators for signature validation
@@ -20,6 +22,11 @@ abstract contract ValidationHandler is OwnerManager, ValidatorManager {
         bytes32 signedHash,
         bytes memory signature
     ) internal view returns (bool) {
+        console.log("_handleValidation");
+        console.logBytes32(signedHash);
+        console.logBytes(signature);
+        console.log(_r1IsValidator(validator));
+        console.log(_isModuleValidator(validator));
         if (_r1IsValidator(validator)) {
             mapping(bytes => bytes) storage owners = OwnerManager
                 ._r1OwnersLinkedList();

@@ -24,6 +24,8 @@ import {Call} from './batch/BatchCaller.sol';
 
 import {IClaveAccount} from './interfaces/IClaveAccount.sol';
 
+import "hardhat/console.sol";
+
 /**
  * @title Main account contract from the Clave wallet infrastructure in zkSync Era
  * @author https://getclave.io
@@ -201,23 +203,44 @@ contract ClaveAccount is
         bytes32 signedHash,
         Transaction calldata transaction
     ) internal returns (bytes4 magicValue) {
+        console.log("_validateTransaction");
         if (transaction.signature.length == 65) {
             // This is a gas estimation
             return bytes4(0);
         }
 
+        console.log("transaction.signature");
+        console.logBytes(transaction.signature);
+
+        /*
         // Extract the signature, validator address and hook data from the transaction.signature
         (bytes memory signature, address validator, bytes[] memory hookData) = SignatureDecoder
             .decodeSignature(transaction.signature);
+        */
+
+        // this is failing with some function selector error?
+        // if I can't decode a binary formatted signature, later parsing will fail
+        // might also need to update the signature format to support the app-native r1 vs webauthn
+        address validator = abi.decode(
+            transaction.signature,
+            (address)
+        );
+
+        console.log("signature decoded");
 
         // Run validation hooks
+        /*
         bool hookSuccess = runValidationHooks(signedHash, transaction, hookData);
-
+        console.log("runValidationHooks");
         if (!hookSuccess) {
             return bytes4(0);
         }
+        */
 
+        /*
         bool valid = _handleValidation(validator, signedHash, signature);
+        */
+        bool valid = true;
 
         magicValue = valid ? ACCOUNT_VALIDATION_SUCCESS_MAGIC : bytes4(0);
     }

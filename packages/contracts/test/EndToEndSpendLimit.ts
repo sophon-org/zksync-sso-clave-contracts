@@ -98,6 +98,7 @@ describe.only("Spend limit validation", function () {
     ]);
     // that needs to be converted from 77 to 64 bytes
     const xyPublicKey = getPublicKeyBytes(passkeyBytes);
+    const provider = getProvider();
 
     interface TokenConfig {
         token: string; // address
@@ -215,23 +216,42 @@ describe.only("Spend limit validation", function () {
         const expensiveVerifierAddress = await verifierContract.getAddress();
         const moduleContract = await fixtures.getPasskeyModuleContract();
         const moduleAddress = await moduleContract.getAddress();
-        const proxyAccount = await await (await fixtures.getAaFactory()).deployProxy7579Account(
-            randomBytes(32),
-            await fixtures.getAccountImplAddress(),
-            xyPublicKey,
-            expensiveVerifierAddress,
-            moduleAddress,
-            moduleData
-        );
+        assert.equal(moduleAddress, "0x9c1a3d7C98dBF89c7f5d167F2219C29c2fe775A7", "needs to be expected location for transaction hash to work")
+        // generated from randomBytes(32), needs to be static for later hash computation
+        const staticRandomSalt = new Uint8Array([
+            205, 241, 161, 186, 101, 105, 79,
+            248, 98, 64, 50, 124, 168, 204,
+            200, 71, 214, 169, 195, 118, 199,
+            62, 140, 111, 128, 47, 32, 21,
+            177, 177, 174, 166
+        ]);
+        console.log("staticRandomSalt ", staticRandomSalt)
+        const factory = await fixtures.getAaFactory()
+        const accountImpl = await fixtures.getAccountImplAddress()
 
-        const proxyAccountReciept = await proxyAccount.wait();
-        const proxyAccountAddress = proxyAccountReciept.contractAddress;
-        await (
-            await fixtures.wallet.sendTransaction({
-                to: proxyAccountAddress,
-                value: parseEther('0.002'),
-            })
-        ).wait();
+        // from previous deployment (Updatable!)
+        let proxyAccountAddress = "0x86CBA50c2139d18511DE73e30BC385E82C6EeeC1";
+        const accountCode = await provider.getCode(proxyAccountAddress);
+        if (accountCode) {
+            const proxyAccount = await factory.deployProxy7579Account(
+                staticRandomSalt,
+                accountImpl,
+                xyPublicKey,
+                expensiveVerifierAddress,
+                moduleAddress,
+                moduleData
+            );
+
+            const proxyAccountReciept = await proxyAccount.wait();
+            proxyAccountAddress = proxyAccountReciept.contractAddress;
+            await (
+                await fixtures.wallet.sendTransaction({
+                    to: proxyAccountAddress,
+                    value: parseEther('0.002'),
+                })
+            ).wait();
+        }
+
         const claveArtifact = JSON.parse(await readFile('artifacts-zk/src/ClaveAccount.sol/ClaveAccount.json', 'utf8'));
 
         // send signed transaction to update spend limit on module
@@ -241,29 +261,24 @@ describe.only("Spend limit validation", function () {
         const b64SignedChallenge = 'MEUCIQCYrSUCR_QUPAhvRNUVfYiJC2JlOKuqf4gx7i129n9QxgIgaY19A9vAAObuTQNs5_V9kZFizwRpUFpiRVW_dglpR2A'
 
         // steps to get the data for this test
-        // 1. build the transaction here in the test
+        // 1. build the transaction here in the test (aaTx)
         // 2. use this sample signer to get the transaction hash of a realistic transaction
+        // 0x88f470b0e18caa467c2198c3f047e80f8ae7281b6ebe7f906c6e69cdfed2c497
         // 3. take that transaction hash to another app, and sign it (as the challange)
         // 4. bring that signed hash back here and have it returned as the signer
         const isTestMode = false;
-        const extractSigningHash = (hash, secretKey, provider) => { console.log("signing payload", hash); return Promise.resolve<string>(hash); }
+        const extractSigningHash = (hash: string, secretKey, provider) => {
+            console.log("signing payload hash and secret", hash, secretKey);
+            // expects sigature + validator address + validator hook data
+            const sig = Buffer.concat([Buffer.from(expensiveVerifierAddress.slice(2))]).toString('hex')
+            console.log("sig ", sig)
+            return Promise.resolve<string>(`0x${sig}`);
+        }
         const ethersTestSmartAccount = new SmartAccount({ payloadSigner: extractSigningHash, address: proxyAccountAddress, secret: xyPublicKey }, getProvider())
 
-        /* viem code that's harder to build a transaction with
-        const sampleKey = ({ sign: (hash) => { console.log("signing hash", hash); return Promise.resolve<`0x${string}`>(`0x${sampleKey}`); } });
-        const testSigner = ({ sign: (hash) => { if (hash == savedHash) { return savedSignature as `0x${string}` } else { throw "hash was updated, please regen the signature! 😊" } } });
-        const viemTestSmartAccount = toSmartAccount({
-            address: proxyAccountAddress,
-            sign: async ({ hash }) => {
-                const sessionKeySigner = isTestMode ? testSigner : sampleKey;
-                return sessionKeySigner.sign({ hash });
-            },
-        });
-        */
-
-        // sessions are just EOAs
-        const provider = getProvider();
-        const sessionKeyWallet = Wallet.createRandom(provider)
+        // sessions are just EOAs, here's static randomly generated one
+        const sessionKeyWallet = new Wallet("0xf51513036f18ef46508ddb0fff7aa153260ff76721b2f53c33fc178152fb481e")
+        console.log("sessionKeyWallet ", sessionKeyWallet.privateKey)
 
         const callData = moduleContract.interface.encodeFunctionData('addSessionKey', [sessionKeyWallet.address, tokenConfig.token, 100]);
         const aaTx = {
