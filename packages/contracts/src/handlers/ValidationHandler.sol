@@ -65,7 +65,7 @@ abstract contract ValidationHandler is OwnerManager, ValidatorManager {
             bytes memory cursor = owners[BytesLinkedList.SENTINEL_BYTES];
             while (cursor.length > BytesLinkedList.SENTINEL_LENGTH) {
                 bytes32[2] memory pubKey = abi.decode(cursor, (bytes32[2]));
-                (bytes32[2] memory rs, bytes32 externalSignature) = abi.decode(signature, (bytes32[2], bytes32));
+                (bytes32 externalSignature, bytes32[2] memory rs) = abi.decode(signature, (bytes32, bytes32[2]));
 
                 /*
                 bytes32[2] memory rs;
@@ -77,9 +77,7 @@ abstract contract ValidationHandler is OwnerManager, ValidatorManager {
                 // not (yet) the signature we need
                 //console.log("signature");
                 //console.logBytes(signature);
-                console.log("pubKey(1,2)");
-                console.logBytes32(pubKey[0]);
-                console.logBytes32(pubKey[1]);
+                
                 // authenticatorData signature[2-x]
                 // clientData signature[x-y]
                 // bytes32 passkeyData = hash_sha265(concat[authenticatorData, hash_sha265(clientData)]);
@@ -88,6 +86,12 @@ abstract contract ValidationHandler is OwnerManager, ValidatorManager {
 
                 console.log("externalSignature");
                 console.logBytes32(externalSignature);
+                console.log("rs");
+                console.logBytes32(rs[0]);
+                console.logBytes32(rs[1]);
+                console.log("pubKey(1,2)");
+                console.logBytes32(pubKey[0]);
+                console.logBytes32(pubKey[1]);
                 bool _success = IR1Validator(validator).rawVerify(
                     externalSignature,
                     rs,

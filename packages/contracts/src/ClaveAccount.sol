@@ -216,11 +216,14 @@ contract ClaveAccount is
             .decodeSignature(transaction.signature);
 
         console.log("signature decoded");
+        console.logBytes(signature);
+        console.log("validator address");
+        console.logAddress(validator);
 
         // Run validation hooks
         bool hookSuccess = runValidationHooks(signedHash, transaction, hookData);
-        console.log("runValidationHooks");
         if (!hookSuccess) {
+            console.log("failed hook validation");
             return bytes4(0);
         }
 

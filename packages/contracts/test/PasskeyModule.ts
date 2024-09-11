@@ -8,6 +8,7 @@ import { ECDSASigValue } from '@peculiar/asn1-ecc';
 import { toArrayBuffer } from "@hexagon/base64";
 import { ethers } from "ethers"
 
+import { ContractFixtures } from "./EndToEndSpendLimit";
 /**
  * Decode from a Base64URL-encoded string to an ArrayBuffer. Best used when converting a
  * credential ID from a JSON string to an ArrayBuffer, like in allowCredentials or
@@ -239,7 +240,9 @@ async function rawVerify(
     const hashedData = await toHash(concat([authDataBuffer, clientDataHash]));
     const rs = unwrapEC2Signature(toBuffer(b64SignedChallange))
     const publicKeys = await getPublicKey(publicKeyEs256Bytes)
-    console.log("rawVerify", ethers.hexlify(hashedData), ethers.hexlify(rs[0]), ethers.hexlify(rs[0]), publicKeys)
+    console.log("externalSignature", ethers.hexlify(hashedData))
+    console.log("rs", ethers.hexlify(rs[0]), ethers.hexlify(rs[1]))
+    console.log("pubkey xy", publicKeys)
     return await passkeyValidator.rawVerify(hashedData, rs, publicKeys)
 }
 
@@ -271,5 +274,38 @@ describe("Passkey validation", function () {
             authenticatorData, clientData, b64SignedChallange, publicKeyEs256Bytes)
 
         assert(verifyMessage == true, "valid sig")
+    });
+
+    it("should verify other test passkey data", async function () {
+
+        const passkeyValidator = await deployValidator(wallet)
+
+        const fixtures = new ContractFixtures()
+
+        const verifyMessage = await rawVerify(
+            passkeyValidator,
+            fixtures.authenticatorData,
+            fixtures.clientData,
+            fixtures.b64SignedChallenge,
+            fixtures.passkeyBytes)
+
+        assert(verifyMessage == true, "test sig is valid")
+    });
+
+    it("should fail when signature is bad", async function () {
+
+        const passkeyValidator = await deployValidator(wallet)
+
+        const fixtures = new ContractFixtures()
+
+        const b64SignedChallenge = 'MEUCIQCYrSUCR_QUPAhvRNUVfYiJC2JlOKuqf4gx7i129n9QxgIgaY19A9vAAObuTQNs5_V9kZFizwRpUFpiRVW_dglpR2A'
+        const verifyMessage = await rawVerify(
+            passkeyValidator,
+            fixtures.authenticatorData,
+            fixtures.clientData,
+            b64SignedChallenge,
+            fixtures.passkeyBytes)
+
+        assert(verifyMessage == false, "bad sig should be false")
     });
 })

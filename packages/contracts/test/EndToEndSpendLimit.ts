@@ -6,15 +6,16 @@ import { AbiCoder, Contract, ethers, ZeroAddress } from "ethers";
 import { it } from "mocha";
 import { deployContract, getWallet, getProvider } from "./utils";
 import { assert, expect } from "chai";
-import { readFile } from "fs/promises";
 import { concat, getPublicKeyBytes, toBuffer, toHash, unwrapEC2Signature } from "./PasskeyModule";
 
 import { Address } from "viem";
 
-class ContractFixtures {
+export class ContractFixtures {
 
     // eraTestNodeRichKey
     wallet = getWallet("0x3d3cbc973389cb26f657686445bcc75662b415b656078503592ac8c1abb8810e");
+
+    readonly sessionKeyWallet = new Wallet("0xf51513036f18ef46508ddb0fff7aa153260ff76721b2f53c33fc178152fb481e")
 
     private _aaFactory: Contract;
     async getAaFactory() {
@@ -65,6 +66,33 @@ class ContractFixtures {
         }
         return this._proxyAccountContract;
     }
+
+    // this is the encoded data explaining what authenticator was used (fido, web, etc)
+    readonly authenticatorData = "SZYN5YgOjGh0NBcPZHZgW4_krrmihjLHmVzzuoMdl2MdAAAAAA";
+    // this is a b64 encoded json object
+    readonly clientData = "eyJ0eXBlIjoid2ViYXV0aG4uZ2V0IiwiY2hhbGxlbmdlIjoiVEhMQlplQ0xOdWc1VTFnM1JNNTRtU2hISGxiVVVQazlxU3hxZ1VGdnpzZyIsIm9yaWdpbiI6Imh0dHA6Ly9sb2NhbGhvc3Q6NTE3MyIsImNyb3NzT3JpZ2luIjpmYWxzZX0";
+    // signed challange should come from signed transaction hash (challange is the transaction hash)
+    readonly b64SignedChallenge = "MEYCIQDluP2mAP0s6_F5LrThrgo5wMQQamBZLqn8EagXYnd-EAIhAI7tQpIP0K9xg555Kx-fRmDPIVHW5qX4KEWYEKjp5CwS"
+
+    // generated from randomBytes(32), needs to be static for later hash computation
+    readonly staticRandomSalt = new Uint8Array([
+        205, 241, 161, 186, 101, 105, 79,
+        248, 98, 64, 50, 124, 168, 204,
+        200, 71, 214, 169, 195, 118, 199,
+        62, 140, 111, 128, 47, 32, 21,
+        177, 177, 174, 166
+    ])
+
+    // This is a binary object formatted by @simplewebauthn that contains the alg type and public key
+    readonly passkeyBytes = new Uint8Array([
+        165, 1, 2, 3, 38, 32, 1, 33, 88, 32, 122, 10,
+        184, 53, 178, 209, 126, 236, 209, 137, 44, 178, 210, 238,
+        248, 17, 112, 234, 143, 252, 0, 243, 74, 80, 14, 129,
+        104, 103, 124, 228, 218, 2, 34, 88, 32, 9, 244, 242,
+        61, 29, 46, 48, 204, 200, 244, 192, 207, 213, 195, 31,
+        7, 190, 106, 165, 229, 79, 232, 58, 172, 78, 198, 5,
+        67, 103, 95, 38, 11
+    ]);
 }
 
 describe.only("Spend limit validation", function () {
@@ -74,20 +102,8 @@ describe.only("Spend limit validation", function () {
     // let ERC7579 = new Interface(erc7579ABI);
     const abiCoder = new AbiCoder();
 
-    // this was sampled from the test and if the test transaction changes this will need to be updated
-
-    // This is a binary object formatted by @simplewebauthn that contains the alg type and public key
-    const passkeyBytes = new Uint8Array([
-        165, 1, 2, 3, 38, 32, 1, 33, 88, 32, 122, 10,
-        184, 53, 178, 209, 126, 236, 209, 137, 44, 178, 210, 238,
-        248, 17, 112, 234, 143, 252, 0, 243, 74, 80, 14, 129,
-        104, 103, 124, 228, 218, 2, 34, 88, 32, 9, 244, 242,
-        61, 29, 46, 48, 204, 200, 244, 192, 207, 213, 195, 31,
-        7, 190, 106, 165, 229, 79, 232, 58, 172, 78, 198, 5,
-        67, 103, 95, 38, 11
-    ]);
     // that needs to be converted from 77 to 64 bytes (32x2)
-    const xyPublicKey = getPublicKeyBytes(passkeyBytes);
+    const xyPublicKey = getPublicKeyBytes(fixtures.passkeyBytes);
     const provider = getProvider();
 
     interface TokenConfig {
@@ -206,15 +222,6 @@ describe.only("Spend limit validation", function () {
         const expensiveVerifierAddress = await verifierContract.getAddress();
         const moduleContract = await fixtures.getPasskeyModuleContract();
         const moduleAddress = await moduleContract.getAddress();
-        // generated from randomBytes(32), needs to be static for later hash computation
-        const staticRandomSalt = new Uint8Array([
-            205, 241, 161, 186, 101, 105, 79,
-            248, 98, 64, 50, 124, 168, 204,
-            200, 71, 214, 169, 195, 118, 199,
-            62, 140, 111, 128, 47, 32, 21,
-            177, 177, 174, 166
-        ]);
-        console.log("staticRandomSalt ", staticRandomSalt)
         const factory = await fixtures.getAaFactory()
         const accountImpl = await fixtures.getAccountImplAddress()
 
@@ -225,7 +232,7 @@ describe.only("Spend limit validation", function () {
         if (accountCode) {
             console.log("creating new account address")
             const proxyAccount = await factory.deployProxy7579Account(
-                staticRandomSalt,
+                fixtures.staticRandomSalt,
                 accountImpl,
                 xyPublicKey,
                 expensiveVerifierAddress,
@@ -245,29 +252,17 @@ describe.only("Spend limit validation", function () {
             ).wait();
         }
 
-        const claveArtifact = JSON.parse(await readFile('artifacts-zk/src/ClaveAccount.sol/ClaveAccount.json', 'utf8'));
-
-        // this is the encoded data explaining what authenticator was used (fido, web, etc)
-        const authenticatorData = "SZYN5YgOjGh0NBcPZHZgW4_krrmihjLHmVzzuoMdl2MdAAAAAA";
-        // this is a b64 encoded json object
-        const clientData = "eyJ0eXBlIjoid2ViYXV0aG4uZ2V0IiwiY2hhbGxlbmdlIjoiVEhMQlplQ0xOdWc1VTFnM1JNNTRtU2hISGxiVVVQazlxU3hxZ1VGdnpzZyIsIm9yaWdpbiI6Imh0dHA6Ly9sb2NhbGhvc3Q6NTE3MyIsImNyb3NzT3JpZ2luIjpmYWxzZX0";
         // to be safe this needs to be done client side, otherwise we lose the check that the hash is actually for the transcation in question
-        const authDataBuffer = toBuffer(authenticatorData);
-        const clientDataHash = await toHash(toBuffer(clientData));
+        const authDataBuffer = toBuffer(fixtures.authenticatorData);
+        const clientDataHash = await toHash(toBuffer(fixtures.clientData));
         const hashedData = await toHash(concat([authDataBuffer, clientDataHash]));
-        // signed challange should come from signed transaction hash (challange is the transaction hash)
-        const b64SignedChallenge = "MEYCIQDluP2mAP0s6_F5LrThrgo5wMQQamBZLqn8EagXYnd-EAIhAI7tQpIP0K9xg555Kx-fRmDPIVHW5qX4KEWYEKjp5CwS"
-        const rs = unwrapEC2Signature(toBuffer(b64SignedChallenge))
-        const sessionKeyWallet = new Wallet("0xf51513036f18ef46508ddb0fff7aa153260ff76721b2f53c33fc178152fb481e")
+        const rs = unwrapEC2Signature(toBuffer(fixtures.b64SignedChallenge))
 
         // steps to get the data for this test
         // 1. build the transaction here in the test (aaTx)
         // 2. use this sample signer to get the transaction hash of a realistic transaction
-        // hex: 0x63513539238b9fbf7779a151b3882d99d5981bfcccc18d19dd131f761c3a3453
-        // b64: Y1E1OSOLn793eaFRs4gtmdWYG/zMwY0Z3RMfdhw6NFM=
         // 3. take that transaction hash to another app, and sign it (as the challange)
         // 4. bring that signed hash back here and have it returned as the signer
-        // 
         const isTestMode = false;
         const extractSigningHash = (hash: string, secretKey, provider) => {
             if (isTestMode) {
@@ -275,13 +270,14 @@ describe.only("Spend limit validation", function () {
                 console.log("signing payload hash as binary", hash, b64Hash, ethers.decodeBase64(b64Hash));
                 return Promise.resolve<string>(b64Hash);
             } else {
-                console.log("hashedData,rs", hashedData, rs)
+                console.log("hashedData,rs", ethers.hexlify(hashedData), ethers.hexlify(rs[0]), ethers.hexlify(rs[1]))
                 // the signature will be much fatter when we include the raw data to be hashed
                 // otherwise we're trusting the client to calculate the hash of the transaction correctly
-                const prehashedSignature = abiCoder.encode(["bytes", "bytes32[]"], [
+                const prehashedSignature = abiCoder.encode(["bytes32", "bytes32[2]"], [
                     hashedData,
                     rs
                 ])
+                console.log("prehashed sig", prehashedSignature)
                 // clave expects sigature + validator address + validator hook data
                 const fullFormattedSig = abiCoder.encode(["bytes", "address", "bytes[]"], [
                     prehashedSignature,
@@ -295,12 +291,16 @@ describe.only("Spend limit validation", function () {
 
         // smart account secret isn't stored in javascript (because it's a passkey)
         // but we do have sessionkey secret
-        const ethersTestSmartAccount = new SmartAccount({ payloadSigner: extractSigningHash, address: proxyAccountAddress, secret: sessionKeyWallet.privateKey }, getProvider())
+        const ethersTestSmartAccount = new SmartAccount({
+            payloadSigner: extractSigningHash,
+            address: proxyAccountAddress,
+            secret: fixtures.sessionKeyWallet.privateKey
+        }, getProvider())
 
         // sessions are just EOAs, here's static randomly generated one
-        console.log("sessionKeyWallet ", sessionKeyWallet.privateKey)
+        console.log("sessionKeyWallet ", fixtures.sessionKeyWallet.privateKey)
 
-        const callData = moduleContract.interface.encodeFunctionData('addSessionKey', [sessionKeyWallet.address, tokenConfig.token, 100]);
+        const callData = moduleContract.interface.encodeFunctionData('addSessionKey', [fixtures.sessionKeyWallet.address, tokenConfig.token, 100]);
         const aaTx = {
             type: 113,
             from: proxyAccountAddress,
