@@ -1,31 +1,31 @@
 {
   "response": {
-    "id": "4yPCRr3KTpWw3LCndCOhmw",
-    "rawId": "4yPCRr3KTpWw3LCndCOhmw",
+    "id": "wIuFBb0KQjmGjedHl8-uYQ",
+    "rawId": "wIuFBb0KQjmGjedHl8-uYQ",
     "response": {
       "authenticatorData": "SZYN5YgOjGh0NBcPZHZgW4_krrmihjLHmVzzuoMdl2MdAAAAAA",
-      "clientDataJSON": "eyJ0eXBlIjoid2ViYXV0aG4uZ2V0IiwiY2hhbGxlbmdlIjoiWTFFMU9TT0xuNzkzZWFGUnM0Z3RtZFdZR196TXdZMFozUk1mZGh3Nk5GTSIsIm9yaWdpbiI6Imh0dHA6Ly9sb2NhbGhvc3Q6NTE3MyIsImNyb3NzT3JpZ2luIjpmYWxzZX0",
-      "signature": "MEMCIAZJqndZ20efHbL8Xov2bojrYx0k6MRz4Q7Q-eBb9VT9Ah8nHseD4ijf5aeJJI6y33pnlbBQdGY9LLT2scN_Zjc2",
-      "userHandle": "G6kyXkWDidsqRkBmH_efwJjcd9Q7hoK1DRZmlqmJy7g"
+      "clientDataJSON": "eyJ0eXBlIjoid2ViYXV0aG4uZ2V0IiwiY2hhbGxlbmdlIjoiVEhMQlplQ0xOdWc1VTFnM1JNNTRtU2hISGxiVVVQazlxU3hxZ1VGdnpzZyIsIm9yaWdpbiI6Imh0dHA6Ly9sb2NhbGhvc3Q6NTE3MyIsImNyb3NzT3JpZ2luIjpmYWxzZX0",
+      "signature": "MEYCIQDluP2mAP0s6_F5LrThrgo5wMQQamBZLqn8EagXYnd-EAIhAI7tQpIP0K9xg555Kx-fRmDPIVHW5qX4KEWYEKjp5CwS",
+      "userHandle": "FtJkGdvGSV53iaLsNLNk6fIFjF2ZKUnpP-g6UfDH3Ug"
     },
     "type": "public-key",
     "clientExtensionResults": {},
     "authenticatorAttachment": "cross-platform"
   },
-  "expectedChallenge": "Y1E1OSOLn793eaFRs4gtmdWYG_zMwY0Z3RMfdhw6NFM",
+  "expectedChallenge": "THLBZeCLNug5U1g3RM54mShHHlbUUPk9qSxqgUFvzsg",
   "expectedOrigin": "http://localhost:5173",
   "expectedRPID": "localhost",
   "authenticator": {
     "credentialPublicKey": [
-      165,   1,   2,   3,  38,  32,   1,  33,  88,  32, 234,  62,
-       36,  79, 154,  99,  41,  38, 233, 152, 111,  72, 253,   1,
-      136, 252, 234, 182, 186, 123, 205, 175,  35, 255, 158,  11,
-      124,  97, 124, 106, 247,  55,  34,  88,  32, 134,  64, 107,
-       70, 207,  82,  45, 187, 157,  41, 129, 114, 217,  45, 217,
-       70, 181,  62, 219, 125, 214,  11, 143, 128, 121, 101, 153,
-       10,  77, 213, 124, 241
+      165,   1,   2,   3,  38,  32,   1,  33,  88,  32, 122,  10,
+      184,  53, 178, 209, 126, 236, 209, 137,  44, 178, 210, 238,
+      248,  17, 112, 234, 143, 252,   0, 243,  74,  80,  14, 129,
+      104, 103, 124, 228, 218,   2,  34,  88,  32,   9, 244, 242,
+       61,  29,  46,  48, 204, 200, 244, 192, 207, 213, 195,  31,
+        7, 190, 106, 165, 229,  79, 232,  58, 172,  78, 198,   5,
+       67, 103,  95,  38,  11
     ],
-    "credentialID": "4yPCRr3KTpWw3LCndCOhmw",
+    "credentialID": "wIuFBb0KQjmGjedHl8-uYQ",
     "counter": 0
   }
 }

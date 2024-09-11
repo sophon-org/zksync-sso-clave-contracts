@@ -78,13 +78,13 @@ describe.only("Spend limit validation", function () {
 
     // This is a binary object formatted by @simplewebauthn that contains the alg type and public key
     const passkeyBytes = new Uint8Array([
-        165, 1, 2, 3, 38, 32, 1, 33, 88, 32, 234, 62,
-        36, 79, 154, 99, 41, 38, 233, 152, 111, 72, 253, 1,
-        136, 252, 234, 182, 186, 123, 205, 175, 35, 255, 158, 11,
-        124, 97, 124, 106, 247, 55, 34, 88, 32, 134, 64, 107,
-        70, 207, 82, 45, 187, 157, 41, 129, 114, 217, 45, 217,
-        70, 181, 62, 219, 125, 214, 11, 143, 128, 121, 101, 153,
-        10, 77, 213, 124, 241
+        165, 1, 2, 3, 38, 32, 1, 33, 88, 32, 122, 10,
+        184, 53, 178, 209, 126, 236, 209, 137, 44, 178, 210, 238,
+        248, 17, 112, 234, 143, 252, 0, 243, 74, 80, 14, 129,
+        104, 103, 124, 228, 218, 2, 34, 88, 32, 9, 244, 242,
+        61, 29, 46, 48, 204, 200, 244, 192, 207, 213, 195, 31,
+        7, 190, 106, 165, 229, 79, 232, 58, 172, 78, 198, 5,
+        67, 103, 95, 38, 11
     ]);
     // that needs to be converted from 77 to 64 bytes (32x2)
     const xyPublicKey = getPublicKeyBytes(passkeyBytes);
@@ -250,13 +250,13 @@ describe.only("Spend limit validation", function () {
         // this is the encoded data explaining what authenticator was used (fido, web, etc)
         const authenticatorData = "SZYN5YgOjGh0NBcPZHZgW4_krrmihjLHmVzzuoMdl2MdAAAAAA";
         // this is a b64 encoded json object
-        const clientData = "eyJ0eXBlIjoid2ViYXV0aG4uZ2V0IiwiY2hhbGxlbmdlIjoiWTFFMU9TT0xuNzkzZWFGUnM0Z3RtZFdZR196TXdZMFozUk1mZGh3Nk5GTSIsIm9yaWdpbiI6Imh0dHA6Ly9sb2NhbGhvc3Q6NTE3MyIsImNyb3NzT3JpZ2luIjpmYWxzZX0",
+        const clientData = "eyJ0eXBlIjoid2ViYXV0aG4uZ2V0IiwiY2hhbGxlbmdlIjoiVEhMQlplQ0xOdWc1VTFnM1JNNTRtU2hISGxiVVVQazlxU3hxZ1VGdnpzZyIsIm9yaWdpbiI6Imh0dHA6Ly9sb2NhbGhvc3Q6NTE3MyIsImNyb3NzT3JpZ2luIjpmYWxzZX0";
         // to be safe this needs to be done client side, otherwise we lose the check that the hash is actually for the transcation in question
         const authDataBuffer = toBuffer(authenticatorData);
         const clientDataHash = await toHash(toBuffer(clientData));
         const hashedData = await toHash(concat([authDataBuffer, clientDataHash]));
         // signed challange should come from signed transaction hash (challange is the transaction hash)
-        const b64SignedChallenge = "MEMCIAZJqndZ20efHbL8Xov2bojrYx0k6MRz4Q7Q-eBb9VT9Ah8nHseD4ijf5aeJJI6y33pnlbBQdGY9LLT2scN_Zjc2";
+        const b64SignedChallenge = "MEYCIQDluP2mAP0s6_F5LrThrgo5wMQQamBZLqn8EagXYnd-EAIhAI7tQpIP0K9xg555Kx-fRmDPIVHW5qX4KEWYEKjp5CwS"
         const rs = unwrapEC2Signature(toBuffer(b64SignedChallenge))
         const sessionKeyWallet = new Wallet("0xf51513036f18ef46508ddb0fff7aa153260ff76721b2f53c33fc178152fb481e")
 
@@ -270,26 +270,27 @@ describe.only("Spend limit validation", function () {
         // 
         const isTestMode = false;
         const extractSigningHash = (hash: string, secretKey, provider) => {
+            if (isTestMode) {
+                const b64Hash = ethers.encodeBase64(hash)
+                console.log("signing payload hash as binary", hash, b64Hash, ethers.decodeBase64(b64Hash));
+                return Promise.resolve<string>(b64Hash);
+            } else {
+                console.log("hashedData,rs", hashedData, rs)
+                // the signature will be much fatter when we include the raw data to be hashed
+                // otherwise we're trusting the client to calculate the hash of the transaction correctly
+                const prehashedSignature = abiCoder.encode(["bytes", "bytes32[]"], [
+                    hashedData,
+                    rs
+                ])
+                // clave expects sigature + validator address + validator hook data
+                const fullFormattedSig = abiCoder.encode(["bytes", "address", "bytes[]"], [
+                    prehashedSignature,
+                    expensiveVerifierAddress,
+                    []
+                ]);
 
-            /* disabled while we ignore the real hash and use the stored one
-            const b64Hash = ethers.encodeBase64(hash)
-            console.log("signing payload hash as binary", hash, b64Hash, ethers.decodeBase64(b64Hash));
-            */
-
-            console.log("hashedData,rs", hashedData,rs)
-            // the signature will be much fatter when we include the raw data to be hashed
-            // otherwise we're trusting the client to calculate the hash of the transaction correctly
-            const prehashedSignature = abiCoder.encode(["bytes", "bytes32[]"], [
-                hashedData,
-                rs
-            ])
-            // clave expects sigature + validator address + validator hook data
-            const fullFormattedSig = abiCoder.encode(["bytes", "address", "bytes[]"], [
-                prehashedSignature,
-                expensiveVerifierAddress,
-                []
-            ]);
-            return Promise.resolve<string>(fullFormattedSig);
+                return Promise.resolve<string>(fullFormattedSig);
+            }
         }
 
         // smart account secret isn't stored in javascript (because it's a passkey)
