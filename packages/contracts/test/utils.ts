@@ -4,6 +4,8 @@ import { Deployer } from "@matterlabs/hardhat-zksync";
 import dotenv from "dotenv";
 import { ethers } from "ethers";
 
+import { IContractDeployer__factory } from "zksync-ethers/build/typechain";
+
 import "@matterlabs/hardhat-zksync-node/dist/type-extensions";
 import "@matterlabs/hardhat-zksync-verify/dist/src/type-extensions";
 
@@ -13,7 +15,7 @@ dotenv.config();
 export const getProvider = () => {
   const rpcUrl = hre.network.config.url;
   if (!rpcUrl) throw `⛔️ RPC URL wasn't found in "${hre.network.name}"! Please add a "url" field to the network config in hardhat.config.ts`;
-  
+
   // Initialize zkSync Provider
   const provider = new Provider(rpcUrl);
 
@@ -27,7 +29,7 @@ export const getWallet = (privateKey?: string) => {
   }
 
   const provider = getProvider();
-  
+
   // Initialize zkSync Wallet
   const wallet = new Wallet(privateKey ?? process.env.WALLET_PRIVATE_KEY!, provider);
 
@@ -67,7 +69,7 @@ type DeployContractOptions = {
   noVerify?: boolean
   /**
    * If specified, the contract will be deployed using this wallet
-   */ 
+   */
   wallet?: Wallet
 }
 export const deployContract = async (contractArtifactName: string, constructorArguments?: any[], options?: DeployContractOptions, expectedAddress?: string) => {
@@ -76,7 +78,7 @@ export const deployContract = async (contractArtifactName: string, constructorAr
   }
 
   log(`\nStarting deployment process of "${contractArtifactName}"...`);
-  
+
   const wallet = options?.wallet ?? getWallet();
   const deployer = new Deployer(hre, wallet);
   const artifact = await deployer.loadArtifact(contractArtifactName).catch((error) => {
@@ -95,8 +97,11 @@ export const deployContract = async (contractArtifactName: string, constructorAr
   // Check if the wallet has enough balance
   await verifyEnoughBalance(wallet, deploymentFee);
 
-  // Deploy the contract to zkSync
+  // Deploy the contract to zkSync to a stable address
+  const contractDeployer = IContractDeployer__factory.connect("0x0000000000000000000000000000000000008006", wallet);
+  // const contract = contractDeployer.create2(ethers.ZeroAddress, artifact.bytecode);
   const contract = await deployer.deploy(artifact, constructorArguments);
+
   const address = await contract.getAddress();
   const constructorArgs = contract.interface.encodeDeploy(constructorArguments);
   const fullContractSource = `${artifact.sourceName}:${artifact.contractName}`;

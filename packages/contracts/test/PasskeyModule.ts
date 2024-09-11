@@ -6,6 +6,7 @@ import { fromArrayBuffer } from "@hexagon/base64"
 import { AsnParser } from '@peculiar/asn1-schema';
 import { ECDSASigValue } from '@peculiar/asn1-ecc';
 import { toArrayBuffer } from "@hexagon/base64";
+import { ethers } from "ethers"
 
 /**
  * Decode from a Base64URL-encoded string to an ArrayBuffer. Best used when converting a
@@ -186,7 +187,7 @@ export function concat(arrays: Uint8Array[]): Uint8Array {
  * @param signature 
  * @returns r & s bytes sequentially
  */
-function unwrapEC2Signature(signature: Uint8Array): Uint8Array[] {
+export function unwrapEC2Signature(signature: Uint8Array): Uint8Array[] {
     const parsedSignature = AsnParser.parse(signature, ECDSASigValue);
     let rBytes = new Uint8Array(parsedSignature.r);
     let sBytes = new Uint8Array(parsedSignature.s);
@@ -217,7 +218,7 @@ function shouldRemoveLeadingZero(bytes: Uint8Array): boolean {
  * Returns hash digest of the given data, using the given algorithm when provided. Defaults to using
  * SHA-256.
  */
-async function toHash(
+export async function toHash(
     data: Uint8Array | string,
 ): Promise<Uint8Array> {
     if (typeof data === 'string') {
@@ -238,6 +239,7 @@ async function rawVerify(
     const hashedData = await toHash(concat([authDataBuffer, clientDataHash]));
     const rs = unwrapEC2Signature(toBuffer(b64SignedChallange))
     const publicKeys = await getPublicKey(publicKeyEs256Bytes)
+    console.log("rawVerify", ethers.hexlify(hashedData), ethers.hexlify(rs[0]), ethers.hexlify(rs[0]), publicKeys)
     return await passkeyValidator.rawVerify(hashedData, rs, publicKeys)
 }
 

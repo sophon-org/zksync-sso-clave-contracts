@@ -2,14 +2,13 @@
 import { SmartAccount, types, utils } from "zksync-ethers";
 import { deployFactory } from "./AccountAbstraction"
 import { parseEther, randomBytes, Wallet } from 'ethers';
-import { AbiCoder, Contract, ContractTransactionReceipt, ContractTransactionResponse, ethers, Interface, ZeroAddress } from "ethers";
+import { AbiCoder, Contract, ethers, ZeroAddress } from "ethers";
 import { it } from "mocha";
 import { deployContract, getWallet, getProvider } from "./utils";
 import { assert, expect } from "chai";
 import { readFile } from "fs/promises";
-import { getPublicKeyBytes } from "./PasskeyModule";
+import { concat, getPublicKeyBytes, toBuffer, toHash, unwrapEC2Signature } from "./PasskeyModule";
 
-import { toSmartAccount } from 'viem/zksync';
 import { Address } from "viem";
 
 class ContractFixtures {
@@ -20,8 +19,7 @@ class ContractFixtures {
     private _aaFactory: Contract;
     async getAaFactory() {
         if (!this._aaFactory) {
-            const expectedAddress = "0x23b13d016E973C9915c6252271fF06cCA2098885";
-            this._aaFactory = await deployFactory("AAFactory", this.wallet, expectedAddress);
+            this._aaFactory = await deployFactory("AAFactory", this.wallet);
         }
         return this._aaFactory;
     }
@@ -30,8 +28,7 @@ class ContractFixtures {
 
     async getPasskeyModuleContract() {
         if (!this._passkeyModuleContract) {
-            const expectedAddress = "0x9c1a3d7C98dBF89c7f5d167F2219C29c2fe775A7";
-            this._passkeyModuleContract = await deployContract("SessionPasskeySpendLimitModule", [], { wallet: this.wallet }, expectedAddress);
+            this._passkeyModuleContract = await deployContract("SessionPasskeySpendLimitModule", [], { wallet: this.wallet });
         }
         return this._passkeyModuleContract
     }
@@ -39,16 +36,14 @@ class ContractFixtures {
     private _expensiveVerifierContract: Contract;
     async getExpensiveVerifierContract() {
         if (!this._expensiveVerifierContract) {
-            const expectedAddress = "0xCeAB1fc2693930bbad33024D270598c620D7A52B";
-            this._expensiveVerifierContract = await deployContract("PasskeyValidator", [], { wallet: this.wallet }, expectedAddress);
+            this._expensiveVerifierContract = await deployContract("PasskeyValidator", [], { wallet: this.wallet });
         }
         return this._expensiveVerifierContract
     }
     private _accountImplContract: Contract;
     async getAccountImplContract() {
         if (!this._accountImplContract) {
-            const expectedAddress = "0x99E12239CBf8112fBB3f7Fd473d0558031abcbb5";
-            this._accountImplContract = await deployContract("ERC7579Account", [], { wallet: this.wallet }, expectedAddress);
+            this._accountImplContract = await deployContract("ERC7579Account", [], { wallet: this.wallet });
         }
         return this._accountImplContract;
     }
@@ -66,8 +61,7 @@ class ContractFixtures {
     async getProxyAccountContract() {
         if (!this._proxyAccountContract) {
             const claveAddress = await this.getAccountImplAddress();
-            const expectedAddress = "0xaAF5f437fB0524492886fbA64D703df15BF619AE";
-            this._proxyAccountContract = await deployContract("AccountProxy", [claveAddress], { wallet: this.wallet }, expectedAddress);
+            this._proxyAccountContract = await deployContract("AccountProxy", [claveAddress], { wallet: this.wallet });
         }
         return this._proxyAccountContract;
     }
@@ -81,22 +75,18 @@ describe.only("Spend limit validation", function () {
     const abiCoder = new AbiCoder();
 
     // this was sampled from the test and if the test transaction changes this will need to be updated
-    const savedHash = "";
-
-    // this is generated externally from the saved hash
-    const savedSignature = `0x{savedHash}`;
 
     // This is a binary object formatted by @simplewebauthn that contains the alg type and public key
     const passkeyBytes = new Uint8Array([
-        165, 1, 2, 3, 38, 32, 1, 33, 88, 32, 167, 69,
-        109, 166, 67, 163, 110, 143, 71, 60, 77, 232, 220, 7,
-        121, 156, 141, 24, 71, 28, 210, 116, 124, 90, 115, 166,
-        213, 190, 89, 4, 216, 128, 34, 88, 32, 193, 67, 151,
-        85, 245, 24, 139, 246, 220, 204, 228, 76, 247, 65, 179,
-        235, 81, 41, 196, 37, 216, 117, 201, 244, 128, 8, 73,
-        37, 195, 20, 194, 9
+        165, 1, 2, 3, 38, 32, 1, 33, 88, 32, 234, 62,
+        36, 79, 154, 99, 41, 38, 233, 152, 111, 72, 253, 1,
+        136, 252, 234, 182, 186, 123, 205, 175, 35, 255, 158, 11,
+        124, 97, 124, 106, 247, 55, 34, 88, 32, 134, 64, 107,
+        70, 207, 82, 45, 187, 157, 41, 129, 114, 217, 45, 217,
+        70, 181, 62, 219, 125, 214, 11, 143, 128, 121, 101, 153,
+        10, 77, 213, 124, 241
     ]);
-    // that needs to be converted from 77 to 64 bytes
+    // that needs to be converted from 77 to 64 bytes (32x2)
     const xyPublicKey = getPublicKeyBytes(passkeyBytes);
     const provider = getProvider();
 
@@ -216,7 +206,6 @@ describe.only("Spend limit validation", function () {
         const expensiveVerifierAddress = await verifierContract.getAddress();
         const moduleContract = await fixtures.getPasskeyModuleContract();
         const moduleAddress = await moduleContract.getAddress();
-        assert.equal(moduleAddress, "0x9c1a3d7C98dBF89c7f5d167F2219C29c2fe775A7", "needs to be expected location for transaction hash to work")
         // generated from randomBytes(32), needs to be static for later hash computation
         const staticRandomSalt = new Uint8Array([
             205, 241, 161, 186, 101, 105, 79,
@@ -231,8 +220,10 @@ describe.only("Spend limit validation", function () {
 
         // from previous deployment (Updatable!)
         let proxyAccountAddress = "0x86CBA50c2139d18511DE73e30BC385E82C6EeeC1";
+        console.log("checking for account address")
         const accountCode = await provider.getCode(proxyAccountAddress);
         if (accountCode) {
+            console.log("creating new account address")
             const proxyAccount = await factory.deployProxy7579Account(
                 staticRandomSalt,
                 accountImpl,
@@ -244,6 +235,8 @@ describe.only("Spend limit validation", function () {
 
             const proxyAccountReciept = await proxyAccount.wait();
             proxyAccountAddress = proxyAccountReciept.contractAddress;
+            console.log("proxyAccountAddress ", proxyAccountReciept)
+            assert.notEqual(proxyAccountAddress, undefined, "no address set")
             await (
                 await fixtures.wallet.sendTransaction({
                     to: proxyAccountAddress,
@@ -254,30 +247,56 @@ describe.only("Spend limit validation", function () {
 
         const claveArtifact = JSON.parse(await readFile('artifacts-zk/src/ClaveAccount.sol/ClaveAccount.json', 'utf8'));
 
-        // send signed transaction to update spend limit on module
-        // FIXME: show the real hashing of the transaction instead of just the data snapshot
-        const authenticatorData = 'SZYN5YgOjGh0NBcPZHZgW4_krrmihjLHmVzzuoMdl2MFAAAABQ'
-        const clientData = 'eyJ0eXBlIjoid2ViYXV0aG4uZ2V0IiwiY2hhbGxlbmdlIjoiZFhPM3ctdWdycS00SkdkZUJLNDFsZFk1V2lNd0ZORDkiLCJvcmlnaW4iOiJodHRwOi8vbG9jYWxob3N0OjUxNzMiLCJjcm9zc09yaWdpbiI6ZmFsc2UsIm90aGVyX2tleXNfY2FuX2JlX2FkZGVkX2hlcmUiOiJkbyBub3QgY29tcGFyZSBjbGllbnREYXRhSlNPTiBhZ2FpbnN0IGEgdGVtcGxhdGUuIFNlZSBodHRwczovL2dvby5nbC95YWJQZXgifQ'
-        const b64SignedChallenge = 'MEUCIQCYrSUCR_QUPAhvRNUVfYiJC2JlOKuqf4gx7i129n9QxgIgaY19A9vAAObuTQNs5_V9kZFizwRpUFpiRVW_dglpR2A'
+        // this is the encoded data explaining what authenticator was used (fido, web, etc)
+        const authenticatorData = "SZYN5YgOjGh0NBcPZHZgW4_krrmihjLHmVzzuoMdl2MdAAAAAA";
+        // this is a b64 encoded json object
+        const clientData = "eyJ0eXBlIjoid2ViYXV0aG4uZ2V0IiwiY2hhbGxlbmdlIjoiWTFFMU9TT0xuNzkzZWFGUnM0Z3RtZFdZR196TXdZMFozUk1mZGh3Nk5GTSIsIm9yaWdpbiI6Imh0dHA6Ly9sb2NhbGhvc3Q6NTE3MyIsImNyb3NzT3JpZ2luIjpmYWxzZX0",
+        // to be safe this needs to be done client side, otherwise we lose the check that the hash is actually for the transcation in question
+        const authDataBuffer = toBuffer(authenticatorData);
+        const clientDataHash = await toHash(toBuffer(clientData));
+        const hashedData = await toHash(concat([authDataBuffer, clientDataHash]));
+        // signed challange should come from signed transaction hash (challange is the transaction hash)
+        const b64SignedChallenge = "MEMCIAZJqndZ20efHbL8Xov2bojrYx0k6MRz4Q7Q-eBb9VT9Ah8nHseD4ijf5aeJJI6y33pnlbBQdGY9LLT2scN_Zjc2";
+        const rs = unwrapEC2Signature(toBuffer(b64SignedChallenge))
+        const sessionKeyWallet = new Wallet("0xf51513036f18ef46508ddb0fff7aa153260ff76721b2f53c33fc178152fb481e")
 
         // steps to get the data for this test
         // 1. build the transaction here in the test (aaTx)
         // 2. use this sample signer to get the transaction hash of a realistic transaction
-        // 0x88f470b0e18caa467c2198c3f047e80f8ae7281b6ebe7f906c6e69cdfed2c497
+        // hex: 0x63513539238b9fbf7779a151b3882d99d5981bfcccc18d19dd131f761c3a3453
+        // b64: Y1E1OSOLn793eaFRs4gtmdWYG/zMwY0Z3RMfdhw6NFM=
         // 3. take that transaction hash to another app, and sign it (as the challange)
         // 4. bring that signed hash back here and have it returned as the signer
+        // 
         const isTestMode = false;
         const extractSigningHash = (hash: string, secretKey, provider) => {
-            console.log("signing payload hash and secret", hash, secretKey);
-            // expects sigature + validator address + validator hook data
-            const sig = Buffer.concat([Buffer.from(expensiveVerifierAddress.slice(2))]).toString('hex')
-            console.log("sig ", sig)
-            return Promise.resolve<string>(`0x${sig}`);
+
+            /* disabled while we ignore the real hash and use the stored one
+            const b64Hash = ethers.encodeBase64(hash)
+            console.log("signing payload hash as binary", hash, b64Hash, ethers.decodeBase64(b64Hash));
+            */
+
+            console.log("hashedData,rs", hashedData,rs)
+            // the signature will be much fatter when we include the raw data to be hashed
+            // otherwise we're trusting the client to calculate the hash of the transaction correctly
+            const prehashedSignature = abiCoder.encode(["bytes", "bytes32[]"], [
+                hashedData,
+                rs
+            ])
+            // clave expects sigature + validator address + validator hook data
+            const fullFormattedSig = abiCoder.encode(["bytes", "address", "bytes[]"], [
+                prehashedSignature,
+                expensiveVerifierAddress,
+                []
+            ]);
+            return Promise.resolve<string>(fullFormattedSig);
         }
-        const ethersTestSmartAccount = new SmartAccount({ payloadSigner: extractSigningHash, address: proxyAccountAddress, secret: xyPublicKey }, getProvider())
+
+        // smart account secret isn't stored in javascript (because it's a passkey)
+        // but we do have sessionkey secret
+        const ethersTestSmartAccount = new SmartAccount({ payloadSigner: extractSigningHash, address: proxyAccountAddress, secret: sessionKeyWallet.privateKey }, getProvider())
 
         // sessions are just EOAs, here's static randomly generated one
-        const sessionKeyWallet = new Wallet("0xf51513036f18ef46508ddb0fff7aa153260ff76721b2f53c33fc178152fb481e")
         console.log("sessionKeyWallet ", sessionKeyWallet.privateKey)
 
         const callData = moduleContract.interface.encodeFunctionData('addSessionKey', [sessionKeyWallet.address, tokenConfig.token, 100]);

@@ -19,7 +19,7 @@ abstract contract ValidationHandler is OwnerManager, ValidatorManager {
 
     function _handleValidation(
         address validator,
-        bytes32 signedHash,
+        bytes32 signedHash, // keccack hash
         bytes memory signature
     ) internal view returns (bool) {
         console.log("_handleValidation");
@@ -58,18 +58,38 @@ abstract contract ValidationHandler is OwnerManager, ValidatorManager {
                 return true;
             }
         } else if (_isModuleValidator(validator)) {
+            console.log("_isModuleValidator");
             // FIXME: This is implicitly assuming that modular validators use keys 2 32byte words
             mapping(bytes => bytes) storage owners = OwnerManager
                 ._r1OwnersLinkedList();
             bytes memory cursor = owners[BytesLinkedList.SENTINEL_BYTES];
             while (cursor.length > BytesLinkedList.SENTINEL_LENGTH) {
                 bytes32[2] memory pubKey = abi.decode(cursor, (bytes32[2]));
+                (bytes32[2] memory rs, bytes32 externalSignature) = abi.decode(signature, (bytes32[2], bytes32));
+
+                /*
                 bytes32[2] memory rs;
                 rs[0] = _bytesToBytes32(signature, 0);
                 rs[1] = _bytesToBytes32(signature, 1);
 
+                console.log("signedHash");
+                console.logBytes32(signedHash);
+                // not (yet) the signature we need
+                //console.log("signature");
+                //console.logBytes(signature);
+                console.log("pubKey(1,2)");
+                console.logBytes32(pubKey[0]);
+                console.logBytes32(pubKey[1]);
+                // authenticatorData signature[2-x]
+                // clientData signature[x-y]
+                // bytes32 passkeyData = hash_sha265(concat[authenticatorData, hash_sha265(clientData)]);
+                bytes32 passkeyData;
+                */
+
+                console.log("externalSignature");
+                console.logBytes32(externalSignature);
                 bool _success = IR1Validator(validator).rawVerify(
-                    signedHash,
+                    externalSignature,
                     rs,
                     pubKey
                 );

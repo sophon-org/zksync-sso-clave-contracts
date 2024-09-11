@@ -1,0 +1,31 @@
+{
+  "response": {
+    "id": "4yPCRr3KTpWw3LCndCOhmw",
+    "rawId": "4yPCRr3KTpWw3LCndCOhmw",
+    "response": {
+      "authenticatorData": "SZYN5YgOjGh0NBcPZHZgW4_krrmihjLHmVzzuoMdl2MdAAAAAA",
+      "clientDataJSON": "eyJ0eXBlIjoid2ViYXV0aG4uZ2V0IiwiY2hhbGxlbmdlIjoiWTFFMU9TT0xuNzkzZWFGUnM0Z3RtZFdZR196TXdZMFozUk1mZGh3Nk5GTSIsIm9yaWdpbiI6Imh0dHA6Ly9sb2NhbGhvc3Q6NTE3MyIsImNyb3NzT3JpZ2luIjpmYWxzZX0",
+      "signature": "MEMCIAZJqndZ20efHbL8Xov2bojrYx0k6MRz4Q7Q-eBb9VT9Ah8nHseD4ijf5aeJJI6y33pnlbBQdGY9LLT2scN_Zjc2",
+      "userHandle": "G6kyXkWDidsqRkBmH_efwJjcd9Q7hoK1DRZmlqmJy7g"
+    },
+    "type": "public-key",
+    "clientExtensionResults": {},
+    "authenticatorAttachment": "cross-platform"
+  },
+  "expectedChallenge": "Y1E1OSOLn793eaFRs4gtmdWYG_zMwY0Z3RMfdhw6NFM",
+  "expectedOrigin": "http://localhost:5173",
+  "expectedRPID": "localhost",
+  "authenticator": {
+    "credentialPublicKey": [
+      165,   1,   2,   3,  38,  32,   1,  33,  88,  32, 234,  62,
+       36,  79, 154,  99,  41,  38, 233, 152, 111,  72, 253,   1,
+      136, 252, 234, 182, 186, 123, 205, 175,  35, 255, 158,  11,
+      124,  97, 124, 106, 247,  55,  34,  88,  32, 134,  64, 107,
+       70, 207,  82,  45, 187, 157,  41, 129, 114, 217,  45, 217,
+       70, 181,  62, 219, 125, 214,  11, 143, 128, 121, 101, 153,
+       10,  77, 213, 124, 241
+    ],
+    "credentialID": "4yPCRr3KTpWw3LCndCOhmw",
+    "counter": 0
+  }
+}

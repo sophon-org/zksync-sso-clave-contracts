@@ -67,7 +67,7 @@ contract ClaveAccount is
         bytes calldata initData
     ) external initializer {
         _r1AddOwner(initialR1Owner);
-        _r1AddValidator(initialR1Validator);
+        _addModuleValidator(initialR1Validator);
         _addNativeModule(initialModule, initData);
     }
 
@@ -103,8 +103,10 @@ contract ClaveAccount is
         // While the suggested signed hash is usually provided, it is generally
         // not recommended to rely on it to be present, since in the future
         // there may be tx types with no suggested signed hash.
+        console.log("suggestedSignedHash");
+        console.logBytes32(suggestedSignedHash);
         bytes32 signedHash = suggestedSignedHash == bytes32(0)
-            ? transaction.encodeHash()
+            ? transaction.encodeHash() // this hash needs to depend on the signature type?
             : suggestedSignedHash;
 
         magic = _validateTransaction(signedHash, transaction);
@@ -209,38 +211,20 @@ contract ClaveAccount is
             return bytes4(0);
         }
 
-        console.log("transaction.signature");
-        console.logBytes(transaction.signature);
-
-        /*
         // Extract the signature, validator address and hook data from the transaction.signature
         (bytes memory signature, address validator, bytes[] memory hookData) = SignatureDecoder
             .decodeSignature(transaction.signature);
-        */
-
-        // this is failing with some function selector error?
-        // if I can't decode a binary formatted signature, later parsing will fail
-        // might also need to update the signature format to support the app-native r1 vs webauthn
-        address validator = abi.decode(
-            transaction.signature,
-            (address)
-        );
 
         console.log("signature decoded");
 
         // Run validation hooks
-        /*
         bool hookSuccess = runValidationHooks(signedHash, transaction, hookData);
         console.log("runValidationHooks");
         if (!hookSuccess) {
             return bytes4(0);
         }
-        */
 
-        /*
         bool valid = _handleValidation(validator, signedHash, signature);
-        */
-        bool valid = true;
 
         magicValue = valid ? ACCOUNT_VALIDATION_SUCCESS_MAGIC : bytes4(0);
     }
