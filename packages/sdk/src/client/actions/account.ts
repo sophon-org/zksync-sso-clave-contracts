@@ -3,13 +3,18 @@ import { waitForTransactionReceipt, writeContract } from 'viem/actions';
 
 import { FactoryAbi } from '../../abi/Factory.js';
 import { getPublicKeyBytesFromPasskeySignature } from '../../utils/passkey.js';
+import { requestPasskeySignature, type RequestPasskeySignatureArgs } from './passkey.js';
 
-type DeployAccountArgs = {
+/* TODO: try to get rid of most of the contract params like accountImplementation, validator, initialModule */
+/* it should come from factory, not passed manually each time */
+export type DeployAccountArgs = {
   factory: Address;
   accountImplementation: Address;
   validator: Address;
-  salt: Uint8Array; // Random 32 bytes
-  passkeyBytes: Uint8Array; // Passkey signature
+  salt?: Uint8Array; // Random 32 bytes
+  passkey: {
+    passkeySignature: Uint8Array;
+  } | RequestPasskeySignatureArgs,
   initialModule: Address; // Passkey module address, or some other module
   initialModuleData?: Hash; // ABI-encoded data for initial module
   initialSpendLimit?: { // Initial spend limit if using Passkey module as initialModule
@@ -17,8 +22,9 @@ type DeployAccountArgs = {
     token: Address;
     amount: number;
   }[];
+  onTransactionSent?: (hash: Hash) => void;
 };
-type DeployAccountReturnType = {
+export type DeployAccountReturnType = {
   address: Address;
   transactionReceipt: TransactionReceipt;
 };
@@ -30,7 +36,10 @@ export const deployAccount = async <
   if (args.initialModuleData && args.initialSpendLimit?.length) {
     throw new Error("Either initialModuleData or initialSpendLimit can be provided, not both");
   }
+
+  /* Format spendlimit to initialModuleData if initialSpendLimit was provided */
   if (args.initialSpendLimit?.length) {
+    /* TODO: why is it missing session time limit? */
     const tokenConfigTypes = [
       { type: 'address', name: 'token' },
       { type: 'address', name: 'sessionPublicKey' },
@@ -47,6 +56,20 @@ export const deployAccount = async <
       ]
     )
   }
+
+  if (!args.salt) {
+    args.salt = crypto.getRandomValues(new Uint8Array(32));
+  }
+
+  /* Request signature via webauthn if signature not provided */
+  let passkeySignature: Uint8Array;
+  if ('passkeySignature' in args.passkey) {
+    passkeySignature = args.passkey.passkeySignature;
+  } else {
+    passkeySignature = (await requestPasskeySignature(args.passkey)).passkeyPublicKey;
+  }
+
+  const passkeyPublicKey = await getPublicKeyBytesFromPasskeySignature(passkeySignature);
   
   const transactionHash = await writeContract(client, {
     address: args.factory,
@@ -55,12 +78,16 @@ export const deployAccount = async <
     args: [
       args.salt,
       args.accountImplementation,
-      await getPublicKeyBytesFromPasskeySignature(args.passkeyBytes),
+      passkeyPublicKey,
       args.validator,
       args.initialModule,
       args.initialModuleData || "0x",
     ],
   } as any);
+  if (args.onTransactionSent) {
+    try { args.onTransactionSent(transactionHash) }
+    catch {}
+  }
   const transactionReceipt = await waitForTransactionReceipt(client, { hash: transactionHash });
   
   /* TODO: use or remove this */

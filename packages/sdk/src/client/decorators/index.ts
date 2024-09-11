@@ -1,2 +1,2 @@
-export * from "./wallet.js";
+export * from "./session_wallet.js";
 export * from "./session.js";
