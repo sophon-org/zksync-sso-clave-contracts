@@ -103,10 +103,8 @@ contract ClaveAccount is
         // While the suggested signed hash is usually provided, it is generally
         // not recommended to rely on it to be present, since in the future
         // there may be tx types with no suggested signed hash.
-        console.log("suggestedSignedHash");
-        console.logBytes32(suggestedSignedHash);
         bytes32 signedHash = suggestedSignedHash == bytes32(0)
-            ? transaction.encodeHash() // this hash needs to depend on the signature type?
+            ? transaction.encodeHash() // TODO: this hash needs to depend on the signature type?
             : suggestedSignedHash;
 
         magic = _validateTransaction(signedHash, transaction);
@@ -205,7 +203,6 @@ contract ClaveAccount is
         bytes32 signedHash,
         Transaction calldata transaction
     ) internal returns (bytes4 magicValue) {
-        console.log("_validateTransaction");
         if (transaction.signature.length == 65) {
             // This is a gas estimation
             return bytes4(0);
@@ -214,9 +211,7 @@ contract ClaveAccount is
         // Extract the signature, validator address and hook data from the transaction.signature
         (bytes memory signature, address validator, bytes[] memory hookData) = SignatureDecoder
             .decodeSignature(transaction.signature);
-
-        console.log("signature decoded");
-        console.logBytes(signature);
+        
         console.log("validator address");
         console.logAddress(validator);
 

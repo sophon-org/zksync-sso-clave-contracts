@@ -252,12 +252,14 @@ describe.only("Spend limit validation", function () {
             ).wait();
         }
 
-        // to be safe this needs to be done client side, otherwise we lose the check that the hash is actually for the transcation in question
         const authDataBuffer = toBuffer(fixtures.authenticatorData);
-        const clientDataHash = await toHash(toBuffer(fixtures.clientData));
+        const clientDataBuffer = toBuffer(fixtures.clientData);
+        // the validator needs to perform the following steps so it can validate the raw client data
+        // performing this client side is just a helpful check to ensure the contract is following
+        const clientDataHash = await toHash(clientDataBuffer);
         const hashedData = await toHash(concat([authDataBuffer, clientDataHash]));
-        const rs = unwrapEC2Signature(toBuffer(fixtures.b64SignedChallenge))
 
+        const rs = unwrapEC2Signature(toBuffer(fixtures.b64SignedChallenge))
         // steps to get the data for this test
         // 1. build the transaction here in the test (aaTx)
         // 2. use this sample signer to get the transaction hash of a realistic transaction
@@ -270,17 +272,16 @@ describe.only("Spend limit validation", function () {
                 console.log("signing payload hash as binary", hash, b64Hash, ethers.decodeBase64(b64Hash));
                 return Promise.resolve<string>(b64Hash);
             } else {
-                console.log("hashedData,rs", ethers.hexlify(hashedData), ethers.hexlify(rs[0]), ethers.hexlify(rs[1]))
-                // the signature will be much fatter when we include the raw data to be hashed
-                // otherwise we're trusting the client to calculate the hash of the transaction correctly
-                const prehashedSignature = abiCoder.encode(["bytes32", "bytes32[2]"], [
-                    hashedData,
+                // the validator is now responsible for checking and hashing this
+                const fatSignature = abiCoder.encode(["bytes", "bytes", "bytes32[2]"], [
+                    authDataBuffer,
+                    clientDataBuffer,
                     rs
                 ])
-                console.log("prehashed sig", prehashedSignature)
+                console.log("fat sig", fatSignature)
                 // clave expects sigature + validator address + validator hook data
                 const fullFormattedSig = abiCoder.encode(["bytes", "address", "bytes[]"], [
-                    prehashedSignature,
+                    fatSignature,
                     expensiveVerifierAddress,
                     []
                 ]);

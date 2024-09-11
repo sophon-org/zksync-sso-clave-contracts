@@ -22,11 +22,6 @@ abstract contract ValidationHandler is OwnerManager, ValidatorManager {
         bytes32 signedHash, // keccack hash
         bytes memory signature
     ) internal view returns (bool) {
-        console.log("_handleValidation");
-        console.logBytes32(signedHash);
-        console.logBytes(signature);
-        console.log(_r1IsValidator(validator));
-        console.log(_isModuleValidator(validator));
         if (_r1IsValidator(validator)) {
             mapping(bytes => bytes) storage owners = OwnerManager
                 ._r1OwnersLinkedList();
@@ -65,36 +60,13 @@ abstract contract ValidationHandler is OwnerManager, ValidatorManager {
             bytes memory cursor = owners[BytesLinkedList.SENTINEL_BYTES];
             while (cursor.length > BytesLinkedList.SENTINEL_LENGTH) {
                 bytes32[2] memory pubKey = abi.decode(cursor, (bytes32[2]));
-                (bytes32 externalSignature, bytes32[2] memory rs) = abi.decode(signature, (bytes32, bytes32[2]));
 
-                /*
-                bytes32[2] memory rs;
-                rs[0] = _bytesToBytes32(signature, 0);
-                rs[1] = _bytesToBytes32(signature, 1);
-
-                console.log("signedHash");
+                // This hash didn't look valid (and for sure won't work until I fix create2 on the tests)
+                console.log("signed hash");
                 console.logBytes32(signedHash);
-                // not (yet) the signature we need
-                //console.log("signature");
-                //console.logBytes(signature);
-                
-                // authenticatorData signature[2-x]
-                // clientData signature[x-y]
-                // bytes32 passkeyData = hash_sha265(concat[authenticatorData, hash_sha265(clientData)]);
-                bytes32 passkeyData;
-                */
-
-                console.log("externalSignature");
-                console.logBytes32(externalSignature);
-                console.log("rs");
-                console.logBytes32(rs[0]);
-                console.logBytes32(rs[1]);
-                console.log("pubKey(1,2)");
-                console.logBytes32(pubKey[0]);
-                console.logBytes32(pubKey[1]);
-                bool _success = IR1Validator(validator).rawVerify(
-                    externalSignature,
-                    rs,
+                bool _success = IR1Validator(validator).webAuthVerify(
+                    signedHash,
+                    signature,
                     pubKey
                 );
 
