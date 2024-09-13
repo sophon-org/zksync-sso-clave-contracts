@@ -58,46 +58,27 @@ export const verifyContract = async (data: {
   return verificationRequestId;
 }
 
-export const getBytecodeHash = async (contractName: string) => {
-  const contractArtifact = await hre.artifacts.readArtifact(contractName)
-  return utils.hashBytecode(contractArtifact.bytecode)
-}
-
-const create2Address = (
-  sender: string,
-  bytecodeHash: ethers.BytesLike,
-  salt: ethers.BytesLike,
-  input?: ethers.BytesLike
-): string => {
-  const prefix = ethers.keccak256(ethers.toUtf8Bytes('zksyncCreate2'));
-  const addressAttributes = [
-    prefix,
-    ethers.zeroPadValue(sender, 32),
-    salt,
-    bytecodeHash,
-  ]
-  if (input) {
-    addressAttributes.push(ethers.keccak256(input))
-  }
-  const addressBytes = ethers.keccak256(ethers.concat(addressAttributes)).slice(26);
-  return ethers.getAddress(addressBytes);
-}
-
 export const create2 = async (contractName: string, wallet: Wallet, salt: ethers.BytesLike, args) => {
+  if (!salt['startsWith']) {
+    salt = ethers.hexlify(salt);
+  }
   const contractArtifact = await hre.artifacts.readArtifact(contractName)
-  const deployer = new ContractFactory(contractArtifact.abi, contractArtifact.bytecode, wallet)
+  const deployer = new ContractFactory(contractArtifact.abi, contractArtifact.bytecode, wallet, 'create2')
   const bytecodeHash = utils.hashBytecode(contractArtifact.bytecode);
   const constructorArgs = deployer.interface.encodeDeploy(args);
-  const addressFromCreate2 = create2Address(wallet.address, bytecodeHash, salt, args ? constructorArgs : undefined)
-  const accountCode = await wallet.provider.getCode(addressFromCreate2);
+  const standardCreate2Address = utils.create2Address(wallet.address, bytecodeHash, salt, args ? constructorArgs : '0x')
+  const accountCode = await wallet.provider.getCode(standardCreate2Address);
   if (accountCode != "0x") {
-    console.log("already deployed!", accountCode, addressFromCreate2);
-    return
+    return new ethers.Contract(standardCreate2Address, contractArtifact.abi, wallet);
   }
+  
   const deployingContract = await (args ? deployer.deploy(...args, { customData: { salt } }) : deployer.deploy({ customData: { salt } }))
   const deployedContract = await deployingContract.waitForDeployment();
   const deployedContractAddress = await deployedContract.getAddress();
-  console.log("addressFromCreate2", addressFromCreate2, "deployedContractAddress", deployedContractAddress)
+  if (standardCreate2Address != deployedContractAddress) {
+    // clearly something with the salt is misconfigured during the deploy if create2 doesn't match
+    console.log("addressFromCreate2", standardCreate2Address, "deployedContractAddress", deployedContractAddress)
+  }
 
   const contract = new ethers.Contract(deployedContractAddress, contractArtifact.abi, wallet);
   return contract;

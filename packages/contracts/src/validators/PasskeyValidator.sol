@@ -156,9 +156,10 @@ contract PasskeyValidator is IR1Validator, VerifierCaller {
             uint returnValue,
             JsmnSolLib.Token[] memory tokens,
             uint actualNum
-        ) = JsmnSolLib.parse(clientDataJSON, 10);
+        ) = JsmnSolLib.parse(clientDataJSON, 20);
         if (returnValue != 0) {
             console.log("failed to parse json");
+            console.logUint(returnValue);
             return false;
         }
 
