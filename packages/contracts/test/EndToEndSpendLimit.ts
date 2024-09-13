@@ -50,6 +50,7 @@ export class ContractFixtures {
     async getPasskeyModuleContract() {
         if (!this._passkeyModuleContract) {
             this._passkeyModuleContract = await create2("SessionPasskeySpendLimitModule", this.wallet, this.staticRandomSalt, undefined);
+            console.log("SessionPasskeySpendLimitModule", await this._passkeyModuleContract.getAddress())
         }
         return this._passkeyModuleContract
     }
@@ -58,6 +59,7 @@ export class ContractFixtures {
     async getExpensiveVerifierContract() {
         if (!this._expensiveVerifierContract) {
             this._expensiveVerifierContract = await create2("PasskeyValidator", this.wallet, this.staticRandomSalt, undefined);
+            console.log("PasskeyValidator", await this._expensiveVerifierContract.getAddress());
         }
         return this._expensiveVerifierContract
     }
@@ -65,6 +67,7 @@ export class ContractFixtures {
     async getAccountImplContract() {
         if (!this._accountImplContract) {
             this._accountImplContract = await create2("ERC7579Account", this.wallet, this.staticRandomSalt, undefined)
+            console.log("ERC7579Account", await this._accountImplContract.getAddress());
         }
         return this._accountImplContract;
     }
