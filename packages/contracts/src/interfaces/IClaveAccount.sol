@@ -15,7 +15,7 @@ import {IUpgradeManager} from "./IUpgradeManager.sol";
 import {IValidatorManager} from "./IValidatorManager.sol";
 
 /**
- * @title IClave
+ * @title IClaveAccount
  * @notice Interface for the Clave contract
  * @dev Implementations of this interface are contract that can be used as a Clave
  */
@@ -31,4 +31,11 @@ interface IClaveAccount is
     IAccount
 {
     event FeePaid();
+
+    function initialize(
+        bytes calldata initialR1Owner,
+        address initialR1Validator,
+        address initialModule,
+        bytes calldata initData
+    ) external;
 }

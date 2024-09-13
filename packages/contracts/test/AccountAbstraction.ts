@@ -1,16 +1,25 @@
 import { utils, Wallet, Provider, ContractFactory } from "zksync-ethers";
 import * as ethers from "ethers";
-import { expect, assert } from 'chai';
+import { assert, should } from 'chai';
 import { promises } from "fs";
+import { logInfo, logWarning } from "./utils";
 
-export async function deployFactory(factoryName: string, wallet: Wallet): Promise<ethers.ethers.Contract> {
+export async function deployFactory(factoryName: string, wallet: Wallet, expectedAddress?: string): Promise<ethers.ethers.Contract> {
     const factoryArtifact = JSON.parse(await promises.readFile(`artifacts-zk/src/${factoryName}.sol/${factoryName}.json`, 'utf8'))
     const testAaArtifact = JSON.parse(await promises.readFile('artifacts-zk/src/Account.sol/Account.json', 'utf8'))
-    const standardAaArtifact = JSON.parse(await promises.readFile('artifacts-zk/src/ERC7579Account.sol/ERC7579Account.json', 'utf8'))
+    const proxyAaArtifact = JSON.parse(await promises.readFile('artifacts-zk/src/AccountProxy.sol/AccountProxy.json', 'utf8'))
 
     const deployer = new ContractFactory(factoryArtifact.abi, factoryArtifact.bytecode, wallet)
-    const factory = await deployer.deploy(utils.hashBytecode(testAaArtifact.bytecode), utils.hashBytecode(standardAaArtifact.bytecode));
+    const factory = await deployer.deploy(utils.hashBytecode(testAaArtifact.bytecode), utils.hashBytecode(proxyAaArtifact.bytecode));
     const factoryAddress = await factory.getAddress();
+
+    logInfo(`"${factoryName}" was successfully deployed to ${factoryAddress}`);
+
+    if (expectedAddress && factoryAddress != expectedAddress) {
+        logWarning(`${factoryName}.sol address is not the expected default address (${expectedAddress}).`);
+        logWarning(`Please update the default value in your tests or restart Era Test Node. Proceeding with expected default address...`);
+        return new ethers.Contract(expectedAddress, factoryArtifact.abi, wallet);
+    }
 
     return new ethers.Contract(factoryAddress, factoryArtifact.abi, wallet);
 }
@@ -22,6 +31,7 @@ describe("Account abstraction", function () {
     const wallet = new Wallet(eraTestNodeRichKey, new Provider("http://localhost:8011"));
     it("should deploy AA factory", async function () {
         const aaFactory = await deployFactory("AAFactory", wallet)
+        should().exist(aaFactory, "factory created")
     });
 
     it("should deploy AA factory and account", async function () {
@@ -87,14 +97,14 @@ describe("Account abstraction", function () {
         assert(createdAccount, "No account created")
         assert(emptyCreatedLinkedPasskey == ethers.ZeroAddress || emptyCreatedLinkedPasskey == '', "CLP == empty")
 
-        const newPasskey ="public-passkey-test,1,2,3,4"
+        const newPasskey = "public-passkey-test,1,2,3,4"
         const updateTx = await aaFactory.setLinkedEmbeddedAccountPasskey(
             appName,
             userId.toString(),
             createdAccount,
             wallet.address,
             newPasskey
-            );
+        );
         await updateTx.wait();
 
         const accountMappingWithPasskey = await aaFactory.accountMappings(appName, userId.toString(), wallet.address);
@@ -104,7 +114,7 @@ describe("Account abstraction", function () {
 
         // should have an address, but not have a passkey set by default
         assert(createdAccountAfterPasskey, "No account!")
-        assert(createdLinkedPasskey != ethers.ZeroAddress || createdLinkedPasskey != '', `CLP == zero: ${ethers.ZeroAddress}`, )
+        assert(createdLinkedPasskey != ethers.ZeroAddress || createdLinkedPasskey != '', `CLP == zero: ${ethers.ZeroAddress}`,)
         assert(newPasskey == createdLinkedPasskey, 'mismatch')
     });
 });

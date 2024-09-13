@@ -10,10 +10,12 @@ import {AddressLinkedList} from "../libraries/LinkedList.sol";
 import {Errors} from "../libraries/Errors.sol";
 import {IModule} from "../interfaces/IModule.sol";
 import {IInitable} from "../interfaces/IInitable.sol";
-import {IClaveAccount} from "../interfaces/IClave.sol";
+import {IClaveAccount} from "../interfaces/IClaveAccount.sol";
 import {IModuleManager} from "../interfaces/IModuleManager.sol";
 import {IUserOpValidator} from "../interfaces/IERC7579Validator.sol";
 import {IERC7579Module, IExecutor} from "../interfaces/IERC7579Module.sol";
+
+import "hardhat/console.sol";
 
 /**
  * @title Manager contract for modules
@@ -81,6 +83,22 @@ abstract contract ModuleManager is IModuleManager, Auth {
         moduleList = _modulesLinkedList().list();
     }
 
+    function _addNativeModule(
+        address moduleAddress,
+        bytes calldata moduleData
+    ) internal {
+        if (!_supportsModule(moduleAddress)) {
+            console.log("module", moduleAddress, "is not supported");
+            // revert Errors.MODULE_ERC165_FAIL();
+        }
+
+        _modulesLinkedList().add(moduleAddress);
+
+        IModule(moduleAddress).init(moduleData);
+
+        emit AddModule(moduleAddress);
+    }
+
     function _addModule(bytes calldata moduleAndData) internal {
         if (moduleAndData.length < 20) {
             revert Errors.EMPTY_MODULE_ADDRESS();
@@ -100,7 +118,10 @@ abstract contract ModuleManager is IModuleManager, Auth {
         emit AddModule(moduleAddress);
     }
 
-    function _addUserOpValidator(address module, bytes calldata data) internal virtual {
+    function _addUserOpValidator(
+        address module,
+        bytes calldata data
+    ) internal virtual {
         // Could do more validation on the validator (like does it exist already)
         _userOpValidators().add(module);
 
@@ -109,7 +130,10 @@ abstract contract ModuleManager is IModuleManager, Auth {
         emit AddModule(module);
     }
 
-    function _addExternalExecutorPermission(address module, bytes calldata data) internal virtual {
+    function _addExternalExecutorPermission(
+        address module,
+        bytes calldata data
+    ) internal virtual {
         _externalExecutorModule().add(module);
 
         IERC7579Module(module).onInstall(data);
@@ -117,16 +141,26 @@ abstract contract ModuleManager is IModuleManager, Auth {
         emit AddModule(module);
     }
 
-    function _addFallbackModule(address module, bytes calldata data) internal virtual {
-        ClaveStorage.layout().fallbackContractBySelector[bytes4(data[0:4])] = module;
+    function _addFallbackModule(
+        address module,
+        bytes calldata data
+    ) internal virtual {
+        ClaveStorage.layout().fallbackContractBySelector[
+            bytes4(data[0:4])
+        ] = module;
 
         IERC7579Module(module).onInstall(data);
 
         emit AddModule(module);
     }
 
-    function _removeFallbackModule(address module, bytes calldata data) internal virtual {
-        ClaveStorage.layout().fallbackContractBySelector[bytes4(data[0:4])] = address(0);
+    function _removeFallbackModule(
+        address module,
+        bytes calldata data
+    ) internal virtual {
+        ClaveStorage.layout().fallbackContractBySelector[
+            bytes4(data[0:4])
+        ] = address(0);
 
         IERC7579Module(module).onUninstall(data);
 
@@ -166,7 +200,10 @@ abstract contract ModuleManager is IModuleManager, Auth {
         modules = ClaveStorage.layout().userOpValidators;
     }
 
-    function _uninstallValidator(address validator, bytes calldata data) internal {
+    function _uninstallValidator(
+        address validator,
+        bytes calldata data
+    ) internal {
         _userOpValidators().remove(validator);
 
         IUserOpValidator(validator).onUninstall(data);
@@ -182,7 +219,10 @@ abstract contract ModuleManager is IModuleManager, Auth {
         modules = ClaveStorage.layout().execModules;
     }
 
-    function _removeExternalExecutorModule(address module, bytes calldata data) internal {
+    function _removeExternalExecutorModule(
+        address module,
+        bytes calldata data
+    ) internal {
         _externalExecutorModule().remove(module);
 
         IExecutor(module).onUninstall(data);

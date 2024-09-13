@@ -8,18 +8,19 @@ import "./interfaces/IERC7579Validator.sol";
 
 import {BOOTLOADER_FORMAL_ADDRESS} from "@matterlabs/zksync-contracts/l2/system-contracts/Constants.sol";
 import {IAccount} from "@matterlabs/zksync-contracts/l2/system-contracts/interfaces/IAccount.sol";
+import {EfficientCall} from "@matterlabs/zksync-contracts/l2/system-contracts/libraries/EfficientCall.sol";
 
-import { SignatureChecker } from "@openzeppelin/contracts/utils/cryptography/SignatureChecker.sol";
+import {SignatureChecker} from "@openzeppelin/contracts/utils/cryptography/SignatureChecker.sol";
 
-import {Call} from './batch/BatchCaller.sol';
+import {Call} from "./batch/BatchCaller.sol";
 
 import {IERC7579Account} from "./interfaces/IERC7579Account.sol";
 import {ModuleManager} from "./managers/ModuleManager.sol";
 import {HookManager} from "./managers/HookManager.sol";
 import {ExecutionHelper} from "./helpers/Execution.sol";
 
-import { ClaveAccount } from "./ClaveAccount.sol";
-import { PackedUserOperation } from "./interfaces/PackedUserOperation.sol";
+import {ClaveAccount} from "./ClaveAccount.sol";
+import {PackedUserOperation} from "./interfaces/PackedUserOperation.sol";
 
 /**
  * @author zeroknots.eth | rhinestone.wtf
@@ -30,8 +31,10 @@ import { PackedUserOperation } from "./interfaces/PackedUserOperation.sol";
  */
 contract ERC7579Account is
     IERC7579Account,
-    ClaveAccount,
-    ExecutionHelper
+    HookManager,
+    ModuleManager,
+    ExecutionHelper,
+    ClaveAccount
 {
     using ModeLib for ModeCode;
     error AccountAccessUnauthorized();
@@ -47,6 +50,7 @@ contract ERC7579Account is
     error MismatchModuleTypeId(uint256 moduleTypeId);
 
     bytes4 constant EIP1271_SUCCESS_RETURN_VALUE = 0x1626ba7e;
+    address private _factory = address(0);
 
     /////////////////////////////////////////////////////
     // Access Control
@@ -55,7 +59,8 @@ contract ERC7579Account is
     modifier onlyEntryPointOrSelf() virtual {
         if (
             !(msg.sender == BOOTLOADER_FORMAL_ADDRESS ||
-                msg.sender == address(this))
+                msg.sender == address(this) ||
+                msg.sender == _factory)
         ) {
             revert AccountAccessUnauthorized();
         }
@@ -67,18 +72,6 @@ contract ERC7579Account is
             revert AccountAccessUnauthorized();
         }
         _;
-    }
-
-    /** 
-    * R1 owner is the xy of the passkey
-    * R1 validator is the address of the module (where is this deployed on sepolia?)
-    * the module list includes all other modules to install
-    */
-    constructor(bytes memory initialR1Owner,
-        address initialR1Validator,
-        bytes[] memory modules) {
-        this.initialize(initialR1Owner, initialR1Validator, modules,
-            Call({ target: address(0), allowFailure: true, value: 0, callData: "" }));
     }
 
     /**
@@ -95,14 +88,21 @@ contract ERC7579Account is
         (CallType callType, ExecType execType, , ) = mode.decode();
 
         // check if calltype is batch or single
-        if (keccak256(abi.encodePacked(callType)) == keccak256(abi.encodePacked(CALLTYPE_BATCH))) {
+        if (
+            keccak256(abi.encodePacked(callType)) ==
+            keccak256(abi.encodePacked(CALLTYPE_BATCH))
+        ) {
             // destructure executionCallData according to batched exec
             Execution[] calldata executions = decodeBatch(executionCalldata);
             // check if execType is revert or try
-            if (ExecType.unwrap(execType) == ExecType.unwrap(EXECTYPE_DEFAULT)) _execute(executions);
-            else if (ExecType.unwrap(execType) == ExecType.unwrap(EXECTYPE_TRY)) _tryExecute(executions);
+            if (ExecType.unwrap(execType) == ExecType.unwrap(EXECTYPE_DEFAULT))
+                _execute(executions);
+            else if (ExecType.unwrap(execType) == ExecType.unwrap(EXECTYPE_TRY))
+                _tryExecute(executions);
             else revert UnsupportedExecType(execType);
-        } else if (CallType.unwrap(callType) == CallType.unwrap(CALLTYPE_SINGLE)) {
+        } else if (
+            CallType.unwrap(callType) == CallType.unwrap(CALLTYPE_SINGLE)
+        ) {
             // destructure executionCallData according to single exec
             (
                 address target,
@@ -116,7 +116,9 @@ contract ERC7579Account is
             else if (ExecType.unwrap(execType) == ExecType.unwrap(EXECTYPE_TRY))
                 _tryExecute(target, value, callData);
             else revert UnsupportedExecType(execType);
-        } else if (CallType.unwrap(callType) == CallType.unwrap(CALLTYPE_DELEGATECALL)) {
+        } else if (
+            CallType.unwrap(callType) == CallType.unwrap(CALLTYPE_DELEGATECALL)
+        ) {
             // destructure executionCallData according to single exec
             address delegate = address(
                 uint160(bytes20(executionCalldata[0:20]))
@@ -158,11 +160,14 @@ contract ERC7579Account is
             // destructure executionCallData according to batched exec
             Execution[] calldata executions = decodeBatch(executionCalldata);
             // check if execType is revert or try
-            if (ExecType.unwrap(execType) == ExecType.unwrap(EXECTYPE_DEFAULT)) returnData = _execute(executions);
+            if (ExecType.unwrap(execType) == ExecType.unwrap(EXECTYPE_DEFAULT))
+                returnData = _execute(executions);
             else if (ExecType.unwrap(execType) == ExecType.unwrap(EXECTYPE_TRY))
                 returnData = _tryExecute(executions);
             else revert UnsupportedExecType(execType);
-        } else if (CallType.unwrap(callType) == CallType.unwrap(CALLTYPE_SINGLE)) {
+        } else if (
+            CallType.unwrap(callType) == CallType.unwrap(CALLTYPE_SINGLE)
+        ) {
             // destructure executionCallData according to single exec
             (
                 address target,
@@ -172,17 +177,23 @@ contract ERC7579Account is
             returnData = new bytes[](1);
             bool success;
             // check if execType is revert or try
-            if (ExecType.unwrap(execType) == ExecType.unwrap(EXECTYPE_DEFAULT)) {
+            if (
+                ExecType.unwrap(execType) == ExecType.unwrap(EXECTYPE_DEFAULT)
+            ) {
                 returnData[0] = _execute(target, value, callData);
             }
             // TODO: implement event emission for tryExecute singleCall
-            else if (ExecType.unwrap(execType) == ExecType.unwrap(EXECTYPE_TRY)) {
+            else if (
+                ExecType.unwrap(execType) == ExecType.unwrap(EXECTYPE_TRY)
+            ) {
                 (success, returnData[0]) = _tryExecute(target, value, callData);
                 if (!success) emit TryExecuteUnsuccessful(0, returnData[0]);
             } else {
                 revert UnsupportedExecType(execType);
             }
-        } else if (CallType.unwrap(callType) == CallType.unwrap(CALLTYPE_DELEGATECALL)) {
+        } else if (
+            CallType.unwrap(callType) == CallType.unwrap(CALLTYPE_DELEGATECALL)
+        ) {
             // destructure executionCallData according to single exec
             address delegate = address(
                 uint160(bytes20(executionCalldata[0:20]))
@@ -257,13 +268,7 @@ contract ERC7579Account is
         PackedUserOperation calldata userOp,
         bytes32 userOpHash,
         uint256 missingAccountFunds
-    )
-        external
-        payable
-        virtual
-        onlyEntryPoint
-        returns (uint256 validSignature)
-    {
+    ) external payable virtual onlyEntryPoint returns (uint256 validSignature) {
         address validator;
         // @notice validator encoding in nonce is just an example!
         // @notice this is not part of the standard!
@@ -308,14 +313,19 @@ contract ERC7579Account is
         ModeCode mode
     ) external view virtual override returns (bool isSupported) {
         (CallType callType, ExecType execType, , ) = mode.decode();
-        if (CallType.unwrap(callType) == CallType.unwrap(CALLTYPE_BATCH)) isSupported = true;
-        else if (CallType.unwrap(callType) == CallType.unwrap(CALLTYPE_SINGLE)) isSupported = true;
-        else if (CallType.unwrap(callType) == CallType.unwrap(CALLTYPE_DELEGATECALL))
+        if (CallType.unwrap(callType) == CallType.unwrap(CALLTYPE_BATCH))
+            isSupported = true;
+        else if (CallType.unwrap(callType) == CallType.unwrap(CALLTYPE_SINGLE))
+            isSupported = true;
+        else if (
+            CallType.unwrap(callType) == CallType.unwrap(CALLTYPE_DELEGATECALL)
+        )
             isSupported = true;
             // if callType is not single, batch or delegatecall return false
         else return false;
 
-        if (ExecType.unwrap(execType) == ExecType.unwrap(EXECTYPE_DEFAULT)) isSupported = true;
+        if (ExecType.unwrap(execType) == ExecType.unwrap(EXECTYPE_DEFAULT))
+            isSupported = true;
         else if (ExecType.unwrap(execType) == ExecType.unwrap(EXECTYPE_TRY))
             isSupported = true;
             // if execType is not default or try, return false

@@ -1,10 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0
-pragma solidity 0.8.24;
+pragma solidity ^0.8.24;
 
 import {Base64} from "../helpers/Base64.sol";
 import {IR1Validator, IERC165} from "../interfaces/IValidator.sol";
 import {Errors} from "../libraries/Errors.sol";
 import {VerifierCaller} from "../helpers/VerifierCaller.sol";
+import {JsmnSolLib} from "../libraries/JsmnSolLib.sol";
+import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 
 /**
  * @title validator contract for passkey r1 signatures
@@ -16,6 +18,7 @@ contract PasskeyValidatorTest is IR1Validator, VerifierCaller {
         '","origin":"https://getclave.io"}';
     string constant ANDROID_ClIENT_DATA_SUFFIX =
         '","origin":"android:apk-key-hash:-sYXRdwJA3hvue3mKpYrOZ9zSPC7b4mbgzJmdZEDO5w","androidPackageName":"com.clave.mobile"}';
+    // hash of 'https://getclave.io' + (BE, BS, UP, UV) flags set + unincremented sign counter
     bytes constant AUTHENTICATOR_DATA =
         hex"175faf8504c2cdd7c01778a8b0efd4874ecb3aefd7ebb7079a941f7be8897d411d00000000";
     // user presence and user verification flags
@@ -40,22 +43,11 @@ contract PasskeyValidatorTest is IR1Validator, VerifierCaller {
         bytes calldata signature,
         bytes32[2] calldata pubKey
     ) external view returns (bool valid) {
-
-        bytes1 testFirstPubKey = 0xE7;
         if (signature.length == 65) {
             valid = _validateSignature(challenge, signature, pubKey);
         } else {
             valid = _validateFatSignature(challenge, signature, pubKey);
         }
-    }
-
-    /// Best for when the signature is constructed on the other side
-    function rawVerify(
-        bytes32 message,
-        bytes32[2] calldata rs,
-        bytes32[2] calldata pubKey) external view returns (bool valid) {
-
-        valid = callVerifier(P256_VERIFIER, message, rs, pubKey);
     }
 
     /// @inheritdoc IERC165
@@ -108,25 +100,18 @@ contract PasskeyValidatorTest is IR1Validator, VerifierCaller {
         bytes calldata fatSignature,
         bytes32[2] calldata pubKey
     ) private view returns (bool valid) {
-
-        bytes1 testFirstPubKey = 0xE7;
-        // require(pubKey[0][0] != testFirstPubKey, "unexpected pubkey (predecode)");
-
         (
             bytes memory authenticatorData,
             string memory clientDataSuffix,
             bytes32[2] memory rs
         ) = _decodeFatSignature(fatSignature);
 
-
-        require(pubKey[0][0] != testFirstPubKey, "unexpected pubkey (precheck)");
         // malleability check
-        require(rs[1] > lowSmax, "malleability check");
         if (rs[1] > lowSmax) {
             return false;
         }
 
-        require(authenticatorData[32] & AUTH_DATA_MASK != AUTH_DATA_MASK, "mask check");
+        // check if the flags are set
         if (authenticatorData[32] & AUTH_DATA_MASK != AUTH_DATA_MASK) {
             return false;
         }
@@ -140,12 +125,114 @@ contract PasskeyValidatorTest is IR1Validator, VerifierCaller {
             bytes(clientDataSuffix)
         );
 
-        require(pubKey[0][0] != testFirstPubKey, "unexpected pubkey (premessage)");
-
         bytes32 message = _createMessage(authenticatorData, clientData);
-        
-        require(pubKey[0][0] != testFirstPubKey, "unexpected pubkey (preverify)");
 
+        valid = callVerifier(P256_VERIFIER, message, rs, pubKey);
+    }
+
+    function webAuthVerify(
+        bytes32 transactionHash,
+        bytes calldata fatSignature,
+        bytes32[2] calldata pubKey
+    ) external view returns (bool valid) {
+        (
+            bytes memory authenticatorData,
+            string memory clientDataJSON,
+            bytes32[2] memory rs
+        ) = _decodeFatSignature(fatSignature);
+
+        // malleability check
+        if (rs[1] > lowSmax) {
+            return false;
+        }
+
+        // check if the flags are set
+        if (authenticatorData[32] & AUTH_DATA_MASK != AUTH_DATA_MASK) {
+            return false;
+        }
+
+        // parse out the important fields (type, challenge, and origin): https://goo.gl/yabPex
+        // TODO: test if the parse fails for more than 10 elements, otherwise can have a malicious header
+        (
+            uint returnValue,
+            JsmnSolLib.Token[] memory tokens,
+            uint actualNum
+        ) = JsmnSolLib.parse(clientDataJSON, 10);
+        if (returnValue != 0) {
+            return false;
+        }
+
+        // look for fields by name, then compare to expected values
+        bool validChallange = false;
+        bool validType = false;
+        for (uint256 index = 1; index < actualNum; index++) {
+            JsmnSolLib.Token memory t = tokens[index];
+            if (t.jsmnType == JsmnSolLib.JsmnType.STRING) {
+                string memory keyOrValue = JsmnSolLib.getBytes(
+                    clientDataJSON,
+                    t.start,
+                    t.end
+                );
+                if (Strings.equal(keyOrValue, "challenge")) {
+                    JsmnSolLib.Token memory nextT = tokens[index + 1];
+                    string memory challengeValue = JsmnSolLib.getBytes(
+                        clientDataJSON,
+                        nextT.start,
+                        nextT.end
+                    );
+                    // this should only be set once, otherwise this is an error
+                    if (validChallange) {
+                        return false;
+                    }
+                    // this is the key part to ensure the signature is for the provided transaction
+                    bytes memory challengeDataArray = Base64.decode(challengeValue);
+                    if (challengeDataArray.length != 32) {
+                        // wrong hash size
+                        return false;
+                    }
+                    bytes32 challengeData;
+                    assembly {
+                        mstore(challengeData, mload(challengeDataArray))
+                    }
+                    validChallange = challengeData == transactionHash;
+                } else if (Strings.equal(keyOrValue, "type")) {
+                    string memory keyOrValue = JsmnSolLib.getBytes(
+                        clientDataJSON,
+                        t.start,
+                        t.end
+                    );
+                    JsmnSolLib.Token memory nextT = tokens[index + 1];
+                    string memory typeValue = JsmnSolLib.getBytes(
+                        clientDataJSON,
+                        nextT.start,
+                        nextT.end
+                    );
+                    // this should only be set once, otherwise this is an error
+                    if (validType) {
+                        return false;
+                    }
+                    validType = Strings.equal("webauthn.get", typeValue);
+                }
+                // TODO: provide & check 'origin' and/or 'cross-origin' keys as part of signature
+            }
+        }
+
+        if (!validChallange || !validType) {
+            return false;
+        }
+
+        bytes32 message = _createMessage(
+            authenticatorData,
+            bytes(clientDataJSON)
+        );
+        valid = callVerifier(P256_VERIFIER, message, rs, pubKey);
+    }
+
+    function rawVerify(
+        bytes32 message,
+        bytes32[2] calldata rs,
+        bytes32[2] calldata pubKey
+    ) external view returns (bool valid) {
         valid = callVerifier(P256_VERIFIER, message, rs, pubKey);
     }
 

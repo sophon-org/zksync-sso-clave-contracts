@@ -30,6 +30,13 @@ abstract contract ValidatorManager is IValidatorManager, Auth {
     }
 
     /// @inheritdoc IValidatorManager
+    function addModuleValidator(
+        address validator
+    ) external override onlySelfOrModule {
+        _addModuleValidator(validator);
+    }
+
+    /// @inheritdoc IValidatorManager
     function k1AddValidator(
         address validator
     ) external override onlySelfOrModule {
@@ -94,6 +101,10 @@ abstract contract ValidatorManager is IValidatorManager, Auth {
         emit R1AddValidator(validator);
     }
 
+    function _addModuleValidator(address validator) internal {
+        _moduleValidatorsLinkedList().add(validator);
+    }
+
     function _k1AddValidator(address validator) internal {
         if (!_supportsK1(validator)) {
             revert Errors.VALIDATOR_ERC165_FAIL();
@@ -124,6 +135,10 @@ abstract contract ValidatorManager is IValidatorManager, Auth {
         return _r1ValidatorsLinkedList().exists(validator);
     }
 
+    function _isModuleValidator(address validator) internal view returns (bool) {
+        return _moduleValidatorsLinkedList().exists(validator);
+    }
+
     function _k1IsValidator(address validator) internal view returns (bool) {
         return _k1ValidatorsLinkedList().exists(validator);
     }
@@ -142,6 +157,14 @@ abstract contract ValidatorManager is IValidatorManager, Auth {
         returns (mapping(address => address) storage r1Validators)
     {
         r1Validators = ClaveStorage.layout().r1Validators;
+    }
+
+    function _moduleValidatorsLinkedList()
+        private
+        view
+        returns (mapping(address => address) storage moduleValidators)
+    {
+        moduleValidators = ClaveStorage.layout().moduleValidators;
     }
 
     function _k1ValidatorsLinkedList()

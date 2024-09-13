@@ -4,11 +4,12 @@ pragma solidity ^0.8.24;
 import "@matterlabs/zksync-contracts/l2/system-contracts/Constants.sol";
 import "@matterlabs/zksync-contracts/l2/system-contracts/libraries/SystemContractsCaller.sol";
 
+import {IClaveAccount} from "./interfaces/IClaveAccount.sol";
 import "hardhat/console.sol";
 
 contract AAFactory {
     bytes32 public testAaBytecodeHash;
-    bytes32 public defaultAaBytecodeHash;
+    bytes32 public proxyAaBytecodeHash;
 
     struct MetaAccountConnection {
         address accountLocation;
@@ -20,14 +21,18 @@ contract AAFactory {
     mapping(string => mapping(string => mapping(address => MetaAccountConnection)))
         public accountMappings;
 
-    constructor(bytes32 _testAaBytecodeHash, bytes32 _defaultAaBytecodeHash) {
+    constructor(bytes32 _testAaBytecodeHash, bytes32 _proxyAaBytecodeHash) {
         testAaBytecodeHash = _testAaBytecodeHash;
-        defaultAaBytecodeHash = _defaultAaBytecodeHash;
+        proxyAaBytecodeHash = _proxyAaBytecodeHash;
     }
 
-    function deploy7579Account(
+    function deployProxy7579Account(
         bytes32 salt,
-        bytes calldata passkey
+        address accountImplementionLocation,
+        bytes calldata initialR1Owner,
+        address initialR1Validator,
+        address initialModule,
+        bytes calldata initData
     ) external returns (address accountAddress) {
         (bool success, bytes memory returnData) = SystemContractsCaller
             .systemCallWithReturndata(
@@ -38,8 +43,8 @@ contract AAFactory {
                     DEPLOYER_SYSTEM_CONTRACT.create2Account,
                     (
                         salt,
-                        defaultAaBytecodeHash,
-                        abi.encode(passkey),
+                        proxyAaBytecodeHash,
+                        abi.encode(accountImplementionLocation),
                         IContractDeployer.AccountAbstractionVersion.Version1
                     )
                 )
@@ -47,8 +52,20 @@ contract AAFactory {
         require(success, "Deployment failed");
 
         (accountAddress) = abi.decode(returnData, (address));
+        console.log("accountAddress %s", accountAddress);
+
+        // add session-key/spend-limit module (similar code)
+        IClaveAccount(accountAddress).initialize(
+            initialR1Owner,
+            initialR1Validator,
+            initialModule,
+            initData
+        );
     }
 
+    /**
+     * This is a test harness to deploy a simple account with the factory-registry
+     */
     function deployLinkedSocialAccount(
         bytes32 salt,
         string calldata uniqueUserId,

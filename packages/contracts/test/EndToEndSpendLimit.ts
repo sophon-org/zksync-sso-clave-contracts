@@ -1,115 +1,349 @@
 
-import { Wallet, Provider, SmartAccount, utils, ContractFactory, types, EIP712Signer } from "zksync-ethers";
+import { SmartAccount, types, utils } from "zksync-ethers";
 import { deployFactory } from "./AccountAbstraction"
-import { Contract, ethers } from "ethers";
-import { promises } from "fs";
-import { xit } from "mocha";
+import { parseEther, randomBytes, Wallet } from 'ethers';
+import { AbiCoder, Contract, ethers, ZeroAddress } from "ethers";
+import { it } from "mocha";
+import { getWallet, getProvider, create2, logInfo } from "./utils";
+import { assert, expect } from "chai";
+import { concat, getPublicKeyBytes, toBuffer, toHash, unwrapEC2Signature } from "./PasskeyModule";
 
-export async function deployModule(moduleName: string, wallet: Wallet): Promise<ethers.Contract> {
-    const moduleArtifact = JSON.parse(await promises.readFile(`artifacts-zk/src/validators/${moduleName}.sol/${moduleName}.json`, 'utf8'))
+import { Address } from "viem";
+import { readFileSync } from "fs";
 
-    const deployer = new ContractFactory(moduleArtifact.abi, moduleArtifact.bytecode, wallet)
-    const moduleContract = await deployer.deploy();
-    const moduleAddress = await moduleContract.getAddress();
+export const convertObjArrayToUint8Array = (objArray: {
+  [key: string]: number;
+}): Uint8Array => {
+  const objEntries = Object.entries(objArray);
+  return objEntries.reduce((existingArray, nextKv) => {
+    const index = parseInt(nextKv[0]);
+    existingArray[index] = nextKv[1];
+    return existingArray;
+  }, new Uint8Array(objEntries.length));
+};
 
-    return new ethers.Contract(moduleAddress, moduleArtifact.abi, wallet);
+export class ContractFixtures {
+
+    // eraTestNodeRichKey
+    wallet = getWallet("0x3d3cbc973389cb26f657686445bcc75662b415b656078503592ac8c1abb8810e");
+
+    readonly sessionKeyWallet = new Wallet("0xf51513036f18ef46508ddb0fff7aa153260ff76721b2f53c33fc178152fb481e")
+
+    readonly staticRandomSalt = new Uint8Array([
+        205, 241, 161, 186, 101, 105, 79,
+        248, 98, 64, 50, 124, 168, 204,
+        200, 71, 214, 169, 195, 118, 199,
+        62, 140, 111, 128, 47, 32, 21,
+        177, 177, 174, 166
+    ])
+
+    private _aaFactory: Contract;
+    async getAaFactory() {
+        if (!this._aaFactory) {
+            this._aaFactory = await deployFactory("AAFactory", this.wallet);
+        }
+        return this._aaFactory;
+    }
+
+    private _passkeyModuleContract: Contract;
+
+    async getPasskeyModuleContract() {
+        if (!this._passkeyModuleContract) {
+            this._passkeyModuleContract = await create2("SessionPasskeySpendLimitModule", this.wallet, this.staticRandomSalt, undefined);
+        }
+        return this._passkeyModuleContract
+    }
+
+    private _expensiveVerifierContract: Contract;
+    async getExpensiveVerifierContract() {
+        if (!this._expensiveVerifierContract) {
+            this._expensiveVerifierContract = await create2("PasskeyValidator", this.wallet, this.staticRandomSalt, undefined);
+        }
+        return this._expensiveVerifierContract
+    }
+    private _accountImplContract: Contract;
+    async getAccountImplContract() {
+        if (!this._accountImplContract) {
+            this._accountImplContract = await create2("ERC7579Account", this.wallet, this.staticRandomSalt, undefined)
+        }
+        return this._accountImplContract;
+    }
+
+    private _accountImplAddress: string;
+
+    async getAccountImplAddress() {
+        if (!this._accountImplAddress) {
+            const accountImpl = await this.getAccountImplContract();
+            this._accountImplAddress = await accountImpl.getAddress();
+        }
+        return this._accountImplAddress
+    }
+    private _proxyAccountContract: Contract;
+    async getProxyAccountContract() {
+        const claveAddress = await this.getAccountImplAddress();
+        if (!this._proxyAccountContract) {
+            //this._proxyAccountContract = await deployContract("AccountProxy", [claveAddress], { wallet: this.wallet });
+            this._proxyAccountContract = await create2("AccountProxy", this.wallet, this.staticRandomSalt, [claveAddress])
+        }
+        return this._proxyAccountContract;
+    }
+
+    constructor() {
+        // loading directly from the response that was written (verifyAuthenticationResponse)
+        const jsonFile = readFileSync("test/signed-challenge.json", 'utf-8')
+        const responseData = JSON.parse(jsonFile)
+        this.authenticatorData = responseData.response.response.authenticatorData;
+        this.clientData = responseData.response.response.clientDataJSON;
+        this.b64SignedChallenge = responseData.response.response.signature;
+        this.passkeyBytes = convertObjArrayToUint8Array(responseData.authenticator.credentialPublicKey); 
+    }
+
+    // this is the encoded data explaining what authenticator was used (fido, web, etc)
+    readonly authenticatorData: string;
+    // this is a b64 encoded json object
+    readonly clientData: string;
+    // signed challange should come from signed transaction hash (challange is the transaction hash)
+    readonly b64SignedChallenge: string;
+    // This is a binary object formatted by @simplewebauthn that contains the alg type and public key
+    readonly passkeyBytes: Uint8Array;
 }
 
-describe("Spend limit validation", function () {
+describe.only("Spend limit validation", function () {
 
-    // era test node location
-    const eraTestNodeRichKey = "0x3d3cbc973389cb26f657686445bcc75662b415b656078503592ac8c1abb8810e"
-    const wallet = new Wallet(eraTestNodeRichKey, new Provider("http://localhost:8011"));
+    const fixtures = new ContractFixtures()
 
-    // ignored while in dev
-    xit("should set spend limit via module", async () => {
-        const aaFactory = await deployFactory("AAFactory", wallet)
+    // let ERC7579 = new Interface(erc7579ABI);
+    const abiCoder = new AbiCoder();
 
-        const passkeyModuleAddress = await deployModule("SessionPasskeySpendLimitModule", wallet)
+    // that needs to be converted from 77 to 64 bytes (32x2)
+    const xyPublicKey = getPublicKeyBytes(fixtures.passkeyBytes);
+    const provider = getProvider();
 
-        // deploy account with passkey owner
-        const appName = "randomApp9"
-        const salt = ethers.ZeroHash;
-        const userId = BigInt(Math.floor((Math.random() * 10000)))
+    interface TokenConfig {
+        token: string; // address
+        publicKey: Buffer; // bytes
+        limit: ethers.BigNumberish; // uint256
+    }
 
-        const accountMapping = await aaFactory.accountMappings(appName, userId.toString(), wallet.address);
-        const createdAccount = accountMapping[0]
+    const tokenConfig: TokenConfig =
+    {
+        token: "0xAe045DE5638162fa134807Cb558E15A3F5A7F853",
+        publicKey: xyPublicKey,
+        limit: ethers.toBigInt(1000)
+    };
+    // Define the types array corresponding to the struct
+    const tokenConfigTypes = [
+        "address", // token
+        "bytes",   // publicKey
+        "uint256"  // limit
+    ];
+    const moduleData = abiCoder.encode(
+        [`tuple(${tokenConfigTypes.join(",")})[]`], // Solidity equivalent: TokenConfig[]
+        [[tokenConfig].map(config => [
+            config.token,
+            config.publicKey,
+            config.limit
+        ])]
+    );
 
-        // this is a binary object formatted by @simplewebauthn that contains the alg type and public key
-        const publicKeyEs256Bytes = new Uint8Array([
-            165, 1, 2, 3, 38, 32, 1, 33, 88, 32, 167, 69,
-            109, 166, 67, 163, 110, 143, 71, 60, 77, 232, 220, 7,
-            121, 156, 141, 24, 71, 28, 210, 116, 124, 90, 115, 166,
-            213, 190, 89, 4, 216, 128, 34, 88, 32, 193, 67, 151,
-            85, 245, 24, 139, 246, 220, 204, 228, 76, 247, 65, 179,
-            235, 81, 41, 196, 37, 216, 117, 201, 244, 128, 8, 73,
-            37, 195, 20, 194, 9
-        ]);
+    it("should deploy module", async () => {
+        const passkeyModuleContract = await fixtures.getPasskeyModuleContract();
+        assert(passkeyModuleContract != null, "No module deployed");
+    });
 
-        const passkeyTx = await aaFactory.deploy7579Account(salt, publicKeyEs256Bytes);
-        await passkeyTx.wait();
+    it("should deploy verifier", async () => {
+        const expensiveVerifierContract = await fixtures.getExpensiveVerifierContract();
+        assert(expensiveVerifierContract != null, "No verifier deployed");
+    });
 
-        // send signed transaction to update spend limit on module
-        const authenticatorData = 'SZYN5YgOjGh0NBcPZHZgW4_krrmihjLHmVzzuoMdl2MFAAAABQ'
-        const clientData = 'eyJ0eXBlIjoid2ViYXV0aG4uZ2V0IiwiY2hhbGxlbmdlIjoiZFhPM3ctdWdycS00SkdkZUJLNDFsZFk1V2lNd0ZORDkiLCJvcmlnaW4iOiJodHRwOi8vbG9jYWxob3N0OjUxNzMiLCJjcm9zc09yaWdpbiI6ZmFsc2UsIm90aGVyX2tleXNfY2FuX2JlX2FkZGVkX2hlcmUiOiJkbyBub3QgY29tcGFyZSBjbGllbnREYXRhSlNPTiBhZ2FpbnN0IGEgdGVtcGxhdGUuIFNlZSBodHRwczovL2dvby5nbC95YWJQZXgifQ'
-        const b64SignedChallange = 'MEUCIQCYrSUCR_QUPAhvRNUVfYiJC2JlOKuqf4gx7i129n9QxgIgaY19A9vAAObuTQNs5_V9kZFizwRpUFpiRVW_dglpR2A'
+    it("should deploy implemention", async () => {
+        const accountImplContract = await fixtures.getAccountImplContract();
+        assert(accountImplContract != null, "No account impl deployed");
+    });
 
-        // get ABI of smart account
-        const aaArtifact = JSON.parse(await promises.readFile('artifacts-zk/src/ERC7579Account.sol/ERC7579Account.json', 'utf8'))
+    it("should deploy proxy directly", async () => {
+        const proxyAccountContract = await fixtures.getProxyAccountContract();
+        assert(proxyAccountContract != null, "No account proxy deployed");
+    });
 
-        // compare both to see what it's doing
-        const smartAccountModule = new Contract(await passkeyModuleAddress.getAddress(), ["function setSpendingLimits(TokenConfig[])"], wallet)
-        const smartAccount = new SmartAccount({ address: createdAccount, secret: b64SignedChallange });
+    it("should deploy proxy account via factory", async () => {
+        const aaFactoryContract = await fixtures.getAaFactory();
+        assert(aaFactoryContract != null, "No AA Factory deployed");
 
+        const passkeyModule = await fixtures.getPasskeyModuleContract();
+        assert(passkeyModule != null, "no module available");
 
-        // execute setSpendLimit within the account contract:
-        // send a transaction with the sender being the smart account address,
-        // and the transaction call data with the setSpendLimit function
-        // with the signature of the passkey
-        let tx = await smartAccountModule.populateTransaction["setSpendingLimits"](wallet.address);
-        let aaTx = {
-            ...tx,
-            from: createdAccount,
-            gasLimit: 1000000,
-            gasPrice: await wallet.provider.getGasPrice(),
-            chainId: (await wallet.provider.getNetwork()).chainId,
-            nonce: await wallet.provider.getTransactionCount(createdAccount),
+        const expensiveVerifierContract = await fixtures.getExpensiveVerifierContract();
+        assert(expensiveVerifierContract != null, "no verifier available");
+
+        const proxyAccount = await aaFactoryContract.deployProxy7579Account(
+            randomBytes(32),
+            await fixtures.getAccountImplAddress(),
+            xyPublicKey,
+            expensiveVerifierContract,
+            await passkeyModule.getAddress(),
+            moduleData
+        );
+        const proxyAccountTxReceipt = await proxyAccount.wait();
+
+        // Extract and decode the return address from the return data/logs
+        // Assuming the return data is in the first log's data field
+        //
+        // Alternatively, we could emit an event like:
+        //      event ProxyAccountDeployed(address accountAddress)
+        //
+        // Then, this would be more precise with decodeEventLog()
+        const newAddress = abiCoder.decode(["address"], proxyAccountTxReceipt.logs[0].data);
+        const proxyAccountAddress = newAddress[0];
+
+        expect(proxyAccountAddress, "the proxy account location via logs").to.not.equal(ZeroAddress, "be a valid address");
+        expect(proxyAccountTxReceipt.contractAddress, "the proxy account location via return").to.not.equal(ZeroAddress, "be a non-zero address");
+    });
+
+    it("should add passkey and verifier to account", async () => {
+        //
+        // PART ONE: Initialize ClaveAccount implemention, verifier module, spendlimit module, and factory
+        //
+        const aaFactoryContract = await fixtures.getAaFactory();
+        assert(aaFactoryContract != null, "No AA Factory deployed");
+
+        // Need to better wrap: 0x100. otherwise gas is high!
+        const verifierContract = await fixtures.getExpensiveVerifierContract();
+        const expensiveVerifierAddress = await verifierContract.getAddress();
+
+        const moduleAddress = await (await fixtures.getPasskeyModuleContract()).getAddress();
+        //
+        // PART TWO: Install Module with passkey (salt needs to be random to not collide with other tests)
+        //
+        const proxyAccount = await aaFactoryContract.deployProxy7579Account(
+            randomBytes(32),
+            await fixtures.getAccountImplAddress(),
+            xyPublicKey,
+            expensiveVerifierAddress,
+            moduleAddress,
+            moduleData
+        );
+        const proxyAccountTxReceipt = await proxyAccount.wait();
+
+        assert(proxyAccountTxReceipt.contractAddress != ethers.ZeroAddress, "valid proxy account address");
+    });
+
+    it("should set spend limit via module", async () => {
+        const verifierContract = await fixtures.getExpensiveVerifierContract();
+        const expensiveVerifierAddress = await verifierContract.getAddress();
+        const moduleContract = await fixtures.getPasskeyModuleContract();
+        const moduleAddress = await moduleContract.getAddress();
+        const factory = await fixtures.getAaFactory();
+        const accountImpl = await fixtures.getAccountImplAddress();
+
+        // from a fresh node
+        let proxyAccountAddress = "0xFce6d9BF38eb7D14A9F76fAeC214bC19E868191c";
+        const accountCode = await provider.getCode(proxyAccountAddress);
+        if (!accountCode || accountCode == '0x') {
+            const proxyAccount = await factory.deployProxy7579Account(
+                fixtures.staticRandomSalt,
+                accountImpl,
+                xyPublicKey,
+                expensiveVerifierAddress,
+                moduleAddress,
+                moduleData
+            );
+
+            const proxyAccountReciept = await proxyAccount.wait();
+            proxyAccountAddress = proxyAccountReciept.contractAddress;
+            assert.notEqual(proxyAccountAddress, undefined, "no address set")
+            await (
+                await fixtures.wallet.sendTransaction({
+                    to: proxyAccountAddress,
+                    value: parseEther('0.002'),
+                })
+            ).wait();
+        }
+
+        const authDataBuffer = toBuffer(fixtures.authenticatorData);
+        const clientDataBuffer = toBuffer(fixtures.clientData);
+        // the validator needs to perform the following steps so it can validate the raw client data
+        // performing this client side is just a helpful check to ensure the contract is following
+        const clientDataHash = await toHash(clientDataBuffer);
+        const hashedData = await toHash(concat([authDataBuffer, clientDataHash]));
+
+        const rs = unwrapEC2Signature(toBuffer(fixtures.b64SignedChallenge))
+        // steps to get the data for this test
+        // 1. build the transaction here in the test (aaTx)
+        // 2. use this sample signer to get the transaction hash of a realistic transaction
+        // 3. take that transaction hash to another app, and sign it (as the challange)
+        // 4. bring that signed hash back here and have it returned as the signer
+        const isTestMode = false;
+        const extractSigningHash = (hash: string, secretKey, provider) => {
+            const b64Hash = ethers.encodeBase64(hash)
+            if (isTestMode) {
+                return Promise.resolve<string>(b64Hash);
+            } else {
+                // the validator is now responsible for checking and hashing this
+                const fatSignature = abiCoder.encode(["bytes", "bytes", "bytes32[2]"], [
+                    authDataBuffer,
+                    clientDataBuffer,
+                    rs
+                ])
+                // clave expects sigature + validator address + validator hook data
+                const fullFormattedSig = abiCoder.encode(["bytes", "address", "bytes[]"], [
+                    fatSignature,
+                    expensiveVerifierAddress,
+                    []
+                ]);
+
+                return Promise.resolve<string>(fullFormattedSig);
+            }
+        }
+
+        // smart account secret isn't stored in javascript (because it's a passkey)
+        // but we do have sessionkey secret
+        const ethersTestSmartAccount = new SmartAccount({
+            payloadSigner: extractSigningHash,
+            address: proxyAccountAddress,
+            secret: fixtures.sessionKeyWallet.privateKey
+        }, getProvider())
+
+        const callData = moduleContract.interface.encodeFunctionData(
+            'addSessionKey',
+            [
+                fixtures.sessionKeyWallet.address,
+                tokenConfig.token,
+                100,
+            ]
+        );
+        const aaTx = {
             type: 113,
+            from: proxyAccountAddress,
+            to: moduleAddress as Address,
+            data: callData as Address, // not address?
+            chainId: (await provider.getNetwork()).chainId,
+            nonce: await provider.getTransactionCount(proxyAccountAddress),
+            gasPrice: await provider.getGasPrice(),
             customData: {
                 gasPerPubdata: utils.DEFAULT_GAS_PER_PUBDATA_LIMIT,
             } as types.Eip712Meta,
-            value: 0,
-        }
-
-
-        const signedTxHash = EIP712Signer.getSignedDigest(aaTx);
-        const customSignature = ethers.getBytes(
-            ethers.joinSignature(
-                wallet._signingKey().signDigest(signedTxHash)
-            )
-        );
-
-        aaTx.customData = {
-            ...aaTx.customData,
-            customSignature
         };
 
-        const serializedTx = utils.serialize(aaTx);
-        let txResponse = await provider.sendTransaction(serializedTx);
-        const populatedSmartAccountTx = await smartAccount.populateTransaction({
-            type: utils.EIP712_TX_TYPE,
-            customData: {
-                customSignature: b64SignedChallange,
-            },
+        aaTx['gasLimit'] = await provider.estimateGas(aaTx);
 
-            /*
-            selector: "setSpendLimit"
-            publicKey: publicKeyEs256Bytes,
-            limit: 1000,
-            token: "0xAe045DE5638162fa134807Cb558E15A3F5A7F853",
-            */
-        });
+        const signedTransaction = await ethersTestSmartAccount.signTransaction(aaTx);
+        assert(signedTransaction != null, "valid transaction to sign");
 
-        // a transaction that adds a passkey
-    })
+        await provider.broadcastTransaction(signedTransaction);
+    });
+
+    it("should deploy all contracts successfully", async () => {
+        const verifierContract = await fixtures.getExpensiveVerifierContract();
+        const moduleContract = await fixtures.getPasskeyModuleContract();
+        const proxyContract = await fixtures.getProxyAccountContract();
+        const erc7579Contract = await fixtures.getAccountImplContract();
+        const factoryContract = await fixtures.getAaFactory();
+
+        logInfo(`Verifier Address      : ${await verifierContract.getAddress()}`);
+        logInfo(`AA Factory Address    : ${await factoryContract.getAddress()}`);
+        logInfo(`Proxy Account Address : ${await proxyContract.getAddress()}`);
+        logInfo(`ERC7579 Address       : ${await erc7579Contract.getAddress()}`);
+        logInfo(`Module Address        : ${await moduleContract.getAddress()}`);
+    });
 })

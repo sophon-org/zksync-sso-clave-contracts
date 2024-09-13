@@ -3,7 +3,6 @@
   "version": "1.0.0",
   "description": "Account Abstraction tooling",
   "keywords": ["zksync", "account-abstraction", "EIP7579"],
-  "workspaces": ["packages/contracts"],
   "author": "@matterlabs",
   "license": "MIT",
   "devDependencies": {

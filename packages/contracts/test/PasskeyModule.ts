@@ -6,7 +6,9 @@ import { fromArrayBuffer } from "@hexagon/base64"
 import { AsnParser } from '@peculiar/asn1-schema';
 import { ECDSASigValue } from '@peculiar/asn1-ecc';
 import { toArrayBuffer } from "@hexagon/base64";
+import { ethers } from "ethers"
 
+import { ContractFixtures } from "./EndToEndSpendLimit";
 /**
  * Decode from a Base64URL-encoded string to an ArrayBuffer. Best used when converting a
  * credential ID from a JSON string to an ArrayBuffer, like in allowCredentials or
@@ -27,26 +29,11 @@ async function deployValidator(
     wallet: Wallet,
 ): Promise<PasskeyValidatorTest> {
     const deployer: Deployer = new Deployer(hre, wallet);
-    const verifierArtifact = await deployer.loadArtifact(
-        'P256VerifierExpensive',
-    );
-
-    const verifier = await deployer.deploy(verifierArtifact, [], undefined, []);
-
-    const verifierContract = await hre.ethers.getContractAt(
-        'P256VerifierExpensive',
-        await verifier.getAddress(),
-        wallet,
-    );
-
+    
     const passkeyValidatorTestArtifact = await deployer.loadArtifact(
         'PasskeyValidatorTest',
     );
-    const verifierAddress = await verifierContract.getAddress();
-    console.log(`verifier address: ${verifierAddress}`);
-
-    const validator = await deployer.deploy(passkeyValidatorTestArtifact, [verifierAddress]);
-    console.log("validator deployed", verifier)
+    const validator = await deployer.deploy(passkeyValidatorTestArtifact, ["0x0000000000000000000000000000000000000100"]);
 
     return await hre.ethers.getContractAt(
         'PasskeyValidatorTest',
@@ -156,6 +143,14 @@ async function getPublicKey(publicPasskey: Uint8Array) {
     return ["0x" + Buffer.from(x).toString('hex'), "0x" + Buffer.from(y).toString('hex')]
 }
 
+export function getPublicKeyBytes(publicPasskey: Uint8Array) {
+    const cosePublicKey = decodeFirst<Map<number, any>>(publicPasskey);
+    const x = cosePublicKey.get(COSEKEYS.x);
+    const y = cosePublicKey.get(COSEKEYS.y);
+
+    return Buffer.concat([Buffer.from(x), Buffer.from(y)])
+}
+
 /**
  * Combine multiple Uint8Arrays into a single Uint8Array
  */
@@ -178,7 +173,7 @@ export function concat(arrays: Uint8Array[]): Uint8Array {
  * @param signature 
  * @returns r & s bytes sequentially
  */
-function unwrapEC2Signature(signature: Uint8Array): Uint8Array[] {
+export function unwrapEC2Signature(signature: Uint8Array): Uint8Array[] {
     const parsedSignature = AsnParser.parse(signature, ECDSASigValue);
     let rBytes = new Uint8Array(parsedSignature.r);
     let sBytes = new Uint8Array(parsedSignature.s);
@@ -209,7 +204,7 @@ function shouldRemoveLeadingZero(bytes: Uint8Array): boolean {
  * Returns hash digest of the given data, using the given algorithm when provided. Defaults to using
  * SHA-256.
  */
-async function toHash(
+export async function toHash(
     data: Uint8Array | string,
 ): Promise<Uint8Array> {
     if (typeof data === 'string') {
@@ -230,6 +225,9 @@ async function rawVerify(
     const hashedData = await toHash(concat([authDataBuffer, clientDataHash]));
     const rs = unwrapEC2Signature(toBuffer(b64SignedChallange))
     const publicKeys = await getPublicKey(publicKeyEs256Bytes)
+    console.log("externalSignature", ethers.hexlify(hashedData))
+    console.log("rs", ethers.hexlify(rs[0]), ethers.hexlify(rs[1]))
+    console.log("pubkey xy", publicKeys)
     return await passkeyValidator.rawVerify(hashedData, rs, publicKeys)
 }
 
@@ -242,6 +240,7 @@ describe("Passkey validation", function () {
     it("should verify passkey", async function () {
         const passkeyValidator = await deployValidator(wallet)
 
+        // 37 bytes
         const authenticatorData = 'SZYN5YgOjGh0NBcPZHZgW4_krrmihjLHmVzzuoMdl2MFAAAABQ'
         const clientData = 'eyJ0eXBlIjoid2ViYXV0aG4uZ2V0IiwiY2hhbGxlbmdlIjoiZFhPM3ctdWdycS00SkdkZUJLNDFsZFk1V2lNd0ZORDkiLCJvcmlnaW4iOiJodHRwOi8vbG9jYWxob3N0OjUxNzMiLCJjcm9zc09yaWdpbiI6ZmFsc2UsIm90aGVyX2tleXNfY2FuX2JlX2FkZGVkX2hlcmUiOiJkbyBub3QgY29tcGFyZSBjbGllbnREYXRhSlNPTiBhZ2FpbnN0IGEgdGVtcGxhdGUuIFNlZSBodHRwczovL2dvby5nbC95YWJQZXgifQ'
         const b64SignedChallange = 'MEUCIQCYrSUCR_QUPAhvRNUVfYiJC2JlOKuqf4gx7i129n9QxgIgaY19A9vAAObuTQNs5_V9kZFizwRpUFpiRVW_dglpR2A'
@@ -261,5 +260,38 @@ describe("Passkey validation", function () {
             authenticatorData, clientData, b64SignedChallange, publicKeyEs256Bytes)
 
         assert(verifyMessage == true, "valid sig")
+    });
+
+    it("should verify other test passkey data", async function () {
+
+        const passkeyValidator = await deployValidator(wallet)
+
+        const fixtures = new ContractFixtures()
+
+        const verifyMessage = await rawVerify(
+            passkeyValidator,
+            fixtures.authenticatorData,
+            fixtures.clientData,
+            fixtures.b64SignedChallenge,
+            fixtures.passkeyBytes)
+
+        assert(verifyMessage == true, "test sig is valid")
+    });
+
+    it("should fail when signature is bad", async function () {
+
+        const passkeyValidator = await deployValidator(wallet)
+
+        const fixtures = new ContractFixtures()
+
+        const b64SignedChallenge = 'MEUCIQCYrSUCR_QUPAhvRNUVfYiJC2JlOKuqf4gx7i129n9QxgIgaY19A9vAAObuTQNs5_V9kZFizwRpUFpiRVW_dglpR2A'
+        const verifyMessage = await rawVerify(
+            passkeyValidator,
+            fixtures.authenticatorData,
+            fixtures.clientData,
+            b64SignedChallenge,
+            fixtures.passkeyBytes)
+
+        assert(verifyMessage == false, "bad sig should be false")
     });
 })

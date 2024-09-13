@@ -38,6 +38,13 @@ interface IValidatorManager {
     function r1AddValidator(address validator) external;
 
     /**
+     * @notice Adds a validator to the list of modular validators
+     * @dev Can only be called by self or a whitelisted module
+     * @param validator address - Address of the generic validator to add
+     */
+    function addModuleValidator(address validator) external;
+
+    /**
      * @notice Adds a validator to the list of k1 validators
      * @dev Can only be called by self or a whitelisted module
      * @param validator address - Address of the k1 validator to add

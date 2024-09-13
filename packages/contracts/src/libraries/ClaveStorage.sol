@@ -26,6 +26,7 @@ library ClaveStorage {
         mapping(address => address) r1Validators;
         mapping(address => address) k1Validators;
         mapping(address => address) userOpValidators;
+        mapping(address => address) moduleValidators;
         uint256[50] __gap_2;
         // └───────────────────┘
 

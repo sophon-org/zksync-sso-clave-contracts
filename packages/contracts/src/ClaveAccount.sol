@@ -22,7 +22,9 @@ import {ModeCode} from "./libraries/ERC7579Mode.sol";
 import {ERC1271Handler} from './handlers/ERC1271Handler.sol';
 import {Call} from './batch/BatchCaller.sol';
 
-import {IClaveAccount} from './interfaces/IClave.sol';
+import {IClaveAccount} from './interfaces/IClaveAccount.sol';
+
+import "hardhat/console.sol";
 
 /**
  * @title Main account contract from the Clave wallet infrastructure in zkSync Era
@@ -54,31 +56,19 @@ contract ClaveAccount is
 
     /**
      * @notice Initializer function for the account contract
+     * @dev Sets passkey and passkey validator within account storage
      * @param initialR1Owner bytes calldata - The initial r1 owner of the account
      * @param initialR1Validator address    - The initial r1 validator of the account
-     * @param modules bytes[] calldata      - The list of modules to enable for the account
-     * @param initCall Call calldata         - The initial call to be executed after the account is created
      */
     function initialize(
         bytes calldata initialR1Owner,
         address initialR1Validator,
-        bytes[] calldata modules,
-        Call calldata initCall
+        address initialModule,
+        bytes calldata initData
     ) external initializer {
         _r1AddOwner(initialR1Owner);
-        _r1AddValidator(initialR1Validator);
-
-        for (uint256 i = 0; i < modules.length; ) {
-            _addModule(modules[i]);
-            unchecked {
-                i++;
-            }
-        }
-
-        if (initCall.target != address(0)) {
-            uint128 value = Utils.safeCastToU128(initCall.value);
-            _executeCall(initCall.target, value, initCall.callData, initCall.allowFailure);
-        }
+        _addModuleValidator(initialR1Validator);
+        _addNativeModule(initialModule, initData);
     }
 
     // Receive function to allow ETHs
@@ -114,7 +104,7 @@ contract ClaveAccount is
         // not recommended to rely on it to be present, since in the future
         // there may be tx types with no suggested signed hash.
         bytes32 signedHash = suggestedSignedHash == bytes32(0)
-            ? transaction.encodeHash()
+            ? transaction.encodeHash() // TODO: this hash needs to depend on the signature type?
             : suggestedSignedHash;
 
         magic = _validateTransaction(signedHash, transaction);
@@ -221,11 +211,14 @@ contract ClaveAccount is
         // Extract the signature, validator address and hook data from the transaction.signature
         (bytes memory signature, address validator, bytes[] memory hookData) = SignatureDecoder
             .decodeSignature(transaction.signature);
+        
+        console.log("validator address");
+        console.logAddress(validator);
 
         // Run validation hooks
         bool hookSuccess = runValidationHooks(signedHash, transaction, hookData);
-
         if (!hookSuccess) {
+            console.log("failed hook validation");
             return bytes4(0);
         }
 
