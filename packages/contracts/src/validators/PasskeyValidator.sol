@@ -192,10 +192,8 @@ contract PasskeyValidator is IR1Validator, VerifierCaller {
                         console.log("invalid hash data length in json challange field");
                         return false;
                     }
-                    bytes32 challengeData;
-                    assembly {
-                        mstore(challengeData, mload(challengeDataArray))
-                    }
+                    bytes32 challengeData = abi.decode(challengeDataArray, (bytes32));
+                    
                     validChallenge = challengeData == transactionHash;
                     console.log("validChallenge");
                     console.logBool(validChallenge);

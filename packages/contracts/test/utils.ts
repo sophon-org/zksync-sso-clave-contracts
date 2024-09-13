@@ -1,4 +1,4 @@
-import { Provider, Wallet } from "zksync-ethers";
+import { ContractFactory, Provider, Wallet, utils } from "zksync-ethers";
 import * as hre from "hardhat";
 import { Deployer } from "@matterlabs/hardhat-zksync";
 import dotenv from "dotenv";
@@ -56,6 +56,51 @@ export const verifyContract = async (data: {
     noCompile: true,
   });
   return verificationRequestId;
+}
+
+export const getBytecodeHash = async (contractName: string) => {
+  const contractArtifact = await hre.artifacts.readArtifact(contractName)
+  return utils.hashBytecode(contractArtifact.bytecode)
+}
+
+const create2Address = (
+  sender: string,
+  bytecodeHash: ethers.BytesLike,
+  salt: ethers.BytesLike,
+  input?: ethers.BytesLike
+): string => {
+  const prefix = ethers.keccak256(ethers.toUtf8Bytes('zksyncCreate2'));
+  const addressAttributes = [
+    prefix,
+    ethers.zeroPadValue(sender, 32),
+    salt,
+    bytecodeHash,
+  ]
+  if (input) {
+    addressAttributes.push(ethers.keccak256(input))
+  }
+  const addressBytes = ethers.keccak256(ethers.concat(addressAttributes)).slice(26);
+  return ethers.getAddress(addressBytes);
+}
+
+export const create2 = async (contractName: string, wallet: Wallet, salt: ethers.BytesLike, args) => {
+  const contractArtifact = await hre.artifacts.readArtifact(contractName)
+  const deployer = new ContractFactory(contractArtifact.abi, contractArtifact.bytecode, wallet)
+  const bytecodeHash = utils.hashBytecode(contractArtifact.bytecode);
+  const constructorArgs = deployer.interface.encodeDeploy(args);
+  const addressFromCreate2 = create2Address(wallet.address, bytecodeHash, salt, args ? constructorArgs : undefined)
+  const accountCode = await wallet.provider.getCode(addressFromCreate2);
+  if (accountCode != "0x") {
+    console.log("already deployed!", accountCode, addressFromCreate2);
+    return
+  }
+  const deployingContract = await (args ? deployer.deploy(...args, { customData: { salt } }) : deployer.deploy({ customData: { salt } }))
+  const deployedContract = await deployingContract.waitForDeployment();
+  const deployedContractAddress = await deployedContract.getAddress();
+  console.log("addressFromCreate2", addressFromCreate2, "deployedContractAddress", deployedContractAddress)
+
+  const contract = new ethers.Contract(deployedContractAddress, contractArtifact.abi, wallet);
+  return contract;
 }
 
 type DeployContractOptions = {

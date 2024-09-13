@@ -4,7 +4,7 @@ import { deployFactory } from "./AccountAbstraction"
 import { parseEther, randomBytes, Wallet } from 'ethers';
 import { AbiCoder, Contract, ethers, ZeroAddress } from "ethers";
 import { it } from "mocha";
-import { deployContract, getWallet, getProvider } from "./utils";
+import { deployContract, getWallet, getProvider, create2 } from "./utils";
 import { assert, expect } from "chai";
 import { concat, getPublicKeyBytes, toBuffer, toHash, unwrapEC2Signature } from "./PasskeyModule";
 
@@ -44,7 +44,8 @@ export class ContractFixtures {
     private _accountImplContract: Contract;
     async getAccountImplContract() {
         if (!this._accountImplContract) {
-            this._accountImplContract = await deployContract("ERC7579Account", [], { wallet: this.wallet });
+            //this._accountImplContract = await deployContract("ERC7579Account", [], { wallet: this.wallet });
+            this._accountImplContract = await create2("ERC7579Account", this.wallet, this.staticRandomSalt, undefined)
         }
         return this._accountImplContract;
     }
@@ -60,9 +61,10 @@ export class ContractFixtures {
     }
     private _proxyAccountContract: Contract;
     async getProxyAccountContract() {
+        const claveAddress = await this.getAccountImplAddress();
         if (!this._proxyAccountContract) {
-            const claveAddress = await this.getAccountImplAddress();
-            this._proxyAccountContract = await deployContract("AccountProxy", [claveAddress], { wallet: this.wallet });
+            //this._proxyAccountContract = await deployContract("AccountProxy", [claveAddress], { wallet: this.wallet });
+            this._proxyAccountContract = await create2("AccountProxy", this.wallet, this.staticRandomSalt, [claveAddress])
         }
         return this._proxyAccountContract;
     }
@@ -278,7 +280,7 @@ describe.only("Spend limit validation", function () {
                     clientDataBuffer,
                     rs
                 ])
-                console.log("fat sig", fatSignature)
+                console.log("fat sig", fatSignature, "length", fatSignature.length)
                 // clave expects sigature + validator address + validator hook data
                 const fullFormattedSig = abiCoder.encode(["bytes", "address", "bytes[]"], [
                     fatSignature,
