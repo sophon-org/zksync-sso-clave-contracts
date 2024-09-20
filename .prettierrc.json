@@ -8,5 +8,14 @@
     "singleQuote": false,
     "bracketSpacing": true,
     "proseWrap": "always",
-    "singleAttributePerLine": true
+    "singleAttributePerLine": true,
+    "overrides": [
+        {
+            "files": "**/*.md",
+            "options": {
+                "printWidth": 80,
+                "proseWrap": "always"
+            }
+        }
+    ]
 }
