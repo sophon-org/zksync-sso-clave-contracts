@@ -11,7 +11,7 @@
     "singleAttributePerLine": true,
     "overrides": [
         {
-            "files": "**/*.md",
+            "files": "*.md",
             "options": {
                 "printWidth": 80,
                 "proseWrap": "always"
