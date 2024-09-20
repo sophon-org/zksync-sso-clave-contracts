@@ -14,3 +14,10 @@ pnpm-lock.yaml
 package-log.json
 .nuxt
 .nx
+
+# Disable prettier for files if VSCode settings are ignored
+**/*.vue
+**/*.js
+**/*.ts
+**/*.jsx
+**/*.tsx
