@@ -11,7 +11,7 @@ temp
 .cache
 .nuxt
 pnpm-lock.yaml
-package-log.json
+package-lock.json
 .nuxt
 .nx
 
