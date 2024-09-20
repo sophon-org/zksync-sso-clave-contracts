@@ -12,3 +12,4 @@ quote_type = double
 [*.md]
 trim_trailing_whitespace = false
 max_line_length = 80
+indent_size = 2
