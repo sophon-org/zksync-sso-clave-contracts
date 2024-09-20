@@ -1,0 +1,16 @@
+node_modules
+.github
+.idea
+public
+dist
+bin
+build
+out
+tmp
+temp
+.cache
+.nuxt
+pnpm-lock.yaml
+package-log.json
+.nuxt
+.nx
