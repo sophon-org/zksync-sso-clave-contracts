@@ -8,7 +8,7 @@ export default [
   { ignores: ["**/node_modules/", "**/dist/", "**/temp/", "**/tmp/", "**/abi/"] },
   { files: ["**/*.{js,mjs,cjs,ts}"] },
   stylistic.configs.customize({
-    indent: 2,
+    indent: 4,
     quotes: "double",
     semi: true,
     arrowParens: "always",
