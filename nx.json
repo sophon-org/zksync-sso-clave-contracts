@@ -9,6 +9,23 @@
       }
     }
   },
+  "plugins": [
+    {
+      "plugin": "@nx/eslint/plugin",
+      "options": {
+        "targetName": "lint"
+      }
+    },
+    {
+      "plugin": "@nx/nuxt/plugin",
+      "options": {
+        "buildTargetName": "build",
+        "serveTargetName": "serve",
+        "serveStaticTargetName": "serve-static",
+        "buildStaticTargetName": "build-static"
+      }
+    }
+  ],
   "namedInputs": {
     "noMarkdown": ["!{projectRoot}/**/*.md"]
   },

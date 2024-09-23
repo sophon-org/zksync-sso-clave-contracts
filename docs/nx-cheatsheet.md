@@ -36,3 +36,8 @@ To see the available commands for a project with NX:
 ```bash
 nx show project <project> --web
 ```
+
+## Keeping NX up to date
+
+Run the `npx nx report` command to get the list of NX packages and plugins with
+their versions. It will report whether any packages need to be updated.
