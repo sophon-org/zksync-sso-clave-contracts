@@ -36,7 +36,7 @@ it easier to see if NX is modifying a particular command based on a plugin.
 To see the available commands for a project with NX:
 
 ```bash
-nx show project <project> --web
+npx nx show project <project> --web
 ```
 
 ## Keeping NX up to date

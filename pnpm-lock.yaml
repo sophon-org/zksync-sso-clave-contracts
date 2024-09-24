@@ -81,11 +81,11 @@ importers:
         specifier: ^0.0.1-rc.1
         version: 0.0.1-rc.1
       '@openzeppelin/contracts':
-        specifier: 4.9.6
-        version: 4.9.6
+        specifier: ~4.6.0
+        version: 4.6.0
       '@openzeppelin/contracts-upgradeable':
-        specifier: '4.9'
-        version: 4.9.6
+        specifier: ~4.6.0
+        version: 4.6.0
       cbor-web:
         specifier: ^9.0.2
         version: 9.0.2
@@ -102,7 +102,7 @@ importers:
         specifier: ^2.21.6
         version: 2.21.12(typescript@5.6.2)
       zksync-account:
-        specifier: file:../sdk
+        specifier: workspace:*
         version: link:../sdk
     devDependencies:
       '@ethersproject/contracts':
@@ -119,13 +119,16 @@ importers:
         version: 0.2.2
       '@matterlabs/hardhat-zksync':
         specifier: ^1.1.0
-        version: 1.1.0(7unslensxhnv4tv3kjyvz2oikq)
+        version: 1.1.0(umjkgwtjpnbxituipcts7lgumq)
       '@nomicfoundation/hardhat-chai-matchers':
         specifier: ^2.0.7
         version: 2.0.8(@nomicfoundation/hardhat-ethers@3.0.8(ethers@6.13.2)(hardhat@2.22.11(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@20.16.5)(typescript@5.6.2))(typescript@5.6.2)))(chai@4.5.0)(ethers@6.13.2)(hardhat@2.22.11(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@20.16.5)(typescript@5.6.2))(typescript@5.6.2))
       '@nomicfoundation/hardhat-ethers':
         specifier: ^3.0.7
         version: 3.0.8(ethers@6.13.2)(hardhat@2.22.11(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@20.16.5)(typescript@5.6.2))(typescript@5.6.2))
+      '@nomicfoundation/hardhat-verify':
+        specifier: ^2.0.11
+        version: 2.0.11(hardhat@2.22.11(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@20.16.5)(typescript@5.6.2))(typescript@5.6.2))
       '@peculiar/asn1-ecc':
         specifier: ^2.3.8
         version: 2.3.14
@@ -210,6 +213,9 @@ importers:
       web3-avatar-vue:
         specifier: ^1.0.4
         version: 1.0.4(typescript@5.6.2)
+      zksync-account:
+        specifier: workspace:*
+        version: link:../sdk
 
   packages/sdk:
     dependencies:
@@ -2292,8 +2298,14 @@ packages:
   '@nx/workspace@19.8.0':
     resolution: {integrity: sha512-8/NHRuJAqurNaFIUuSZdV8qNqiFykXlHjPp6E4raNmB8seIKYJVeYZgw9D7d5piOuLHA3o0JWSKJQ3nBElfCBw==}
 
+  '@openzeppelin/contracts-upgradeable@4.6.0':
+    resolution: {integrity: sha512-5OnVuO4HlkjSCJO165a4i2Pu1zQGzMs//o54LPrwUgxvEO2P3ax1QuaSI0cEHHTveA77guS0PnNugpR2JMsPfA==}
+
   '@openzeppelin/contracts-upgradeable@4.9.6':
     resolution: {integrity: sha512-m4iHazOsOCv1DgM7eD7GupTJ+NFVujRZt1wzddDPSVGpWdKq1SKkla5htKG7+IS4d2XOCtzkUNwRZ7Vq5aEUMA==}
+
+  '@openzeppelin/contracts@4.6.0':
+    resolution: {integrity: sha512-8vi4d50NNya/bQqCmaVzvHNmwHvS0OBKb7HNtuNwEE3scXWrP31fKQoGxNMT+KbzmrNZzatE3QK5p2gFONI/hg==}
 
   '@openzeppelin/contracts@4.9.6':
     resolution: {integrity: sha512-xSmezSupL+y9VkHZJGDoCBpmnB2ogM13ccaYDWqJTfS3dbuHkgjuwDFUmaFauBCboQMGB/S5UqUl2y54X99BmA==}
@@ -10223,14 +10235,14 @@ snapshots:
       - encoding
       - supports-color
 
-  '@matterlabs/hardhat-zksync-upgradable@1.6.0(@nomicfoundation/hardhat-ethers@3.0.8(ethers@6.13.2)(hardhat@2.22.11(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@20.16.5)(typescript@5.6.2))(typescript@5.6.2)))(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@20.16.5)(typescript@5.6.2))(typescript@5.6.2)':
+  '@matterlabs/hardhat-zksync-upgradable@1.6.0(@nomicfoundation/hardhat-ethers@3.0.8(ethers@6.13.2)(hardhat@2.22.11(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@20.16.5)(typescript@5.6.2))(typescript@5.6.2)))(@nomicfoundation/hardhat-verify@2.0.11(hardhat@2.22.11(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@20.16.5)(typescript@5.6.2))(typescript@5.6.2)))(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@20.16.5)(typescript@5.6.2))(typescript@5.6.2)':
     dependencies:
       '@matterlabs/hardhat-zksync-deploy': 1.5.0(ethers@6.13.2)(hardhat@2.22.11(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@20.16.5)(typescript@5.6.2))(typescript@5.6.2))(zksync-ethers@6.12.1(ethers@6.13.2))
       '@matterlabs/hardhat-zksync-ethers': 1.2.1(ethers@6.13.2)(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@20.16.5)(typescript@5.6.2))(typescript@5.6.2)(zksync-ethers@6.12.1(ethers@6.13.2))
       '@matterlabs/hardhat-zksync-solc': 1.2.4(hardhat@2.22.11(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@20.16.5)(typescript@5.6.2))(typescript@5.6.2))
       '@openzeppelin/contracts-hardhat-zksync-upgradable': '@openzeppelin/contracts@4.9.6'
       '@openzeppelin/defender-admin-client': 1.54.6(debug@4.3.7)
-      '@openzeppelin/hardhat-upgrades': 2.5.1(@nomicfoundation/hardhat-ethers@3.0.8(ethers@6.13.2)(hardhat@2.22.11(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@20.16.5)(typescript@5.6.2))(typescript@5.6.2)))(ethers@6.13.2)(hardhat@2.22.11(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@20.16.5)(typescript@5.6.2))(typescript@5.6.2))
+      '@openzeppelin/hardhat-upgrades': 2.5.1(@nomicfoundation/hardhat-ethers@3.0.8(ethers@6.13.2)(hardhat@2.22.11(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@20.16.5)(typescript@5.6.2))(typescript@5.6.2)))(@nomicfoundation/hardhat-verify@2.0.11(hardhat@2.22.11(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@20.16.5)(typescript@5.6.2))(typescript@5.6.2)))(ethers@6.13.2)(hardhat@2.22.11(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@20.16.5)(typescript@5.6.2))(typescript@5.6.2))
       '@openzeppelin/upgrades-core': 1.37.1
       chalk: 4.1.2
       compare-versions: 6.1.1
@@ -10254,11 +10266,12 @@ snapshots:
       - typescript
       - utf-8-validate
 
-  '@matterlabs/hardhat-zksync-verify@1.6.0(hardhat@2.22.11(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@20.16.5)(typescript@5.6.2))(typescript@5.6.2))':
+  '@matterlabs/hardhat-zksync-verify@1.6.0(@nomicfoundation/hardhat-verify@2.0.11(hardhat@2.22.11(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@20.16.5)(typescript@5.6.2))(typescript@5.6.2)))(hardhat@2.22.11(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@20.16.5)(typescript@5.6.2))(typescript@5.6.2))':
     dependencies:
       '@ethersproject/abi': 5.7.0
       '@ethersproject/address': 5.7.0
       '@matterlabs/hardhat-zksync-solc': 1.2.4(hardhat@2.22.11(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@20.16.5)(typescript@5.6.2))(typescript@5.6.2))
+      '@nomicfoundation/hardhat-verify': 2.0.11(hardhat@2.22.11(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@20.16.5)(typescript@5.6.2))(typescript@5.6.2))
       axios: 1.7.7(debug@4.3.7)
       cbor: 9.0.2
       chai: 4.5.0
@@ -10272,14 +10285,14 @@ snapshots:
       - encoding
       - supports-color
 
-  '@matterlabs/hardhat-zksync@1.1.0(7unslensxhnv4tv3kjyvz2oikq)':
+  '@matterlabs/hardhat-zksync@1.1.0(umjkgwtjpnbxituipcts7lgumq)':
     dependencies:
       '@matterlabs/hardhat-zksync-deploy': 1.5.0(ethers@6.13.2)(hardhat@2.22.11(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@20.16.5)(typescript@5.6.2))(typescript@5.6.2))(zksync-ethers@6.12.1(ethers@6.13.2))
       '@matterlabs/hardhat-zksync-ethers': 1.2.1(ethers@6.13.2)(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@20.16.5)(typescript@5.6.2))(typescript@5.6.2)(zksync-ethers@6.12.1(ethers@6.13.2))
       '@matterlabs/hardhat-zksync-node': 1.1.1(hardhat@2.22.11(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@20.16.5)(typescript@5.6.2))(typescript@5.6.2))
       '@matterlabs/hardhat-zksync-solc': 1.2.4(hardhat@2.22.11(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@20.16.5)(typescript@5.6.2))(typescript@5.6.2))
-      '@matterlabs/hardhat-zksync-upgradable': 1.6.0(@nomicfoundation/hardhat-ethers@3.0.8(ethers@6.13.2)(hardhat@2.22.11(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@20.16.5)(typescript@5.6.2))(typescript@5.6.2)))(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@20.16.5)(typescript@5.6.2))(typescript@5.6.2)
-      '@matterlabs/hardhat-zksync-verify': 1.6.0(hardhat@2.22.11(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@20.16.5)(typescript@5.6.2))(typescript@5.6.2))
+      '@matterlabs/hardhat-zksync-upgradable': 1.6.0(@nomicfoundation/hardhat-ethers@3.0.8(ethers@6.13.2)(hardhat@2.22.11(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@20.16.5)(typescript@5.6.2))(typescript@5.6.2)))(@nomicfoundation/hardhat-verify@2.0.11(hardhat@2.22.11(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@20.16.5)(typescript@5.6.2))(typescript@5.6.2)))(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@20.16.5)(typescript@5.6.2))(typescript@5.6.2)
+      '@matterlabs/hardhat-zksync-verify': 1.6.0(@nomicfoundation/hardhat-verify@2.0.11(hardhat@2.22.11(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@20.16.5)(typescript@5.6.2))(typescript@5.6.2)))(hardhat@2.22.11(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@20.16.5)(typescript@5.6.2))(typescript@5.6.2))
       '@matterlabs/zksync-contracts': 0.6.1(@openzeppelin/contracts-upgradeable@4.9.6)(@openzeppelin/contracts@4.9.6)
       '@nomicfoundation/hardhat-ethers': 3.0.8(ethers@6.13.2)(hardhat@2.22.11(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@20.16.5)(typescript@5.6.2))(typescript@5.6.2))
       '@nomicfoundation/hardhat-verify': 2.0.11(hardhat@2.22.11(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@20.16.5)(typescript@5.6.2))(typescript@5.6.2))
@@ -11190,7 +11203,11 @@ snapshots:
       - '@swc/core'
       - debug
 
+  '@openzeppelin/contracts-upgradeable@4.6.0': {}
+
   '@openzeppelin/contracts-upgradeable@4.9.6': {}
+
+  '@openzeppelin/contracts@4.6.0': {}
 
   '@openzeppelin/contracts@4.9.6': {}
 
@@ -11234,7 +11251,7 @@ snapshots:
       - debug
       - encoding
 
-  '@openzeppelin/hardhat-upgrades@2.5.1(@nomicfoundation/hardhat-ethers@3.0.8(ethers@6.13.2)(hardhat@2.22.11(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@20.16.5)(typescript@5.6.2))(typescript@5.6.2)))(ethers@6.13.2)(hardhat@2.22.11(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@20.16.5)(typescript@5.6.2))(typescript@5.6.2))':
+  '@openzeppelin/hardhat-upgrades@2.5.1(@nomicfoundation/hardhat-ethers@3.0.8(ethers@6.13.2)(hardhat@2.22.11(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@20.16.5)(typescript@5.6.2))(typescript@5.6.2)))(@nomicfoundation/hardhat-verify@2.0.11(hardhat@2.22.11(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@20.16.5)(typescript@5.6.2))(typescript@5.6.2)))(ethers@6.13.2)(hardhat@2.22.11(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@20.16.5)(typescript@5.6.2))(typescript@5.6.2))':
     dependencies:
       '@nomicfoundation/hardhat-ethers': 3.0.8(ethers@6.13.2)(hardhat@2.22.11(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@20.16.5)(typescript@5.6.2))(typescript@5.6.2))
       '@openzeppelin/defender-admin-client': 1.54.6(debug@4.3.7)
@@ -11249,6 +11266,8 @@ snapshots:
       hardhat: 2.22.11(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@20.16.5)(typescript@5.6.2))(typescript@5.6.2)
       proper-lockfile: 4.1.2
       undici: 5.28.4
+    optionalDependencies:
+      '@nomicfoundation/hardhat-verify': 2.0.11(hardhat@2.22.11(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@20.16.5)(typescript@5.6.2))(typescript@5.6.2))
     transitivePeerDependencies:
       - bufferutil
       - encoding
