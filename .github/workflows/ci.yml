@@ -22,51 +22,50 @@ jobs:
     - name: Era Test Node Action
       uses: dutterbutter/era-test-node-action@v1
 
-    # NPM install for contracts/gateway/sdk
-    - name: Use latest Node.js
-      uses: actions/setup-node@v4
+    # Setup pnpm
+    - name: Setup pnpm
+      uses: pnpm/action-setup@v2
       with:
-        node-version: lts/Iron
-        cache: 'npm'
-        cache-dependency-path: '**/pnpm-lock.json'
+        version: 7
+
+    # Install dependencies for contracts/gateway/sdk
     - name: Install contracts dependencies
       working-directory: ./packages/contracts
-      run: npm ci
+      run: pnpm install --frozen-lockfile
     - name: Install gateway dependencies
       working-directory: ./packages/gateway
-      run: npm ci
+      run: pnpm install --frozen-lockfile
     - name: Install sdk dependencies
       working-directory: ./packages/sdk
-      run: npm ci
+      run: pnpm install --frozen-lockfile
 
     # Build SDK
     - name: Build SDK
       working-directory: ./packages/sdk
-      run: npm run build:cjs
+      run: pnpm run build:cjs
 
     # Link SDK to other packages
     - name: Link SDK to contracts
       run: |
         cd packages/sdk
-        npm link
+        pnpm link --global
         cd ../contracts
-        npm link zksync-account
+        pnpm link --global zksync-account
     - name: Link SDK to gateway
       run: |
         cd packages/sdk
-        npm link
+        pnpm link --global
         cd ../gateway
-        npm link zksync-account
+        pnpm link --global zksync-account
 
     # Start the Gateway
     - name: Run Gateway in the background
       working-directory: ./packages/gateway
       run: |
-        npm run dev -- --port 3002 &
+        pnpm run dev -- --port 3002 &
         for attempt in {1..20}; do sleep 1; if (curl localhost:3002| head -n1 | grep -Ev 'Nuxt Dev server is starting...|Starting Nuxt...'); then echo ready; break; fi; echo waiting...; done
 
     # Run e2e tests
     - name: Run e2e test
       working-directory: ./packages/contracts
-      run: npm run test
-
+      run: pnpm run test
