@@ -24,48 +24,30 @@ jobs:
 
     # Setup pnpm
     - name: Setup pnpm
-      uses: pnpm/action-setup@v2
+      uses: pnpm/action-setup@v4
       with:
-        version: 7
+        version: 9
+
+    - name: Use Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: lts/Iron
+        cache: 'pnpm'
 
     # Install dependencies for contracts/gateway/sdk
     - name: Install contracts dependencies
-      working-directory: ./packages/contracts
-      run: pnpm install --frozen-lockfile
-    - name: Install gateway dependencies
-      working-directory: ./packages/gateway
-      run: pnpm install --frozen-lockfile
-    - name: Install sdk dependencies
-      working-directory: ./packages/sdk
       run: pnpm install --frozen-lockfile
 
     # Build SDK
     - name: Build SDK
-      working-directory: ./packages/sdk
-      run: pnpm run build:cjs
-
-    # Link SDK to other packages
-    - name: Link SDK to contracts
-      run: |
-        cd packages/sdk
-        pnpm link --global
-        cd ../contracts
-        pnpm link --global zksync-account
-    - name: Link SDK to gateway
-      run: |
-        cd packages/sdk
-        pnpm link --global
-        cd ../gateway
-        pnpm link --global zksync-account
+      run: npx nx build:cjs zksync-account
 
     # Start the Gateway
     - name: Run Gateway in the background
-      working-directory: ./packages/gateway
       run: |
-        pnpm run dev -- --port 3002 &
+        npx nx dev smart-account-gateway --port 3002 &
         for attempt in {1..20}; do sleep 1; if (curl localhost:3002| head -n1 | grep -Ev 'Nuxt Dev server is starting...|Starting Nuxt...'); then echo ready; break; fi; echo waiting...; done
 
     # Run e2e tests
     - name: Run e2e test
-      working-directory: ./packages/contracts
-      run: pnpm run test
+      run: npx nx test zksync-account-sdk-contracts
