@@ -1,27 +1,30 @@
-import { zeroAddress, decodeEventLog, decodeAbiParameters, encodeAbiParameters, type Prettify, type Account, type Address, type Chain, type Client, type Hash, type TransactionReceipt, type Transport } from 'viem'
+import { getAddress, toHex, encodeAbiParameters, type Prettify, type Account, type Address, type Chain, type Client, type Hash, type TransactionReceipt, type Transport } from 'viem'
 import { waitForTransactionReceipt, writeContract } from 'viem/actions';
 
 import { FactoryAbi } from '../../abi/Factory.js';
+import { noThrow } from '../../utils/helpers.js';
 import { getPublicKeyBytesFromPasskeySignature } from '../../utils/passkey.js';
-import { requestPasskeySignature, type RequestPasskeySignatureArgs } from './passkey.js';
 
 /* TODO: try to get rid of most of the contract params like accountImplementation, validator, initialModule */
 /* it should come from factory, not passed manually each time */
 export type DeployAccountArgs = {
-  factory: Address;
-  accountImplementation: Address;
-  validator: Address;
+  credentialPublicKey: Uint8Array; // Public key of the previously registered
+  contracts: {
+    accountFactory: Address;
+    accountImplementation: Address;
+    validator: Address;
+    session?: Address; // Can be omitted if `initialModule` is provided
+  };
   salt?: Uint8Array; // Random 32 bytes
-  passkey: {
-    passkeySignature: Uint8Array;
-  } | RequestPasskeySignatureArgs,
-  initialModule: Address; // Passkey module address, or some other module
-  initialModuleData?: Hash; // ABI-encoded data for initial module
-  initialSpendLimit?: { // Initial spend limit if using Passkey module as initialModule
+  initialSpendLimit?: { // Initial spend limit if no initial module is provided
     sessionPublicKey: Address;
     token: Address;
-    amount: number;
+    amount: bigint;
   }[];
+  initialModule?: { // Should be provided if `initialSpendLimit` is not provided
+    address: Address;
+    data: Hash; // ABI-encoded data for initial module
+  }
   onTransactionSent?: (hash: Hash) => void;
 };
 export type DeployAccountReturnType = {
@@ -32,83 +35,83 @@ export const deployAccount = async <
   transport extends Transport,
   chain extends Chain,
   account extends Account
->(client: Client<transport, chain, account>, args: Prettify<DeployAccountArgs>): Promise<DeployAccountReturnType> => {
-  if (args.initialModuleData && args.initialSpendLimit?.length) {
+>(
+  client: Client<transport, chain, account>, // Account deployer (any viem client)
+  args: Prettify<DeployAccountArgs>
+): Promise<DeployAccountReturnType> => {
+  if (args.initialModule && args.initialSpendLimit?.length) {
     throw new Error("Either initialModuleData or initialSpendLimit can be provided, not both");
   }
-
-  /* Format spendlimit to initialModuleData if initialSpendLimit was provided */
-  if (args.initialSpendLimit?.length) {
-    /* TODO: why is it missing session time limit? */
-    const tokenConfigTypes = [
-      { type: 'address', name: 'token' },
-      { type: 'address', name: 'sessionPublicKey' },
-      { type: 'uint256', name: 'limit' }
-    ] as const;
-    args.initialModuleData = encodeAbiParameters(
-      [{ type: 'tuple[]', components: tokenConfigTypes }], 
-      [
-        args.initialSpendLimit.map(({ token, sessionPublicKey, amount }) => ({
-          token,
-          sessionPublicKey,
-          limit: BigInt(amount)
-        }))
-      ]
-    )
+  if (!args.initialModule && !args.initialSpendLimit?.length) {
+    throw new Error("Either initialModuleData or initialSpendLimit should be provided");
+  }
+  if (args.initialSpendLimit?.length && !args.contracts.session) {
+    throw new Error("Session contract address should be provided if initialSpendLimit is provided");
   }
 
   if (!args.salt) {
     args.salt = crypto.getRandomValues(new Uint8Array(32));
   }
 
-  /* Request signature via webauthn if signature not provided */
-  let passkeySignature: Uint8Array;
-  if ('passkeySignature' in args.passkey) {
-    passkeySignature = args.passkey.passkeySignature;
-  } else {
-    passkeySignature = (await requestPasskeySignature(args.passkey)).passkeyPublicKey;
-  }
+  const passkeyPublicKey = await getPublicKeyBytesFromPasskeySignature(args.credentialPublicKey)
 
-  const passkeyPublicKey = await getPublicKeyBytesFromPasskeySignature(passkeySignature);
+  let initialModuleData: Hash = "0x";
+  let initialModuleAddress: Address | undefined;
+
+  if (args.initialSpendLimit?.length) {
+     initialModuleAddress = args.contracts.session;
+    /* TODO: why is it missing session time limit? */
+    const tokenConfigTypes = [
+      { type: 'address', name: 'token' },
+      { type: 'bytes', name: 'publicKey' },
+      { type: 'uint256', name: 'limit' }
+    ] as const;
+    initialModuleData = encodeAbiParameters(
+      [{ type: 'tuple[]', components: tokenConfigTypes }], 
+      [
+        args.initialSpendLimit.map(({ token, amount }) => ({
+          token,
+          /* TODO: I think this should be not passkey pub key */
+          publicKey: passkeyPublicKey,
+          limit: amount,
+        }))
+      ]
+    )
+  } else if (args.initialModule) {
+    initialModuleAddress = args.initialModule.address;
+    initialModuleData = args.initialModule.data;
+  }
+  if (!initialModuleAddress) {
+    throw new Error("Could not determine initial module address based on provided arguments");
+  }
   
   const transactionHash = await writeContract(client, {
-    address: args.factory,
+    address: args.contracts.accountFactory,
     abi: FactoryAbi,
     functionName: "deployProxy7579Account",
     args: [
-      args.salt,
-      args.accountImplementation,
+      toHex(args.salt),
+      args.contracts.accountImplementation,
       passkeyPublicKey,
-      args.validator,
-      args.initialModule,
-      args.initialModuleData || "0x",
+      args.contracts.validator,
+      initialModuleAddress,
+      initialModuleData,
     ],
   } as any);
   if (args.onTransactionSent) {
-    try { args.onTransactionSent(transactionHash) }
-    catch {}
+    noThrow(() => args.onTransactionSent?.(transactionHash));
   }
+
   const transactionReceipt = await waitForTransactionReceipt(client, { hash: transactionHash });
-  
-  /* TODO: use or remove this */
-  console.debug("Figure out if we can get address properly from this data", decodeEventLog({
-    abi: FactoryAbi,
-    data: transactionReceipt.logs[0].data,
-    topics: transactionReceipt.logs[0].topics,
-  }));
+  if (transactionReceipt.status !== "success") throw new Error("Account deployment transaction reverted");
 
-  const proxyAccountAddress = decodeAbiParameters(
-    [{ type: 'address', name: 'accountAddress' }],
-    transactionReceipt.logs[0].data
-  )[0];
-
-  /* TODO: figure out if this check is really needed, most likely not */
-  if (proxyAccountAddress === zeroAddress) {
-    throw new Error("Received zero address from account deployment");
+  const proxyAccountAddress = transactionReceipt.contractAddress;
+  if (!proxyAccountAddress) {
+    throw new Error("No contract address in transaction receipt");
   }
 
   return {
-    address: proxyAccountAddress,
+    address: getAddress(proxyAccountAddress),
     transactionReceipt: transactionReceipt
   };
 }
