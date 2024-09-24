@@ -40,14 +40,14 @@ jobs:
 
     # Build SDK
     - name: Build SDK
-      run: npx nx build:cjs zksync-account
+      run: npx nx build:cjs sdk
 
     # Start the Gateway
     - name: Run Gateway in the background
       run: |
-        npx nx dev smart-account-gateway --port 3002 &
+        npx nx dev gateway --port 3002 &
         for attempt in {1..20}; do sleep 1; if (curl localhost:3002| head -n1 | grep -Ev 'Nuxt Dev server is starting...|Starting Nuxt...'); then echo ready; break; fi; echo waiting...; done
 
     # Run e2e tests
     - name: Run e2e test
-      run: npx nx test zksync-account-sdk-contracts
+      run: npx nx test contracts
