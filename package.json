@@ -12,7 +12,12 @@
   ],
   "scripts": {
     "prepare": "husky",
-    "build": "npx nx run-many -t build --all"
+    "build": "npx nx run-many -t build --all",
+    "lint": "npm run lint:eslint && npm run lint:markdown && npm run lint:spelling && npm run lint:prettier",
+    "lint:eslint": "npx nx run-many -t lint --all",
+    "lint:markdown": "markdownlint-cli2 '**/*.md'",
+    "lint:spelling": "cspell '**/*.md'",
+    "lint:prettier": "prettier --list-different ."
   },
   "devDependencies": {
     "@commitlint/cli": "^19.5.0",

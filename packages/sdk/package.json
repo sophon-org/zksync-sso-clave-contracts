@@ -2,6 +2,9 @@
   "name": "zksync-account",
   "description": "ZKsync Smart Account SDK",
   "version": "0.0.0-development",
+  "publishConfig": {
+    "registry": "http://localhost:4873"
+  },
   "license": "MIT",
   "author": "Matter Labs",
   "repository": {

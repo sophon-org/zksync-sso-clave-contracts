@@ -5,14 +5,12 @@ A collection of commands to help with running NX in the monorepo.
 ## Running NX commands
 
 Use the `npx nx` command to use the monorepo's NX package, or install NX
-globally on your machine with npm.
+globally on your machine with npm. Project names are based on the name defined
+in the `package.json`, not the directory name.
 
 ```bash
 npx nx <target> <project>
 ```
-
-Project names are based on the name defined in the `package.json`, not the
-directory name.
 
 ## Run commands in parallel across all packages
 
@@ -30,6 +28,10 @@ npx nx run-many --target=build --projects=zksync-account,smart-account-gateway
 ```
 
 ## View project commands
+
+This provides a UI to see what commands are available for a project.
+This is usually the scripts you'll see in the `package.json` but this will make
+it easier to see if NX is modifying a particular command based on a plugin.
 
 To see the available commands for a project with NX:
 

@@ -6,11 +6,11 @@
   "license": "MIT",
   "repository": "https://github.com/matter-labs/zk-account-sdk.git",
   "scripts": {
-    "build": "hardhat compile",
-    "clean": "hardhat clean",
-    "deployAccountFactory": "hardhat deploy-zksync --script deployAccountFactory.ts",
-    "deployFactoryAccount": "hardhat deploy-zksync --script deployFactoryAccount.ts",
-    "getAccount": "hardhat deploy-zksync --script getAccount.ts",
+    "build": "nx exec -- hardhat compile",
+    "clean": "nx exec -- hardhat clean",
+    "deployAccountFactory": "nx exec -- hardhat deploy-zksync --script deployAccountFactory.ts",
+    "deployFactoryAccount": "nx exec -- hardhat deploy-zksync --script deployFactoryAccount.ts",
+    "getAccount": "nx exec -- hardhat deploy-zksync --script getAccount.ts",
     "test": "nx exec -- hardhat test"
   },
   "devDependencies": {
