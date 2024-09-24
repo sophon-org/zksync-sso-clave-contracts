@@ -244,6 +244,9 @@ importers:
         specifier: ^6.12.1
         version: 6.12.1(ethers@6.13.2)
     devDependencies:
+      '@simplewebauthn/types':
+        specifier: ^10.0.0
+        version: 10.0.0
       '@types/node':
         specifier: ^22.1.0
         version: 22.5.5

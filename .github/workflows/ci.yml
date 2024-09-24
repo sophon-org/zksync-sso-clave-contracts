@@ -40,7 +40,8 @@ jobs:
 
     # Build SDK
     - name: Build SDK
-      run: npx nx build:cjs sdk
+      working-directory: ./packages/sdk
+      run: pnpm run build:cjs
 
     # Start the Gateway
     - name: Run Gateway in the background

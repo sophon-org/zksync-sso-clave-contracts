@@ -30,6 +30,7 @@
     }
   },
   "devDependencies": {
+    "@simplewebauthn/types": "^10.0.0",
     "@types/node": "^22.1.0"
   },
   "files": [
