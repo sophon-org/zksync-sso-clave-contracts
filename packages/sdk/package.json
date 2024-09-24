@@ -16,7 +16,8 @@
     "build:esm+types": "tsc --project tsconfig.build.json --outDir ./dist/esm --declaration --declarationMap --declarationDir ./dist/types",
     "build:cjs": "tsc --project tsconfig.build.cjs.json",
     "clean": "rm -rf dist tsconfig.tsbuildinfo",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "publish:local": "pnpm publish --no-git-checks --force"
   },
   "peerDependencies": {
     "@simplewebauthn/browser": "10.x",

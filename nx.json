@@ -39,6 +39,9 @@
     },
     "test": {
       "inputs": ["noMarkdown", "^noMarkdown"]
+    },
+    "publish:local": {
+      "dependsOn": ["build", "test"]
     }
   },
   "release": {

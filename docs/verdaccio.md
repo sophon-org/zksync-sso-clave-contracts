@@ -5,39 +5,15 @@
 Verdaccio is a local proxy registry that helps with publishing npm packages to a
 non production or private environment.
 
-## Setup
-
-Install Verdaccio globally using NPM:
-
-```bash
-npm install -g verdaccio
-```
-
 ## Run Verdaccio
 
-1. Open up a terminal for Verdaccio and run the following command.
+Verdaccio is installed in this project from an NX plugin `@nx/js`, you do not
+need to install the package globally.
+Open up a terminal within the monorepo directory and run the following command.
 
-    ```bash
-    verdaccio
-    ```
-
-2. To have Verdaccio work as the proxy between local and the official NPM registry,
-you will need to update the URL for the NPM registry.
-
-    ```bash
-    npm set registry http://localhost:4873/
-    ```
-
-    This can be set either globally, within a project via `.npmrc`, or within a
-    `package.json` using the `publishConfig` property.
-
-    ```json
-    {
-      "publishConfig": {
-        "registry": "http://localhost:4873"
-      }
-    }
-    ```
+```bash
+pnpm run registry
+```
 
 ## How it works
 
@@ -67,3 +43,6 @@ Check your Verdaccio and make sure it's running. Some configuration somewhere,
 either in your global configuration for NPM registry URL, a project's `.npmrc`
 or a `package.json` `publishConfig` might be pointing to the Verdaccio URL.
 Without Verdaccio running it will not proxy to the official NPM registry.
+
+This monorepo project is setup with Verdaccio through NX. It has its own
+configuration defined within `.verdaccio/config.yml`.
