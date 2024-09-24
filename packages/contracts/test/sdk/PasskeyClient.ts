@@ -1,9 +1,7 @@
-import { toHex, encodeAbiParameters, createClient, getAddress, publicActions, walletActions, type WalletActions, type PublicActions, type Account, type Address, type Chain, type Client, type Prettify, type PublicRpcSchema, type RpcSchema, type Transport, type WalletClientConfig, type WalletRpcSchema } from 'viem'
+import { toBytes, toHex, encodeAbiParameters, createClient, getAddress, publicActions, walletActions, type Account, type Address, type Chain, type Client, type Prettify, type PublicRpcSchema, type RpcSchema, type Transport, type WalletClientConfig, type WalletRpcSchema, Hash } from 'viem'
+import { toSmartAccount } from 'viem/zksync';
 
-import { requestPasskeyAuthentication } from '../actions/passkey.js';
-import { zksyncAccountPasskeyActions, type ZksyncAccountPasskeyActions } from '../decorators/passkey.js';
-import { base64UrlToUint8Array, unwrapEC2Signature } from '../../utils/passkey.js';
-import { toSmartAccount } from '../smart-account.js';
+import { base64UrlToUint8Array, unwrapEC2Signature } from './utils/passkey';
 
 export function createZksyncPasskeyClient<
   transport extends Transport,
@@ -20,44 +18,40 @@ export function createZksyncPasskeyClient<
     key: _parameters.key || 'wallet',
     name: _parameters.name || 'ZKsync Account Passkey Client',
   };
-  
+
   const account = toSmartAccount({
     address: parameters.address,
-    sign: async ({ hash }) => {
-      const passkeySignature = await requestPasskeyAuthentication({
-        challenge: hash,
-        credentialPublicKey: parameters.credentialPublicKey,
-      });
+    sign: async () => {
+      const passkeySignature = {
+        passkeyAuthenticationResponse: {
+          response: await parameters.signHash()
+        }
+      };
+      // console.log("Passkey signature", passkeySignature);
       const authData = passkeySignature.passkeyAuthenticationResponse.response.authenticatorData;
       const clientDataJson = passkeySignature.passkeyAuthenticationResponse.response.clientDataJSON;
-      const signature = unwrapEC2Signature(
-        base64UrlToUint8Array(passkeySignature.passkeyAuthenticationResponse.response.signature)
-      );
+      const signature = unwrapEC2Signature(base64UrlToUint8Array(passkeySignature.passkeyAuthenticationResponse.response.signature));
       const fatSignature = encodeAbiParameters(
         [
           { type: 'bytes' }, // authData
           { type: 'bytes' }, // clientDataJson
           { type: 'bytes32[2]' }, // signature (two elements)
         ],
-        [
-          toHex(base64UrlToUint8Array(authData)),
-          toHex(base64UrlToUint8Array(clientDataJson)),
-          [toHex(signature.r), toHex(signature.s)]
-        ]
-      );
+        [toHex(base64UrlToUint8Array(authData)), toHex(base64UrlToUint8Array(clientDataJson)), [toHex(signature.r), toHex(signature.s)]]
+      )
+      // console.log("fatSignature(PasskeyClient)", fatSignature, fatSignature.length);
+      // XXX: This will need to be updated if the code changes
+      const validator = "0x4c85Ce243E07D52C8e9DBB50ff41e6f6f1e33a60";
       const fullFormattedSig = encodeAbiParameters(
         [
           { type: 'bytes' }, // fat signature
           { type: 'address' }, // validator address
           { type: 'bytes[]' }, // validator data
         ],
-        [
-          fatSignature,
-          parameters.contracts.validator,
-          []
-        ]
+        [fatSignature, validator, []]
       );
-      
+      // console.log("fullFormattedSig(PasskeyClient)", fullFormattedSig, fullFormattedSig.length);
+
       return fullFormattedSig;
     },
   });
@@ -67,34 +61,24 @@ export function createZksyncPasskeyClient<
     type: 'walletClient',
   })
     .extend(() => ({
-      credentialPublicKey: parameters.credentialPublicKey,
       userName: parameters.userName,
       userDisplayName: parameters.userDisplayName,
-      contracts: parameters.contracts,
     }))
     .extend(publicActions)
     .extend(walletActions)
-    .extend(zksyncAccountPasskeyActions)
   return client;
 }
 
-export type PasskeyRequiredContracts = {
-  session: Address; // Session, spend limit, etc.
-  validator: Address; // Validator for passkey signature
-  accountFactory?: Address; // For account creation
-  accountImplementation?: Address; // For account creation
-}
 type ZksyncAccountPasskeyData = {
-  credentialPublicKey: Uint8Array; // Public key of the passkey
-  userName: string; // Basically unique user id (which is called `userName` in webauthn)
-  userDisplayName: string; // Also option required for webauthn
-  contracts: PasskeyRequiredContracts;
+  userName: string;
+  userDisplayName: string;
 }
 
 export type ClientWithZksyncAccountPasskeyData<
   transport extends Transport = Transport,
   chain extends Chain = Chain,
-> = Client<transport, chain, Account> & ZksyncAccountPasskeyData;
+  account extends Account = Account,
+> = Client<transport, chain, account> & ZksyncAccountPasskeyData;
 
 export type ZksyncAccountPasskeyClient<
   transport extends Transport = Transport,
@@ -108,10 +92,9 @@ export type ZksyncAccountPasskeyClient<
     account,
     rpcSchema extends RpcSchema
       ? [...PublicRpcSchema, ...WalletRpcSchema, ...rpcSchema]
-      : [...PublicRpcSchema, ...WalletRpcSchema],
-    PublicActions<transport, chain, account> & WalletActions<chain, account> & ZksyncAccountPasskeyActions
+      : [...PublicRpcSchema, ...WalletRpcSchema]
   > & ZksyncAccountPasskeyData
->;
+>
 
 export interface ZksyncAccountPasskeyClientConfig<
   transport extends Transport = Transport,
@@ -120,10 +103,13 @@ export interface ZksyncAccountPasskeyClientConfig<
 > extends Omit<WalletClientConfig<transport, chain, Account, rpcSchema>, 'account'> {
   chain: NonNullable<chain>;
   address: Address;
-  credentialPublicKey: Uint8Array;
   userName: string;
   userDisplayName: string;
-  contracts: PasskeyRequiredContracts;
+  signHash: () => Promise<{
+    authenticatorData: string;
+    clientDataJSON: string;
+    signature: string;
+  }>;
   key?: string;
   name?: string;
 }

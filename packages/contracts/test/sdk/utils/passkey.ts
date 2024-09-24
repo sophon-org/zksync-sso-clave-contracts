@@ -1,4 +1,3 @@
-import { toHex } from 'viem';
 import { decode } from 'cbor-web';
 import { Buffer } from 'buffer';
 import { AsnParser } from '@peculiar/asn1-schema';
@@ -18,8 +17,8 @@ export const getPublicKeyBytesFromPasskeySignature = async (publicPasskey: Uint8
   const cosePublicKey = await decode(publicPasskey); // Decodes CBOR-encoded COSE key
   const x = cosePublicKey.get(COSEKEYS.x);
   const y = cosePublicKey.get(COSEKEYS.y);
-	
-  return toHex(Buffer.concat([Buffer.from(x), Buffer.from(y)]));
+
+  return Buffer.concat([Buffer.from(x), Buffer.from(y)]);
 }
 
 /**
@@ -86,7 +85,7 @@ function toArrayBuffer (data: string, isUrl: boolean) {
 			}
 			return lookupTemp;
 		},
-	  
+
 		// Use a lookup table to find the index.
 		lookup = genLookup(chars),
 		lookupUrl = genLookup(charsUrl); 
