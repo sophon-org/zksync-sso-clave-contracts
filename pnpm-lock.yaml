@@ -80,6 +80,9 @@ importers:
       '@openzeppelin/contracts-upgradeable':
         specifier: '4.9'
         version: 4.9.6
+      cbor-web:
+        specifier: ^9.0.2
+        version: 9.0.2
       hardhat:
         specifier: ^2.22.10
         version: 2.22.11(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@20.16.5)(typescript@5.6.2))(typescript@5.6.2)
@@ -90,7 +93,7 @@ importers:
         specifier: ^5.5.4
         version: 5.6.2
       viem:
-        specifier: ^2.21.2
+        specifier: ^2.21.6
         version: 2.21.12(typescript@5.6.2)
       zksync-account:
         specifier: file:../sdk
@@ -204,6 +207,12 @@ importers:
 
   packages/sdk:
     dependencies:
+      '@peculiar/asn1-ecc':
+        specifier: ^2.3.13
+        version: 2.3.14
+      '@peculiar/asn1-schema':
+        specifier: ^2.3.13
+        version: 2.3.13
       '@simplewebauthn/browser':
         specifier: 10.x
         version: 10.0.0
@@ -213,9 +222,15 @@ importers:
       '@wagmi/core':
         specifier: 2.x
         version: 2.13.6(react@18.3.1)(typescript@5.6.2)(viem@2.21.12(typescript@5.6.2))
-      cbor:
+      buffer:
+        specifier: ^6.0.3
+        version: 6.0.3
+      cbor-web:
         specifier: ^9.0.2
         version: 9.0.2
+      zksync-ethers:
+        specifier: ^6.12.1
+        version: 6.12.1(ethers@6.13.2)
     devDependencies:
       '@types/node':
         specifier: ^22.1.0
@@ -3551,6 +3566,10 @@ packages:
 
   caniuse-lite@1.0.30001663:
     resolution: {integrity: sha512-o9C3X27GLKbLeTYZ6HBOLU1tsAcBZsLis28wrVzddShCS16RujjHp9GDHKZqrB3meE0YjhawvMFsGb/igqiPzA==}
+
+  cbor-web@9.0.2:
+    resolution: {integrity: sha512-N6gU2GsJS8RR5gy1d9wQcSPgn9FGJFY7KNvdDRlwHfz6kCxrQr2TDnrjXHmr6TFSl6Fd0FC4zRnityEldjRGvQ==}
+    engines: {node: '>=16'}
 
   cbor@8.1.0:
     resolution: {integrity: sha512-DwGjNW9omn6EwP70aXsn7FQJx5kO12tX0bZkaTjzdVFM6/7nhA4t0EENocKGx6D2Bch9PE2KzCUf5SceBdeijg==}
@@ -12256,6 +12275,8 @@ snapshots:
 
   caniuse-lite@1.0.30001663: {}
 
+  cbor-web@9.0.2: {}
+
   cbor@8.1.0:
     dependencies:
       nofilter: 3.1.0
@@ -15023,7 +15044,7 @@ snapshots:
       unhead: 1.11.6
       unimport: 3.12.0(rollup@4.22.4)
       unplugin: 1.14.1
-      unplugin-vue-router: 0.10.8(rollup@4.22.4)(vue-router@4.4.5(vue@3.5.8(typescript@5.6.2)))(vue@3.5.8(typescript@5.6.2))
+      unplugin-vue-router: 0.10.8(rollup@4.22.4)(vue-router@4.4.5(vue@3.5.8(typescript@5.4.5)))(vue@3.5.8(typescript@5.6.2))
       unstorage: 1.12.0(ioredis@5.4.1)
       untyped: 1.4.2
       vue: 3.5.8(typescript@5.6.2)
@@ -16677,7 +16698,7 @@ snapshots:
       - vue
       - webpack-sources
 
-  unplugin-vue-router@0.10.8(rollup@4.22.4)(vue-router@4.4.5(vue@3.5.8(typescript@5.6.2)))(vue@3.5.8(typescript@5.6.2)):
+  unplugin-vue-router@0.10.8(rollup@4.22.4)(vue-router@4.4.5(vue@3.5.8(typescript@5.4.5)))(vue@3.5.8(typescript@5.6.2)):
     dependencies:
       '@babel/types': 7.25.6
       '@rollup/pluginutils': 5.1.1(rollup@4.22.4)
@@ -16694,7 +16715,7 @@ snapshots:
       unplugin: 1.14.1
       yaml: 2.5.1
     optionalDependencies:
-      vue-router: 4.4.5(vue@3.5.8(typescript@5.6.2))
+      vue-router: 4.4.5(vue@3.5.8(typescript@5.4.5))
     transitivePeerDependencies:
       - rollup
       - vue

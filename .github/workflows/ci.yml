@@ -28,7 +28,7 @@ jobs:
       with:
         node-version: lts/Iron
         cache: 'npm'
-        cache-dependency-path: '**/package-lock.json'
+        cache-dependency-path: '**/pnpm-lock.json'
     - name: Install contracts dependencies
       working-directory: ./packages/contracts
       run: npm ci
@@ -38,7 +38,7 @@ jobs:
     - name: Install sdk dependencies
       working-directory: ./packages/sdk
       run: npm ci
-    
+
     # Build SDK
     - name: Build SDK
       working-directory: ./packages/sdk
