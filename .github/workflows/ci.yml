@@ -35,13 +35,12 @@ jobs:
         cache: 'pnpm'
 
     # Install dependencies for contracts/gateway/sdk
-    - name: Install contracts dependencies
-      run: pnpm install --frozen-lockfile
+    - name: Install dependencies
+      run: pnpm install -r --frozen-lockfile
 
     # Build SDK
     - name: Build SDK
-      working-directory: ./packages/sdk
-      run: pnpm run build:cjs
+      run: pnpm --filter zksync-account run build:cjs
 
     # Start the Gateway
     - name: Run Gateway in the background

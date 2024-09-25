@@ -41,11 +41,11 @@
     "nuxt": "^3.10.0",
     "nx": "19.8.0",
     "prettier": "^3.3.3",
+    "typescript": "^5.5.4",
     "typescript-eslint": "^8.6.0",
     "verdaccio": "^5.0.4"
   },
   "nx": {
     "includedScripts": []
-  },
-  "dependencies": {}
+  }
 }
