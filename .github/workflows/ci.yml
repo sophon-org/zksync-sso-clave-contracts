@@ -42,6 +42,10 @@ jobs:
     - name: Build SDK
       run: pnpm nx build:cjs sdk
 
+    # Build contracts and generate types
+    - name: Build contracts
+      run: pnpm nx build contracts
+
     # Start the Gateway
     - name: Run Gateway in the background
       run: |
@@ -50,4 +54,4 @@ jobs:
 
     # Run e2e tests
     - name: Run e2e test
-      run: pnpm nx test contracts
+      run: pnpm nx test contracts -- --typecheck

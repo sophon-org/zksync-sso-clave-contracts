@@ -1,4 +1,5 @@
-import { type Account, type Address, type Chain, type Client, createClient, encodeAbiParameters, getAddress, type Prettify, publicActions, type PublicRpcSchema, type RpcSchema, toHex, type Transport, walletActions, type WalletClientConfig, type WalletRpcSchema } from "viem";
+import type { Account, Address, Chain, Client, Prettify, PublicRpcSchema, RpcSchema, Transport, WalletClientConfig, WalletRpcSchema } from "viem";
+import { createClient, encodeAbiParameters, getAddress, publicActions, toHex, walletActions } from "viem";
 import { toSmartAccount } from "viem/zksync";
 
 import { base64UrlToUint8Array, unwrapEC2Signature } from "./utils/passkey";
