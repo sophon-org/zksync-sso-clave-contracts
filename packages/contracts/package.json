@@ -8,9 +8,6 @@
   "scripts": {
     "build": "nx exec -- hardhat compile",
     "clean": "nx exec -- hardhat clean",
-    "deployAccountFactory": "nx exec -- hardhat deploy-zksync --script deployAccountFactory.ts",
-    "deployFactoryAccount": "nx exec -- hardhat deploy-zksync --script deployFactoryAccount.ts",
-    "getAccount": "nx exec -- hardhat deploy-zksync --script getAccount.ts",
     "test": "nx exec -- hardhat test"
   },
   "devDependencies": {
