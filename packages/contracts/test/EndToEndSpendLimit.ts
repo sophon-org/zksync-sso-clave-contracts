@@ -384,7 +384,7 @@ describe.only("Spend limit validation", function () {
             ],
         } as any);
         const proxyAccountReceipt = await waitForTransactionReceipt(richWallet as any, { hash: proxyAccount });
-        const proxyAccountAddress = getAddress(proxyAccountReceipt.contractAddress);
+        const proxyAccountAddress = getAddress(proxyAccountReceipt.contractAddress!);
 
         assert.isDefined(proxyAccountAddress, "no address set");
         const chainResponse = await waitForTransactionReceipt(richWallet as any, {
