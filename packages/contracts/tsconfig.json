@@ -3,5 +3,7 @@
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
     "strictNullChecks": true,
-  }
+  },
+  "include": ["./scripts", "./test", "./typechain"],
+  "files": ["./hardhat.config.ts"]
 }

@@ -38,7 +38,7 @@ jobs:
     - name: Install sdk dependencies
       working-directory: ./packages/sdk
       run: npm ci
-    
+
     # Build SDK
     - name: Build SDK
       working-directory: ./packages/sdk
@@ -68,5 +68,5 @@ jobs:
     # Run e2e tests
     - name: Run e2e test
       working-directory: ./packages/contracts
-      run: npm run test
+      run: npm run test -- --typecheck
 
