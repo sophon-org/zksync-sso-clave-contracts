@@ -1,23 +1,23 @@
-import { toHex, encodeAbiParameters, createClient, getAddress, publicActions, walletActions } from 'viem';
-import type { Account, Address, Chain, Client, Prettify, PublicRpcSchema, RpcSchema, Transport, WalletClientConfig, WalletRpcSchema } from 'viem';
-import { toSmartAccount } from 'viem/zksync';
+import type { Account, Address, Chain, Client, Prettify, PublicRpcSchema, RpcSchema, Transport, WalletClientConfig, WalletRpcSchema } from "viem";
+import { createClient, encodeAbiParameters, getAddress, publicActions, toHex, walletActions } from "viem";
+import { toSmartAccount } from "viem/zksync";
 
-import { base64UrlToUint8Array, unwrapEC2Signature } from './utils/passkey';
+import { base64UrlToUint8Array, unwrapEC2Signature } from "./utils/passkey";
 
-export function createZksyncPasskeyClient<
+export function createZKsyncPasskeyClient<
   transport extends Transport,
   chain extends Chain,
   rpcSchema extends RpcSchema | undefined = undefined,
 >(_parameters: ZksyncAccountPasskeyClientConfig<transport, chain, rpcSchema>): ZksyncAccountPasskeyClient<transport, chain, rpcSchema> {
   type WalletClientParameters = typeof _parameters;
   const parameters: WalletClientParameters & {
-    key: NonNullable<WalletClientParameters['key']>;
-    name: NonNullable<WalletClientParameters['name']>;
+    key: NonNullable<WalletClientParameters["key"]>;
+    name: NonNullable<WalletClientParameters["name"]>;
   } = {
     ..._parameters,
     address: getAddress(_parameters.address),
-    key: _parameters.key || 'wallet',
-    name: _parameters.name || 'ZKsync Account Passkey Client',
+    key: _parameters.key || "wallet",
+    name: _parameters.name || "ZKsync Account Passkey Client",
   };
 
   const account = toSmartAccount({
@@ -25,8 +25,8 @@ export function createZksyncPasskeyClient<
     sign: async () => {
       const passkeySignature = {
         passkeyAuthenticationResponse: {
-          response: await parameters.signHash()
-        }
+          response: await parameters.signHash(),
+        },
       };
       // console.log("Passkey signature", passkeySignature);
       const authData = passkeySignature.passkeyAuthenticationResponse.response.authenticatorData;
@@ -34,22 +34,22 @@ export function createZksyncPasskeyClient<
       const signature = unwrapEC2Signature(base64UrlToUint8Array(passkeySignature.passkeyAuthenticationResponse.response.signature));
       const fatSignature = encodeAbiParameters(
         [
-          { type: 'bytes' }, // authData
-          { type: 'bytes' }, // clientDataJson
-          { type: 'bytes32[2]' }, // signature (two elements)
+          { type: "bytes" }, // authData
+          { type: "bytes" }, // clientDataJson
+          { type: "bytes32[2]" }, // signature (two elements)
         ],
-        [toHex(base64UrlToUint8Array(authData)), toHex(base64UrlToUint8Array(clientDataJson)), [toHex(signature.r), toHex(signature.s)]]
-      )
+        [toHex(base64UrlToUint8Array(authData)), toHex(base64UrlToUint8Array(clientDataJson)), [toHex(signature.r), toHex(signature.s)]],
+      );
       // console.log("fatSignature(PasskeyClient)", fatSignature, fatSignature.length);
       // XXX: This will need to be updated if the code changes
       const validator = "0x4c85Ce243E07D52C8e9DBB50ff41e6f6f1e33a60";
       const fullFormattedSig = encodeAbiParameters(
         [
-          { type: 'bytes' }, // fat signature
-          { type: 'address' }, // validator address
-          { type: 'bytes[]' }, // validator data
+          { type: "bytes" }, // fat signature
+          { type: "address" }, // validator address
+          { type: "bytes[]" }, // validator data
         ],
-        [fatSignature, validator, []]
+        [fatSignature, validator, []],
       );
       // console.log("fullFormattedSig(PasskeyClient)", fullFormattedSig, fullFormattedSig.length);
 
@@ -59,21 +59,21 @@ export function createZksyncPasskeyClient<
   const client = createClient<transport, chain, Account, rpcSchema>({
     ...parameters,
     account,
-    type: 'walletClient',
+    type: "walletClient",
   })
     .extend(() => ({
       userName: parameters.userName,
       userDisplayName: parameters.userDisplayName,
     }))
     .extend(publicActions)
-    .extend(walletActions)
+    .extend(walletActions);
   return client;
 }
 
 type ZksyncAccountPasskeyData = {
   userName: string;
   userDisplayName: string;
-}
+};
 
 export type ClientWithZksyncAccountPasskeyData<
   transport extends Transport = Transport,
@@ -95,13 +95,13 @@ export type ZksyncAccountPasskeyClient<
       ? [...PublicRpcSchema, ...WalletRpcSchema, ...rpcSchema]
       : [...PublicRpcSchema, ...WalletRpcSchema]
   > & ZksyncAccountPasskeyData
->
+>;
 
 export interface ZksyncAccountPasskeyClientConfig<
   transport extends Transport = Transport,
   chain extends Chain = Chain,
-  rpcSchema extends RpcSchema | undefined = undefined
-> extends Omit<WalletClientConfig<transport, chain, Account, rpcSchema>, 'account'> {
+  rpcSchema extends RpcSchema | undefined = undefined,
+> extends Omit<WalletClientConfig<transport, chain, Account, rpcSchema>, "account"> {
   chain: NonNullable<chain>;
   address: Address;
   userName: string;

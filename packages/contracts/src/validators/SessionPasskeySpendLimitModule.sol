@@ -32,16 +32,13 @@ contract SessionPasskeySpendLimitModule is IERC7579Module, IModule {
     address accountAddress;
     // block timestamp
     uint256 expiresAt;
-    // if we want this to be a per-session-limit, we'll need a mapping here that would be kept in sync
-    // with the account-spend limit mapping.
-    // mapping(address tokenAddress => TokenSpendLimit spendLimit) spendLimitByToken;
+    // token spend limit is per session
+    mapping(address tokenAddress => TokenSpendLimit spendLimit) spendLimitByToken;
   }
 
-  // 2-way lookup between session and accounts, need to be kept in sync
-  mapping(address sessionAccount => SessionData limitedAccount) accountBySession;
+  // 2-way lookup between session and token-spend-limits, need to be kept in sync
+  mapping(address sessionAccount => SessionData limitedAccount) spendLimitBySession;
   mapping(address limitedAccount => address[] sessionAccount) sessionsByAccount;
-  // lookup spend limits by account
-  mapping(address limitedAccount => mapping(address tokenAddress => TokenSpendLimit spendLimit)) spendLimitByAccount;
 
   struct SpendLimit {
     // ERC-20 address
@@ -95,7 +92,7 @@ contract SessionPasskeySpendLimitModule is IERC7579Module, IModule {
 
     uint256 sessionLength = sessionsByAccount[msg.sender].length;
     for (uint256 index = 0; index < sessionLength; index++) {
-      delete accountBySession[sessionsByAccount[msg.sender][index]];
+      delete spendLimitBySession[sessionsByAccount[msg.sender][index]];
       delete sessionsByAccount[msg.sender][index];
     }
   }
@@ -106,7 +103,7 @@ contract SessionPasskeySpendLimitModule is IERC7579Module, IModule {
   }
 
   function setSessionKey(SessionKey memory sessionKey) internal {
-    SessionData storage sessionData = accountBySession[sessionKey.sessionKey];
+    SessionData storage sessionData = spendLimitBySession[sessionKey.sessionKey];
     if (sessionData.accountAddress == address(0)) {
       sessionData.accountAddress = msg.sender;
     } else {
@@ -116,7 +113,8 @@ contract SessionPasskeySpendLimitModule is IERC7579Module, IModule {
 
     for (uint256 spendLimitIndex = 0; spendLimitIndex < sessionKey.spendLimits.length; spendLimitIndex++) {
       SpendLimit memory initSpendLimit = sessionKey.spendLimits[spendLimitIndex];
-      TokenSpendLimit storage initTokenSpendLimit = spendLimitByAccount[msg.sender][initSpendLimit.tokenAddress];
+
+      TokenSpendLimit storage initTokenSpendLimit = sessionData.spendLimitByToken[initSpendLimit.tokenAddress];
       require(initSpendLimit.limit >= 0, "Spend limit must be set, cannot be 0");
       initTokenSpendLimit.limit = initSpendLimit.limit;
     }
@@ -133,9 +131,10 @@ contract SessionPasskeySpendLimitModule is IERC7579Module, IModule {
   }
 
   function revokeSession(address sessionKey) external {
-    SessionData memory sessionToRemove = accountBySession[sessionKey];
+    SessionData storage sessionToRemove = spendLimitBySession[sessionKey];
     require(sessionToRemove.accountAddress == msg.sender, "cannot remove session for another account");
-    delete accountBySession[sessionKey];
+    // this doesn't clear the spend limits if the session is re-added
+    delete spendLimitBySession[sessionKey];
 
     uint256 sessionLength = sessionsByAccount[msg.sender].length;
     for (uint256 index = 0; index < sessionLength; index++) {
@@ -209,20 +208,22 @@ contract SessionPasskeySpendLimitModule is IERC7579Module, IModule {
 
     address recoveredAddress = ecrecover(_hash, v, r, s);
 
-    SessionData memory sessionData = accountBySession[recoveredAddress];
+    SessionData storage sessionData = spendLimitBySession[recoveredAddress];
     if (sessionData.accountAddress != msg.sender || recoveredAddress == address(0)) {
       // Note, that we should abstain from using the require here in order to allow for fee estimation to work
       magic = bytes4(0);
     }
   }
 
-  /*
+  /**
+   * @dev Getting the target and session key together is the trick here.
    * For ERC20 transfers, compare the token contract address (target)
    * with any spend limits configured for the account.
    * Revert if the spend-limit has been exceeded
    */
-  function _checkSpendingLimit(address target, bytes calldata callData) internal {
-    TokenSpendLimit storage spendLimit = spendLimitByAccount[msg.sender][target];
+  function _checkSpendingLimit(address target, address sessionKey, bytes calldata callData) internal {
+    SessionData storage accountSessionData = spendLimitBySession[sessionKey];
+    TokenSpendLimit storage spendLimit = accountSessionData.spendLimitByToken[target];
     uint256 timeperiod = block.timestamp / 1 weeks;
     (, uint256 value) = abi.decode(callData[4:], (address, uint256));
     if (spendLimit.spent[timeperiod] + value > spendLimit.limit) {
@@ -313,7 +314,11 @@ contract SessionPasskeySpendLimitModule is IERC7579Module, IModule {
     uint256 msgValue,
     bytes calldata msgData
   ) external returns (bytes memory hookData) {
-    _checkSpendingLimit(_preCheckParsing(msgSender, msgValue, msgData), msgData);
+    address target = _preCheckParsing(msgSender, msgValue, msgData);
+    // TODO: how can the hook get the signing key from just the transaction data
+    // (can you recover it again from the signature if that's part of the msgData?)
+    address sessionKey = address(0);
+    _checkSpendingLimit(target, sessionKey, msgData);
   }
 
   /*
@@ -327,13 +332,17 @@ contract SessionPasskeySpendLimitModule is IERC7579Module, IModule {
   }
 
   // Returns session key data for the given session public key.
-  function getSessionKeyData(address sessionPublicKey) external view returns (SessionData memory) {
-    return accountBySession[sessionPublicKey];
+  function getSessionKeyData(address sessionPublicKey) external view returns (SessionKey memory sessionKey) {
+    SessionData storage sessionAccountData = spendLimitBySession[sessionPublicKey];
+    sessionKey.expiresAt = sessionAccountData.expiresAt;
+    sessionKey.sessionKey = sessionAccountData.accountAddress;
+    // TODO: also return configured token spend limits
   }
 
-  // Returns the remaining spend limit for a specific token under the account (total - used).
-  function getRemainingSpendLimit(address token) external view returns (uint256) {
-    TokenSpendLimit storage spendLimit = spendLimitByAccount[msg.sender][token];
+  // Returns the remaining spend limit for a specific token under the session key (total - used).
+  function getRemainingSpendLimit(address sessionPublicKey, address token) external view returns (uint256) {
+    SessionData storage accountSessionData = spendLimitBySession[sessionPublicKey];
+    TokenSpendLimit storage spendLimit = accountSessionData.spendLimitByToken[token];
     uint256 timeperiod = block.timestamp / 1 weeks;
     // XXX: This range index appears incorrect
     return spendLimit.limit - spendLimit.spent[timeperiod];
