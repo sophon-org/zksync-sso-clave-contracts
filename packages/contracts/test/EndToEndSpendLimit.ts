@@ -61,23 +61,25 @@ export class ContractFixtures {
     return this._aaFactory;
   }
 
-  private _passkeyModuleContract: Contract;
+  private _sessionSpendLimitModule: Contract;
   async getPasskeyModuleContract() {
-    if (!this._passkeyModuleContract) {
-      this._passkeyModuleContract = await create2("SessionPasskeySpendLimitModule", this.wallet, this.ethersStaticSalt);
+    if (!this._sessionSpendLimitModule) {
+      this._sessionSpendLimitModule = await create2("SessionPasskeySpendLimitModule", this.wallet, this.ethersStaticSalt);
     }
-    return this._passkeyModuleContract;
+    return this._sessionSpendLimitModule;
   }
 
-  private _expensiveVerifierContract: Contract;
-  async getExpensiveVerifierContract() {
-    if (!this._expensiveVerifierContract) {
-      this._expensiveVerifierContract = await create2("PasskeyValidator", this.wallet, this.ethersStaticSalt);
+  private _webauthnValidatorModule: Contract;
+  // does passkey validation via modular interface
+  async getWebAuthnVerifierContract() {
+    if (!this._webauthnValidatorModule) {
+      this._webauthnValidatorModule = await create2("WebAuthValidator", this.wallet, this.ethersStaticSalt);
     }
-    return this._expensiveVerifierContract;
+    return this._webauthnValidatorModule;
   }
 
   private _accountImplContract: Contract;
+  // wraps the clave account
   async getAccountImplContract() {
     if (!this._accountImplContract) {
       this._accountImplContract = await create2("ERC7579Account", this.wallet, this.ethersStaticSalt);
@@ -86,6 +88,7 @@ export class ContractFixtures {
   }
 
   private _accountImplAddress: string;
+  // deploys the base account for future proxy use
   async getAccountImplAddress() {
     if (!this._accountImplAddress) {
       const accountImpl = await this.getAccountImplContract();
@@ -151,8 +154,8 @@ describe("Spend limit validation", function () {
   });
 
   it("should deploy verifier", async () => {
-    const expensiveVerifierContract = await fixtures.getExpensiveVerifierContract();
-    assert(expensiveVerifierContract != null, "No verifier deployed");
+    const validatorModule = await fixtures.getWebAuthnVerifierContract();
+    assert(validatorModule != null, "No verifier deployed");
   });
 
   it("should deploy implemention", async () => {
@@ -172,15 +175,15 @@ describe("Spend limit validation", function () {
     const passkeyModule = await fixtures.getPasskeyModuleContract();
     assert(passkeyModule != null, "no module available");
 
-    const expensiveVerifierContract = await fixtures.getExpensiveVerifierContract();
-    assert(expensiveVerifierContract != null, "no verifier available");
+    const validatorModule = await fixtures.getWebAuthnVerifierContract();
+    assert(validatorModule != null, "no verifier available");
 
     const sessionKeyWallet = Wallet.createRandom(getProvider());
     const proxyAccount = await aaFactoryContract.deployProxy7579Account(
       randomBytes(32),
       await fixtures.getAccountImplAddress(),
       await ethersResponse.getXyPublicKey(),
-      expensiveVerifierContract,
+      validatorModule,
       await passkeyModule.getAddress(),
       await fixtures.getEncodedModuleData(sessionKeyWallet.address),
     );
@@ -207,8 +210,8 @@ describe("Spend limit validation", function () {
     const aaFactoryContract = await fixtures.getAaFactory();
     assert(aaFactoryContract != null, "No AA Factory deployed");
 
-    const verifierContract = await fixtures.getExpensiveVerifierContract();
-    const expensiveVerifierAddress = await verifierContract.getAddress();
+    const validatorModule = await fixtures.getWebAuthnVerifierContract();
+    const expensiveVerifierAddress = await validatorModule.getAddress();
 
     const moduleAddress = await (await fixtures.getPasskeyModuleContract()).getAddress();
     //
@@ -229,8 +232,8 @@ describe("Spend limit validation", function () {
   });
 
   it("should set spend limit via module with ethers", async () => {
-    const verifierContract = await fixtures.getExpensiveVerifierContract();
-    const expensiveVerifierAddress = await verifierContract.getAddress();
+    const validatorModule = await fixtures.getWebAuthnVerifierContract();
+    const validatorModuleAddress = await validatorModule.getAddress();
     const moduleContract = await fixtures.getPasskeyModuleContract();
     const moduleAddress = await moduleContract.getAddress();
     const factory = await fixtures.getAaFactory();
@@ -241,7 +244,7 @@ describe("Spend limit validation", function () {
       fixtures.ethersStaticSalt,
       accountImpl,
       await ethersResponse.getXyPublicKey(),
-      expensiveVerifierAddress,
+      validatorModuleAddress,
       moduleAddress,
       await fixtures.getEncodedModuleData(fixtures.ethersSessionKeyWallet.address),
     );
@@ -281,7 +284,7 @@ describe("Spend limit validation", function () {
         // clave expects signature + validator address + validator hook data
         const fullFormattedSig = abiCoder.encode(["bytes", "address", "bytes[]"], [
           fatSignature,
-          expensiveVerifierAddress,
+          validatorModuleAddress,
           [],
         ]);
 
@@ -321,11 +324,11 @@ describe("Spend limit validation", function () {
   });
 
   it("should set spend limit via module with viem", async () => {
-    const verifierContract = await fixtures.getExpensiveVerifierContract();
+    const validatorModule = await fixtures.getWebAuthnVerifierContract();
     const moduleContract = await fixtures.getPasskeyModuleContract();
     const factoryContract = await fixtures.getAaFactory();
 
-    const expensiveVerifierAddress = await verifierContract.getAddress();
+    const validatorModuleAddress = await validatorModule.getAddress();
     const moduleAddress = await moduleContract.getAddress();
     const accountImpl = await fixtures.getAccountImplAddress();
     const localClient: Chain = {
@@ -352,7 +355,7 @@ describe("Spend limit validation", function () {
         toHex(fixtures.viemStaticSalt),
         accountImpl,
         toHex(await viemResponse.getXyPublicKey()),
-        expensiveVerifierAddress,
+        validatorModuleAddress,
         moduleAddress,
         await fixtures.getEncodedModuleData(fixtures.viemSessionKeyWallet.address),
       ],
@@ -412,8 +415,8 @@ describe("Spend limit validation", function () {
     const aaFactoryContract = await fixtures.getAaFactory();
     assert(aaFactoryContract != null, "No AA Factory deployed");
 
-    const verifierContract = await fixtures.getExpensiveVerifierContract();
-    const expensiveVerifierAddress = await verifierContract.getAddress();
+    const validatorModule = await fixtures.getWebAuthnVerifierContract();
+    const validatorModuleAddress = await validatorModule.getAddress();
 
     const moduleAddress = await (await fixtures.getPasskeyModuleContract()).getAddress();
 
@@ -423,7 +426,7 @@ describe("Spend limit validation", function () {
       randomBytes(32),
       await fixtures.getAccountImplAddress(),
       await ethersResponse.getXyPublicKey(),
-      expensiveVerifierAddress,
+      validatorModuleAddress,
       moduleAddress,
       await fixtures.getEncodedModuleData(sessionKeyWallet.address),
     );
@@ -435,7 +438,7 @@ describe("Spend limit validation", function () {
   // NOTE: If you just want to deploy contracts to your local node for testing,
   //       change 'it' to 'it.only' and only run this test.
   it("should deploy all contracts", async () => {
-    const verifierContract = await fixtures.getExpensiveVerifierContract();
+    const verifierContract = await fixtures.getWebAuthnVerifierContract();
     const moduleContract = await fixtures.getPasskeyModuleContract();
     const proxyContract = await fixtures.getProxyAccountContract();
     const erc7579Contract = await fixtures.getAccountImplContract();
