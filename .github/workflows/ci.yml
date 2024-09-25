@@ -38,7 +38,7 @@ jobs:
     - name: Install sdk dependencies
       working-directory: ./packages/sdk
       run: npm ci
-    
+
     # Build SDK
     - name: Build SDK
       working-directory: ./packages/sdk
@@ -58,6 +58,11 @@ jobs:
         cd ../gateway
         npm link zksync-account
 
+    # Build contracts and generate types
+    - name: Build contracts
+      working-directory: ./packages/contracts
+      run: npm run build
+
     # Start the Gateway
     - name: Run Gateway in the background
       working-directory: ./packages/gateway
@@ -68,5 +73,5 @@ jobs:
     # Run e2e tests
     - name: Run e2e test
       working-directory: ./packages/contracts
-      run: npm run test
+      run: npm run test -- --typecheck
 
