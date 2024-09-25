@@ -85,7 +85,7 @@ export class ContractFixtures {
     }
 }
 
-describe.only("Spend limit validation", function () {
+describe("Spend limit validation", function () {
     const fixtures = new ContractFixtures();
     const ethersResponse = new RecordedResponse("test/signed-challenge.json");
     const viemResponse = new RecordedResponse("test/signed-viem-challenge.json");
