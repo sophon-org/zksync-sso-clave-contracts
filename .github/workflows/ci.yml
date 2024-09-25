@@ -58,6 +58,11 @@ jobs:
         cd ../gateway
         npm link zksync-account
 
+    # Build contracts and generate types
+    - name: Build contracts
+      working-directory: ./packages/contracts
+      run: npm run build
+
     # Start the Gateway
     - name: Run Gateway in the background
       working-directory: ./packages/gateway
