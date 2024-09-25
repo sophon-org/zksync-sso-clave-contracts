@@ -7,11 +7,8 @@ import { AsnParser } from '@peculiar/asn1-schema';
 import { ECDSASigValue } from '@peculiar/asn1-ecc';
 import { ethers } from "ethers"
 import { getWallet, LOCAL_RICH_WALLETS, RecordedResponse } from "./utils";
-
 import * as hre from "hardhat";
-
-// FIXME: use typechain
-type PasskeyValidator = ethers.Contract;
+import { PasskeyValidator, PasskeyValidator__factory } from '../typechain-types';
 
 /**
  * Decode from a Base64URL-encoded string to an ArrayBuffer. Best used when converting a
@@ -38,12 +35,7 @@ async function deployValidator(
     );
 
     const validator = await deployer.deploy(passkeyValidatorArtifact, []);
-
-    return await hre.ethers.getContractAt(
-        'PasskeyValidator',
-        await validator.getAddress(),
-        wallet,
-    );
+    return PasskeyValidator__factory.connect(await validator.getAddress(), wallet);
 }
 
 /**
@@ -132,7 +124,7 @@ export function fromBuffer(
     return fromArrayBuffer(buffer, to === 'base64url');
 }
 
-async function getPublicKey(publicPasskey: Uint8Array) {
+async function getPublicKey(publicPasskey: Uint8Array): Promise<[string, string]> {
     const cosePublicKey = decodeFirst<Map<number, any>>(publicPasskey);
     console.log("decodeFirst", cosePublicKey)
     const alg = cosePublicKey.get(COSEKEYS.alg) as COSEALG;
@@ -169,7 +161,7 @@ export function concat(arrays: Uint8Array[]): Uint8Array {
  * @param signature
  * @returns r & s bytes sequentially
  */
-export function unwrapEC2Signature(signature: Uint8Array): Uint8Array[] {
+export function unwrapEC2Signature(signature: Uint8Array): [Uint8Array, Uint8Array] {
     const parsedSignature = AsnParser.parse(signature, ECDSASigValue);
     let rBytes = new Uint8Array(parsedSignature.r);
     let sBytes = new Uint8Array(parsedSignature.s);
