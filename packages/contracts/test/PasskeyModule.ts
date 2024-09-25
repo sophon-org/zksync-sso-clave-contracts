@@ -2,13 +2,17 @@ import { Wallet } from "zksync-ethers";
 import { Deployer } from '@matterlabs/hardhat-zksync-deploy';
 import { assert } from 'chai';
 import { decodePartialCBOR } from '@levischuck/tiny-cbor'
-import { fromArrayBuffer } from "@hexagon/base64"
+import { fromArrayBuffer, toArrayBuffer } from "@hexagon/base64"
 import { AsnParser } from '@peculiar/asn1-schema';
 import { ECDSASigValue } from '@peculiar/asn1-ecc';
-import { toArrayBuffer } from "@hexagon/base64";
 import { ethers } from "ethers"
 import { getWallet, LOCAL_RICH_WALLETS, RecordedResponse } from "./utils";
 import { bigintToBuf, bufToBigint } from 'bigint-conversion'
+
+import * as hre from "hardhat";
+
+// FIXME: use typechain
+type PasskeyValidator = ethers.Contract;
 
 /**
  * Decode from a Base64URL-encoded string to an ArrayBuffer. Best used when converting a
@@ -163,7 +167,7 @@ export function concat(arrays: Uint8Array[]): Uint8Array {
 
 /**
  * Return 2 32byte words for the R & S for the EC2 signature, 0 l-trimmed
- * @param signature 
+ * @param signature
  * @returns r & s bytes sequentially
  */
 export function unwrapEC2Signature(signature: Uint8Array): Uint8Array[] {
