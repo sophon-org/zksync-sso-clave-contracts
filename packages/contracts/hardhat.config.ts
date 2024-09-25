@@ -39,7 +39,7 @@ const config: HardhatUserConfig = {
     },
   },
   zksolc: {
-    version: "latest",
+    version: "1.5.3",
     settings: {
       // https://era.zksync.io/docs/tools/hardhat/hardhat-zksync-solc.html#configuration
       // Native AA calls an internal system contract, so it needs extra permissions
