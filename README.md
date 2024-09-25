@@ -29,18 +29,19 @@ This monorepo is comprised of the following packages/products:
 3. Publish the SDK package to your proxy registry.
 
     ```bash
-    npx nx publish:local zksync-account
+    npx nx publish:local sdk
     ```
 
 ## Running commands
 
 Use the NX CLI to run project commands, however PNPM is still usable as an
-alternative. Project names are based on the name defined in `package.json`.
+alternative.
+Project names are based on the name defined in each project's `project.json`.
 
 ```bash
 npx nx <target> <project>
 # Example
-npx nx build zksync-account
+npx nx build sdk
 ```
 
 To run a command in multiple projects, use the `run-many` command.
