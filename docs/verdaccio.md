@@ -8,8 +8,8 @@ non production or private environment.
 ## Run Verdaccio
 
 Verdaccio is installed in this project from an NX plugin `@nx/js`, you do not
-need to install the package globally.
-Open up a terminal within the monorepo directory and run the following command.
+need to install the package globally. Open up a terminal within the monorepo
+directory and run the following command.
 
 ```bash
 pnpm run registry
