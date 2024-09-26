@@ -32,6 +32,7 @@
     "softwareTerms",
     "typescript",
     "dict-zksync",
+    "dict-packages",
     "dict-misc"
   ],
   "dictionaryDefinitions": [
@@ -39,6 +40,11 @@
       "name": "dict-zksync",
       "addWords": true,
       "path": "./cspell-config/cspell-zksync.txt"
+    },
+    {
+      "name": "dict-packages",
+      "addWords": true,
+      "path": "./cspell-config/cspell-packages.txt"
     },
     {
       "name": "dict-misc",
