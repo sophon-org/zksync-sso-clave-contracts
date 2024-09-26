@@ -13,6 +13,7 @@ import { createZksyncPasskeyClient } from "./sdk/PasskeyClient";
 import { base64UrlToUint8Array, unwrapEC2Signature } from "./sdk/utils/passkey";
 import { sendTransaction, waitForTransactionReceipt, writeContract } from "viem/actions";
 import { privateKeyToAccount } from "viem/accounts";
+import { HttpNetworkConfig } from "hardhat/types/config";
 
 export class ContractFixtures {
     // NOTE: CHANGING THE READONLY VALUES WILL REQUIRE UPDATING THE STATIC SIGNATURE
@@ -314,6 +315,7 @@ describe("Spend limit validation", function () {
             ...zksyncInMemoryNode,
             rpcUrls: {
                 default: {
+                  // @ts-ignore 
                     http: [hre.network.config.url], // Override if not using the default port
                 }
             }
