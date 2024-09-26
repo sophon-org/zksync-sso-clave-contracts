@@ -49,7 +49,23 @@ export function unwrapEC2Signature(signature: Uint8Array): { r: Uint8Array; s: U
 
 
 // normalize s (to prevent signature mallebility)
-function normalizeS(sBuf: Uint8Array): Uint8Array {
+/**
+ * Normalizes the 's' value of an ECDSA signature to prevent signature malleability.
+ * 
+ * @param {Uint8Array} sBuf - The 's' value of the signature as a Uint8Array.
+ * @returns {Uint8Array} The normalized 's' value as a Uint8Array.
+ * 
+ * @description
+ * This function implements the process of normalizing the 's' value in an ECDSA signature.
+ * It ensures that the 's' value is always in the lower half of the curve's order,
+ * which helps prevent signature malleability attacks.
+ * 
+ * The function uses the curve order 'n' for secp256k1:
+ * n = 0xFFFFFFFF00000000FFFFFFFFFFFFFFFFBCE6FAADA7179E84F3B9CAC2FC632551
+ * 
+ * If 's' is greater than half of 'n', it is subtracted from 'n' to get the lower value.
+ */
+export function normalizeS(sBuf: Uint8Array): Uint8Array {
     const n = BigInt('0xFFFFFFFF00000000FFFFFFFFFFFFFFFFBCE6FAADA7179E84F3B9CAC2FC632551');
     const halfN = n / BigInt(2);
     const sNumber: bigint = bufToBigint(sBuf);
