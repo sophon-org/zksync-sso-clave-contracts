@@ -23,38 +23,45 @@ This monorepo is comprised of the following packages/products:
 2. Start up the Verdaccio proxy registry.
 
    ```bash
-   npx nx local-registry
+   pnpm nx local-registry
    ```
 
 3. Publish the SDK package to your proxy registry.
 
    ```bash
-   npx nx publish:local sdk
+   pnpm nx publish:local sdk
    ```
 
 ## Running commands
 
 Use the NX CLI to run project commands, however PNPM is still usable as an
-alternative. Project names are based on the name defined in each project's
-`project.json`.
+alternative. NX project names are based on the name defined in each project's
+`project.json` which are set to match the directory name.
 
 ```bash
-npx nx <target> <project>
+pnpm nx <target> <project>
 # Example
-npx nx build sdk
+pnpm nx build sdk
 ```
 
 To run a command in multiple projects, use the `run-many` command.
 
 ```bash
-npx nx run-many -t <target> --all           # for all projects
-npx nx run-many -t <target> -p proj1 proj2  # by project
-npx nx run-many --targets=lint,test,build   # run multiple commands
+pnpm nx run-many -t <target> --all           # for all projects
+pnpm nx run-many -t <target> -p proj1 proj2  # by project
+pnpm nx run-many --targets=lint,test,build   # run multiple commands
 ```
 
 Some commands are inferred and built-in with NX. To review all the available
 commands in a project:
 
 ```bash
-nx show project <project> --web
+pnpm nx show project <project> --web
 ```
+
+## Lint project
+
+At the root level of the monorepo, run the `lint` command to run linting
+across the project.
+
+To fix lint issues that come up from linting, run the `lint:fix` command.
