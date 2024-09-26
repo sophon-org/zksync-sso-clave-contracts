@@ -42,7 +42,7 @@ export function createZksyncPasskeyClient<
       );
       // console.log("fatSignature(PasskeyClient)", fatSignature, fatSignature.length);
       // XXX: This will need to be updated if the code changes
-      const validator = "0xdE9F7597aee36fF89c387aE087971f408050bA24";
+      const validator = "0x6742EFA58cc91503EC9779E6c9E9D131d8ED9335";
       const fullFormattedSig = encodeAbiParameters(
         [
           { type: "bytes" }, // fat signature
