@@ -8,6 +8,7 @@ import { IModule } from "../interfaces/IModule.sol";
 
 import { IERC7579Module } from "../interfaces/IERC7579Module.sol";
 import { IR1Validator } from "../interfaces/IValidator.sol";
+import { IModuleValidator } from "../interfaces/IModuleValidator.sol";
 
 import "hardhat/console.sol";
 
@@ -18,7 +19,7 @@ import "hardhat/console.sol";
  * have that passkey create a time & spend limited session key,
  * then reject transactions (as a validator) when the session key expires.
  */
-contract SessionPasskeySpendLimitModule is IERC7579Module, IModule {
+contract SessionPasskeySpendLimitModule is IERC7579Module, IModule, IModuleValidator {
   bytes4 constant EIP1271_SUCCESS_RETURN_VALUE = 0x1626ba7e;
 
   struct TokenSpendLimit {
@@ -54,6 +55,21 @@ contract SessionPasskeySpendLimitModule is IERC7579Module, IModule {
     uint256 expiresAt;
     // if not de-duplicated, the last token address wins
     SpendLimit[] spendLimits;
+  }
+
+  function handleValidation(bytes32 signedHash, bytes memory signature) external view returns (bool) {
+    // this only validates that the session key is linked to the account, not the spend limit
+    return isValidSignature(signedHash, signature) == EIP1271_SUCCESS_RETURN_VALUE;
+  }
+
+  // expects SessionKey[]
+  function addValidationKey(bytes memory installData) external returns (bool) {
+    console.log("installing session-key spend-limit module");
+    SessionKey[] memory sessionKeys = abi.decode(installData, (SessionKey[]));
+    for (uint256 sessionKeyIndex = 0; sessionKeyIndex < sessionKeys.length; sessionKeyIndex++) {
+      setSessionKey(sessionKeys[sessionKeyIndex]);
+    }
+    return false;
   }
 
   function init(bytes calldata initData) external {

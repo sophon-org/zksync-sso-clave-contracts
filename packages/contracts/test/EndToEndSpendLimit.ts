@@ -5,7 +5,7 @@ import { parseEther, randomBytes } from "ethers";
 import { AbiCoder, Contract, ethers, ZeroAddress } from "ethers";
 import * as hre from "hardhat";
 import { it } from "mocha";
-import { Address, Chain, createWalletClient, encodeFunctionData, getAddress, Hash, http, publicActions, toHex } from "viem";
+import { Address, Chain, createWalletClient, encodeAbiParameters, encodeFunctionData, getAddress, Hash, http, publicActions, toHex } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { sendTransaction, waitForTransactionReceipt, writeContract } from "viem/actions";
 import { zksyncInMemoryNode } from "viem/chains";
@@ -178,14 +178,17 @@ describe("Spend limit validation", function () {
     const validatorModule = await fixtures.getWebAuthnVerifierContract();
     assert(validatorModule != null, "no verifier available");
 
+    const forceDeploy = await fixtures.getProxyAccountContract();
+    assert(forceDeploy != null, "proxy fails");
+
     const sessionKeyWallet = Wallet.createRandom(getProvider());
+    const webauthModuleData = abiCoder.encode(["address", "bytes"], [await validatorModule.getAddress(), await ethersResponse.getXyPublicKey()]);
+    const sessionSpendModuleData = abiCoder.encode(["address", "bytes"], [await passkeyModule.getAddress(), await fixtures.getEncodedModuleData(sessionKeyWallet.address)]);
     const proxyAccount = await aaFactoryContract.deployProxy7579Account(
       randomBytes(32),
       await fixtures.getAccountImplAddress(),
-      await ethersResponse.getXyPublicKey(),
-      validatorModule,
-      await passkeyModule.getAddress(),
-      await fixtures.getEncodedModuleData(sessionKeyWallet.address),
+      [webauthModuleData, sessionSpendModuleData],
+      [],
     );
     const proxyAccountTxReceipt = await proxyAccount.wait();
 
@@ -218,13 +221,13 @@ describe("Spend limit validation", function () {
     // PART TWO: Install Module with passkey (salt needs to be random to not collide with other tests)
     //
     const sessionKeyWallet = Wallet.createRandom(getProvider());
+    const validationData = abiCoder.encode(["address", "bytes"], [expensiveVerifierAddress, await ethersResponse.getXyPublicKey()]);
+    const moduleData = abiCoder.encode(["address", "bytes"], [moduleAddress, await fixtures.getEncodedModuleData(sessionKeyWallet.address)]);
     const proxyAccount = await aaFactoryContract.deployProxy7579Account(
       randomBytes(32),
       await fixtures.getAccountImplAddress(),
-      await ethersResponse.getXyPublicKey(),
-      expensiveVerifierAddress,
-      moduleAddress,
-      await fixtures.getEncodedModuleData(sessionKeyWallet.address),
+      [validationData],
+      [moduleData],
     );
     const proxyAccountTxReceipt = await proxyAccount.wait();
 
@@ -239,14 +242,13 @@ describe("Spend limit validation", function () {
     const factory = await fixtures.getAaFactory();
     const accountImpl = await fixtures.getAccountImplAddress();
 
-    // TODO: this needs to be static (one for ethers one for viem)
+    const validationData = abiCoder.encode(["address", "bytes"], [await validatorModule.getAddress(), await ethersResponse.getXyPublicKey()]);
+    const moduleData = abiCoder.encode(["address", "bytes"], [moduleAddress, await fixtures.getEncodedModuleData(fixtures.ethersSessionKeyWallet.address)]);
     const proxyAccount = await factory.deployProxy7579Account(
       fixtures.ethersStaticSalt,
       accountImpl,
-      await ethersResponse.getXyPublicKey(),
-      validatorModuleAddress,
-      moduleAddress,
-      await fixtures.getEncodedModuleData(fixtures.ethersSessionKeyWallet.address),
+      [validationData, moduleData],
+      [moduleData],
     );
 
     const proxyAccountReceipt = await proxyAccount.wait();
@@ -268,6 +270,7 @@ describe("Spend limit validation", function () {
     // 3. take that transaction hash to another app, and sign it (as the challenge)
     // 4. bring that signed hash back here and have it returned as the signer
     const isTestMode = false;
+    const signWithSessionKey = true;
     const extractSigningHash = (hash: string, secretKey, provider) => {
       const b64Hash = ethers.encodeBase64(hash);
       if (isTestMode) {
@@ -280,6 +283,15 @@ describe("Spend limit validation", function () {
           clientDataBuffer,
           [rs.r, rs.s],
         ]);
+        if (signWithSessionKey) {
+          // sign with session key
+          const sessionKeySignature = fixtures.ethersSessionKeyWallet.signMessageSync(hash);
+          return abiCoder.encode(["bytes", "address", "bytes[]"], [
+            sessionKeySignature,
+            moduleAddress,
+            [],
+          ]);
+        }
 
         // clave expects signature + validator address + validator hook data
         const fullFormattedSig = abiCoder.encode(["bytes", "address", "bytes[]"], [
@@ -335,7 +347,7 @@ describe("Spend limit validation", function () {
       ...zksyncInMemoryNode,
       rpcUrls: {
         default: {
-          http: [hre.network.config.url], // Override if not using the default port
+          http: [hre.network.config["url"]], // Override if not using the default port
         },
       },
     };
@@ -347,6 +359,21 @@ describe("Spend limit validation", function () {
     }).extend(publicActions);
 
     const factoryArtifact = JSON.parse(await promises.readFile(`./artifacts-zk/src/AAFactory.sol/AAFactory.json`, "utf8"));
+
+    const encodedValidatorData = encodeAbiParameters(
+      [
+        { name: "validatorAddress", type: "address" },
+        { name: "validatorData", type: "bytes" },
+      ],
+      [getAddress(validatorModuleAddress), toHex(await viemResponse.getXyPublicKey())],
+    );
+    const encodedModuleData = encodeAbiParameters(
+      [
+        { name: "moduleAddress", type: "address" },
+        { name: "moduleData", type: "bytes" },
+      ],
+      [getAddress(moduleAddress), toHex(await fixtures.getEncodedModuleData(fixtures.viemSessionKeyWallet.address))],
+    );
     const proxyAccount = await writeContract(richWallet, {
       address: getAddress(await factoryContract.getAddress()),
       abi: factoryArtifact.abi,
@@ -354,10 +381,8 @@ describe("Spend limit validation", function () {
       args: [
         toHex(fixtures.viemStaticSalt),
         accountImpl,
-        toHex(await viemResponse.getXyPublicKey()),
-        validatorModuleAddress,
-        moduleAddress,
-        await fixtures.getEncodedModuleData(fixtures.viemSessionKeyWallet.address),
+        [encodedValidatorData],
+        [encodedModuleData],
       ],
     });
     const proxyAccountReceipt = await waitForTransactionReceipt(richWallet, { hash: proxyAccount });
@@ -422,13 +447,13 @@ describe("Spend limit validation", function () {
 
     // Install Module with passkey (salt needs to be random to not collide with other tests)
     const sessionKeyWallet = Wallet.createRandom(getProvider());
+    const validationData = abiCoder.encode(["address", "bytes"], [validatorModuleAddress, await ethersResponse.getXyPublicKey()]);
+    const moduleData = abiCoder.encode(["address", "bytes"], [moduleAddress, await fixtures.getEncodedModuleData(sessionKeyWallet.address)]);
     const proxyAccount = await aaFactoryContract.deployProxy7579Account(
       randomBytes(32),
       await fixtures.getAccountImplAddress(),
-      await ethersResponse.getXyPublicKey(),
-      validatorModuleAddress,
-      moduleAddress,
-      await fixtures.getEncodedModuleData(sessionKeyWallet.address),
+      [validationData],
+      [moduleData],
     );
     const proxyAccountTxReceipt = await proxyAccount.wait();
 

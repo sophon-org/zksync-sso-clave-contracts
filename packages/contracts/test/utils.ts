@@ -76,7 +76,7 @@ export const verifyContract = async (data: {
   return verificationRequestId;
 };
 
-export const create2 = async (contractName: string, wallet: Wallet, salt: ethers.BytesLike, args: ReadonlyArray<string>) => {
+export const create2 = async (contractName: string, wallet: Wallet, salt: ethers.BytesLike, args?: ReadonlyArray<string>) => {
   if (!salt["startsWith"]) {
     salt = ethers.hexlify(salt);
   }

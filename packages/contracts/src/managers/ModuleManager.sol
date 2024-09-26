@@ -85,7 +85,7 @@ abstract contract ModuleManager is IModuleManager, Auth {
 
     function _addNativeModule(
         address moduleAddress,
-        bytes calldata moduleData
+        bytes memory moduleData
     ) internal {
         if (!_supportsModule(moduleAddress)) {
             console.log("module", moduleAddress, "is not supported");
