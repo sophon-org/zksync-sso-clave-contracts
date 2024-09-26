@@ -3,7 +3,7 @@ import { parseEther, randomBytes } from "ethers";
 import { AbiCoder, Contract, ethers, ZeroAddress } from "ethers";
 import * as hre from "hardhat";
 import { it } from "mocha";
-import { Address, Chain, createWalletClient, encodeFunctionData, getAddress, Hash, http, publicActions, toHex } from "viem";
+import { Address, Chain, createWalletClient, encodeFunctionData, getAddress, Hash, http, isHex, publicActions, toHex } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { sendTransaction, waitForTransactionReceipt, writeContract } from "viem/actions";
 import { zksyncInMemoryNode } from "viem/chains";
@@ -314,7 +314,7 @@ describe("Spend limit validation", function () {
       ...zksyncInMemoryNode,
       rpcUrls: {
         default: {
-          http: [hre.network.config.url], // Override if not using the default port
+          http: [hre.network.config["url"]], // Override if not using the default port
         },
       },
     };
@@ -324,9 +324,10 @@ describe("Spend limit validation", function () {
       chain: localClient,
       transport: http(),
     }).extend(publicActions);
-
+    const moduleData = await getModuleData();
+    const hexModuleData = isHex(moduleData) ? moduleData : toHex(moduleData);
     const proxyAccount = await writeContract(richWallet, {
-      address: await factoryContract.getAddress(),
+      address: getAddress(await factoryContract.getAddress()),
       abi: [
         {
           inputs: [
@@ -376,11 +377,11 @@ describe("Spend limit validation", function () {
       functionName: "deployProxy7579Account",
       args: [
         toHex(fixtures.viemStaticSalt),
-        toAddress(accountImpl),
+        getAddress(accountImpl),
         toHex(await viemResponse.getXyPublicKey()),
-        expensiveVerifierAddress,
-        moduleAddress,
-        await getModuleData(),
+        getAddress(expensiveVerifierAddress),
+        getAddress(moduleAddress),
+        hexModuleData,
       ],
     });
     const proxyAccountReceipt = await waitForTransactionReceipt(richWallet, { hash: proxyAccount });
