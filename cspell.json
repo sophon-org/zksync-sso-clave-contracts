@@ -16,7 +16,9 @@
     "cache-zk",
     "pnpm-lock.yaml",
     "cspell.json",
-    "**/test/**"
+    "**/test/**",
+    "tmp",
+    "temp"
   ],
   "caseSensitive": true,
   "dictionaries": [
