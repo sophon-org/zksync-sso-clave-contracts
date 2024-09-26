@@ -61,7 +61,7 @@ pnpm nx show project <project> --web
 
 ## Lint project
 
-At the root level of the monorepo, run the `lint` command to run linting
-across the project.
+At the root level of the monorepo, run the `lint` command to run linting across
+the project.
 
 To fix lint issues that come up from linting, run the `lint:fix` command.
