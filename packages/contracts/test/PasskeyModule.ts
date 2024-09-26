@@ -10,7 +10,6 @@ import * as hre from "hardhat";
 import { Wallet } from "zksync-ethers";
 
 import { PasskeyValidator, PasskeyValidator__factory } from "../typechain-types";
-import { getWallet, LOCAL_RICH_WALLETS, RecordedResponse } from "./utils";
 
 /**
  * Decode from a Base64URL-encoded string to an ArrayBuffer. Best used when converting a
@@ -127,7 +126,7 @@ export function fromBuffer(
 }
 
 async function getPublicKey(publicPasskey: Uint8Array): Promise<[string, string]> {
-  const cosePublicKey = decodeFirst<Map<number, any>>(publicPasskey);
+  const cosePublicKey = decodeFirst<Map<number, number>>(publicPasskey);
   console.log("decodeFirst", cosePublicKey);
   const alg = cosePublicKey.get(COSEKEYS.alg) as COSEALG;
   const crv = cosePublicKey.get(COSEKEYS.crv);
@@ -179,7 +178,7 @@ export function unwrapEC2Signature(signature: Uint8Array): [Uint8Array, Uint8Arr
   return [rBytes, normalizeS(sBytes)];
 }
 
-// normalize s (to prevent signature mallebility)
+// normalize s (to prevent signature malleability)
 function normalizeS(sBuf: Uint8Array): Uint8Array {
   const n = BigInt("0xFFFFFFFF00000000FFFFFFFFFFFFFFFFBCE6FAADA7179E84F3B9CAC2FC632551");
   const halfN = n / BigInt(2);
