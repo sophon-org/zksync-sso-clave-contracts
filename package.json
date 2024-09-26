@@ -12,13 +12,14 @@
   ],
   "scripts": {
     "prepare": "husky",
-    "build": "npx nx run-many -t build --all",
-    "lint": "npm run lint:eslint && npm run lint:markdown && npm run lint:spelling && npm run lint:prettier",
-    "lint:eslint": "npx nx run-many -t lint --all",
+    "build": "pnpm nx run-many -t build --all",
+    "lint": "pnpm run lint:eslint && pnpm run lint:markdown && pnpm run lint:spelling && pnpm run lint:prettier",
+    "lint-fix": "pnpm nx run-many -t lint --all --fix && pnpm prettier --write .",
+    "lint:eslint": "pnpm nx run-many -t lint --all",
     "lint:markdown": "markdownlint-cli2 '**/*.md'",
     "lint:spelling": "cspell '**/*.md'",
     "lint:prettier": "prettier --list-different .",
-    "registry": "npx nx local-registry"
+    "registry": "pnpm nx local-registry"
   },
   "devDependencies": {
     "@commitlint/cli": "^19.5.0",
