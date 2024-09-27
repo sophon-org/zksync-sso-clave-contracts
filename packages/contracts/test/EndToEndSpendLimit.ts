@@ -272,10 +272,10 @@ describe("Spend limit validation", function () {
     // 3. take that transaction hash to another app, and sign it (as the challenge)
     // 4. bring that signed hash back here and have it returned as the signer
     const sessionKeySigner = (hash: BytesLike, secret?: string, provider?: null | Provider) => {
-      const sessionKeySignature = fixtures.ethersSessionKeyWallet.signMessageSync(hash);
+      const sessionKeySignature = fixtures.ethersSessionKeyWallet.signingKey.sign(hash);
       console.debug("(sessionkey)hash", hash, "secretKey", secret, "provider.ready", provider?.ready);
       return Promise.resolve<string>(abiCoder.encode(["bytes", "address", "bytes[]"], [
-        sessionKeySignature,
+        sessionKeySignature.serialized,
         moduleAddress,
         [],
       ]));
