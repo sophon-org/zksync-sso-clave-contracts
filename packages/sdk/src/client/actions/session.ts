@@ -1,9 +1,9 @@
-import { encodeFunctionData, type Account, type Address, type Chain, type Client, type Hash, type Prettify, type TransactionReceipt, type Transport } from 'viem'
-import { readContract, waitForTransactionReceipt } from 'viem/actions';
-import { Provider, SmartAccount, utils as ethersUtils, type types as ethersTypes } from 'zksync-ethers';
+import { type Account, type Address, type Chain, type Client, encodeFunctionData, type Hash, type Prettify, type TransactionReceipt, type Transport } from "viem";
+import { readContract, waitForTransactionReceipt } from "viem/actions";
+import { Provider, SmartAccount, type types as ethersTypes, utils as ethersUtils } from "zksync-ethers";
 
-import { noThrow } from '../../utils/helpers.js';
-import { SessionPasskeySpendLimitModuleAbi } from '../../abi/SessionPasskeySpendLimitModule.js';
+import { SessionPasskeySpendLimitModuleAbi } from "../../abi/SessionPasskeySpendLimitModule.js";
+import { noThrow } from "../../utils/helpers.js";
 
 /* DO NOT USE THIS. USE FUNCTION FROM PASSKEY ACTIONS INSTEAD */
 /* TODO: Remove */
@@ -26,7 +26,7 @@ export const requestSession = async <
     'passkeyRegistrationResponse' in args
       ? args.passkeyRegistrationResponse
       : (await requestPasskeySignature(args.passkeyRegistrationOptions)).passkeyRegistrationResponse;
-      
+
   const sessionKey = args.sessionKey || generatePrivateKey();
   const sessionKeyPublicAddress = publicKeyToAddress(sessionKey);
   const transactionHash = await createSessionWithPasskey(client, {
@@ -73,7 +73,7 @@ export type GetTokenSpendLimitArgs = {
   accountAddress: Address;
   tokenAddress: Address;
   contracts: { session: Address };
-} /* & ({ sessionKey: Hash } | { sessionKeyPublicAddress: Address }) */;
+};
 export type GetTokenSpendLimitReturnType = {
   limitLeft: bigint;
   sessionPublicKey: Address;
@@ -81,7 +81,7 @@ export type GetTokenSpendLimitReturnType = {
 export const getTokenSpendLimit = async <
   transport extends Transport,
   chain extends Chain,
-  account extends Account
+  account extends Account,
 >(client: Client<transport, chain, account>, args: GetTokenSpendLimitArgs): Promise<Prettify<GetTokenSpendLimitReturnType>> => {
   /* const sessionKeyPublicAddress = 'sessionKey' in args ? publicKeyToAddress(args.sessionKey) : args.sessionKeyPublicAddress; */
   /* TODO: this isn't actually the right method to fetch how much spend limit is left!!! */
@@ -91,12 +91,12 @@ export const getTokenSpendLimit = async <
     functionName: "spendingLimits",
     args: [args.accountAddress, args.tokenAddress],
   });
-  
+
   return {
     limitLeft,
     sessionPublicKey,
   };
-}
+};
 
 export type AddSessionKeyArgs = {
   accountAddress: Address;
@@ -114,7 +114,7 @@ export type AddSessionKeyReturnType = {
 export const addSessionKey = async <
   transport extends Transport,
   chain extends Chain,
-  account extends Account
+  account extends Account,
 >(client: Client<transport, chain, account>, args: Prettify<AddSessionKeyArgs>): Promise<Prettify<AddSessionKeyReturnType>> => {
   const provider = new Provider(client.chain.rpcUrls.default.http[0]);
   const passkeyClient = new SmartAccount({
@@ -147,7 +147,7 @@ export const addSessionKey = async <
       gasPerPubdata: ethersUtils.DEFAULT_GAS_PER_PUBDATA_LIMIT,
     } as ethersTypes.Eip712Meta,
   };
-  (aaTx as any)['gasLimit'] = await provider.estimateGas(aaTx);
+  (aaTx as any)["gasLimit"] = await provider.estimateGas(aaTx);
 
   const signedTransaction = await passkeyClient.signTransaction(aaTx);
   const tx = await provider.broadcastTransaction(signedTransaction);
@@ -162,4 +162,4 @@ export const addSessionKey = async <
   return {
     transactionReceipt,
   };
-}
+};

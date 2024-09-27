@@ -17,19 +17,19 @@ export function getWebsiteName(): string | null {
 
 export function getFavicon(): string | null {
   const el = document.querySelector(
-    'link[sizes="192x192"], link[sizes="180x180"], link[rel="icon"], link[rel="shortcut icon"]'
+    "link[sizes=\"192x192\"], link[sizes=\"180x180\"], link[rel=\"icon\"], link[rel=\"shortcut icon\"]",
   );
-  const href = el?.getAttribute('href');
+  const href = el?.getAttribute("href");
   if (!href) return null;
 
   try {
     const url = new URL(href, document.location.href);
     // Make sure no malicious URLs are returned like "javascript:..."
-    if (url.protocol !== 'https:' && url.protocol !== 'http:') {
+    if (url.protocol !== "https:" && url.protocol !== "http:") {
       return null;
     }
     return url.href;
-  } catch (e) {
+  } catch {
     return null;
   }
 }
@@ -37,7 +37,7 @@ export function getFavicon(): string | null {
 export function noThrow<T>(fn: () => T): T | null {
   try {
     return fn();
-  } catch (e) {
+  } catch {
     return null;
   }
 }

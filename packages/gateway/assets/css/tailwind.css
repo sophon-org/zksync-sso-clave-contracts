@@ -9,9 +9,7 @@
     --breakout-max-width: 1200px;
     --content-columns: 1fr;
 
-    --breakout-size: calc(
-      (var(--breakout-max-width) - var(--content-max-width)) / 2
-    );
+    --breakout-size: calc((var(--breakout-max-width) - var(--content-max-width)) / 2);
 
     display: grid;
     grid-template-columns: [full-width-start] 3.5% [content-start] var(--content-columns) [content-end] 3.5% [full-width-end];
@@ -20,18 +18,18 @@
   }
 
   @media (min-width: 1536px) {
-    .content-grid  {
+    .content-grid {
       max-width: 1536px;
     }
   }
-  
+
   .content-grid > :not(.full-width) {
     grid-column: content;
   }
-  
+
   .content-grid > .full-width {
     grid-column: full-width;
-    
+
     display: grid;
     grid-template-columns: inherit;
   }
