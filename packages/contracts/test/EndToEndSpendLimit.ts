@@ -9,6 +9,7 @@ import { Address, Chain, createWalletClient, encodeAbiParameters, encodeFunction
 import { privateKeyToAccount } from "viem/accounts";
 import { sendTransaction, waitForTransactionReceipt, writeContract } from "viem/actions";
 import { zksyncInMemoryNode } from "viem/chains";
+import { createZksyncSessionClient } from "zksync-account/client";
 import { Provider, SmartAccount, types, utils, Wallet } from "zksync-ethers";
 
 import { createZKsyncPasskeyClient } from "./sdk/PasskeyClient";
@@ -370,9 +371,6 @@ describe("Spend limit validation", function () {
 
     const factoryArtifact = JSON.parse(await promises.readFile(`./artifacts-zk/src/AAFactory.sol/AAFactory.json`, "utf8"));
 
-    const ethersValidationData = abiCoder.encode(["address", "bytes"], [validatorModuleAddress, await viemResponse.getXyPublicKey()]);
-    const ethersModuleData = abiCoder.encode(["address", "bytes"], [moduleAddress, await fixtures.getEncodedModuleData(fixtures.viemSessionKeyWallet.address)]);
-
     const encodedValidatorData = encodeAbiParameters(
       [
         { name: "validatorAddress", type: "address" },
@@ -380,9 +378,6 @@ describe("Spend limit validation", function () {
       ],
       [getAddress(validatorModuleAddress), toHex(await viemResponse.getXyPublicKey())],
     );
-    if (encodedValidatorData != ethersValidationData) {
-      console.error("validation MISMATCH", encodedValidatorData, ethersValidationData);
-    }
     const encodedInitModuleData = await fixtures.getEncodedModuleData(fixtures.viemSessionKeyWallet.address);
     const encodedModuleData = encodeAbiParameters(
       [
@@ -391,9 +386,6 @@ describe("Spend limit validation", function () {
       ],
       [getAddress(moduleAddress), isHex(encodedInitModuleData) ? encodedInitModuleData : toHex(encodedInitModuleData)],
     );
-    if (encodedModuleData != ethersModuleData) {
-      console.error("module MISMATCH", encodedModuleData, ethersModuleData);
-    }
     const proxyAccount = await writeContract(richWallet, {
       address: getAddress(await factoryContract.getAddress()),
       abi: factoryArtifact.abi,
@@ -450,7 +442,26 @@ describe("Spend limit validation", function () {
     });
 
     const receipt = await waitForTransactionReceipt(passkeyClient, { hash: transactionHash });
-    assert.equal(receipt.status, "success", "addSessionKey transaction should be successful");
+    assert.equal(receipt.status, "success", "(passkey)addSessionKey transaction should be successful");
+
+    // repeat with different signer
+    const sessionKeyClient = createZksyncSessionClient({
+      address: getAddress(proxyAccountAddress),
+      sessionKey: isHex(fixtures.viemSessionKeyWallet.privateKey) ? fixtures.viemSessionKeyWallet.privateKey : toHex(fixtures.viemSessionKeyWallet.privateKey),
+      contracts: {
+        session: getAddress(moduleAddress),
+      },
+      chain: localClient,
+      transport: http(),
+    });
+
+    const sessionKeyTransactionHash = await sendTransaction(sessionKeyClient, {
+      to: moduleAddress as Address,
+      data: callData as Hash,
+    });
+
+    const sessionKeyReceipt = await waitForTransactionReceipt(sessionKeyClient, { hash: sessionKeyTransactionHash });
+    assert.equal(sessionKeyReceipt.status, "success", "(sessionkey) addSessionKey transaction should be successful");
   });
 
   it("should add passkey and verifier to account", async () => {
