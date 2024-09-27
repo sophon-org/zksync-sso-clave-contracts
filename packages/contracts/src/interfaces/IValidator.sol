@@ -24,7 +24,7 @@ interface IR1Validator is IERC165 {
   /**
    * @notice Allows to validate secp256r1 ec signatures
    * @param messageHash bytes32           - message hash of the data that is signed by the key
-   * @param rs bytes32[2]                 - unwrapped challange signature points (r & s)
+   * @param rs bytes32[2]                 - unwrapped challenge signature points (r & s)
    * @param pubKey bytes32[2]             - public key coordinates array for the x and y values
    * @return valid bool                   - validation result
    */

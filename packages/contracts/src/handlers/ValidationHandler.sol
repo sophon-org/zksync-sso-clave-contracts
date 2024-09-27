@@ -19,7 +19,7 @@ import "hardhat/console.sol";
 abstract contract ValidationHandler is OwnerManager, ValidatorManager {
   function _handleValidation(
     address validator,
-    bytes32 signedHash, // keccack hash
+    bytes32 signedHash,
     bytes memory signature
   ) internal view returns (bool) {
     if (_r1IsValidator(validator)) {
@@ -52,14 +52,5 @@ abstract contract ValidationHandler is OwnerManager, ValidatorManager {
     }
 
     return false;
-  }
-
-  function _bytesToBytes32(bytes memory b, uint offset) private pure returns (bytes32) {
-    bytes32 out;
-
-    for (uint i = 0; i < 32; i++) {
-      out |= bytes32(b[offset + i] & 0xFF) >> (i * 8);
-    }
-    return out;
   }
 }

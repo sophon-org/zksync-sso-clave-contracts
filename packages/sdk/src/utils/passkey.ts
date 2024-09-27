@@ -1,30 +1,30 @@
-import { toHex } from 'viem';
-import { decode } from 'cbor-web';
-import { Buffer } from 'buffer';
-import { AsnParser } from '@peculiar/asn1-schema';
-import { ECDSASigValue } from '@peculiar/asn1-ecc';
+import { ECDSASigValue } from "@peculiar/asn1-ecc";
+import { AsnParser } from "@peculiar/asn1-schema";
+import { Buffer } from "buffer";
+import { decode } from "cbor-web";
+import { toHex } from "viem";
 
 enum COSEKEYS {
-  kty = 1,  // Key Type
-  alg = 3,  // Algorithm
+  kty = 1, // Key Type
+  alg = 3, // Algorithm
   crv = -1, // Curve for EC keys
-  x = -2,   // X coordinate for EC keys
-  y = -3,   // Y coordinate for EC keys
-  n = -1,   // Modulus for RSA keys
-  e = -2,   // Exponent for RSA keys
+  x = -2, // X coordinate for EC keys
+  y = -3, // Y coordinate for EC keys
+  n = -1, // Modulus for RSA keys
+  e = -2, // Exponent for RSA keys
 }
 
 export const getPublicKeyBytesFromPasskeySignature = async (publicPasskey: Uint8Array) => {
   const cosePublicKey = await decode(publicPasskey); // Decodes CBOR-encoded COSE key
   const x = cosePublicKey.get(COSEKEYS.x);
   const y = cosePublicKey.get(COSEKEYS.y);
-	
+
   return toHex(Buffer.concat([Buffer.from(x), Buffer.from(y)]));
-}
+};
 
 /**
  * Return 2 32byte words for the R & S for the EC2 signature, 0 l-trimmed
- * @param signature 
+ * @param signature
  * @returns r & s bytes sequentially
  */
 export function unwrapEC2Signature(signature: Uint8Array): { r: Uint8Array; s: Uint8Array } {
@@ -43,7 +43,7 @@ export function unwrapEC2Signature(signature: Uint8Array): { r: Uint8Array; s: U
   return {
     r: rBytes,
     s: sBytes,
-  }
+  };
 }
 
 /**
@@ -70,59 +70,59 @@ export function base64UrlToUint8Array(base64urlString: string, isUrl: boolean = 
   return new Uint8Array(_buffer);
 }
 
-function toArrayBuffer (data: string, isUrl: boolean) {
-	const 
-		// Regular base64 characters
-		chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/",
+function toArrayBuffer(data: string, isUrl: boolean) {
+  const
+    // Regular base64 characters
+    chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/",
 
-		// Base64url characters
-		charsUrl = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_",
+    // Base64url characters
+    charsUrl = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_",
 
-		genLookup = (target: string) => {
-			const lookupTemp = typeof Uint8Array === "undefined" ? [] : new Uint8Array(256);
-			const len = chars.length;
-			for (let i = 0; i < len; i++) {
-				lookupTemp[target.charCodeAt(i)] = i;
-			}
-			return lookupTemp;
-		},
-	  
-		// Use a lookup table to find the index.
-		lookup = genLookup(chars),
-		lookupUrl = genLookup(charsUrl); 
+    genLookup = (target: string) => {
+      const lookupTemp = typeof Uint8Array === "undefined" ? [] : new Uint8Array(256);
+      const len = chars.length;
+      for (let i = 0; i < len; i++) {
+        lookupTemp[target.charCodeAt(i)] = i;
+      }
+      return lookupTemp;
+    },
 
-	const 
-			len = data.length;
-		let bufferLength = data.length * 0.75,
-			i,
-			p = 0,
-			encoded1,
-			encoded2,
-			encoded3,
-			encoded4;
+    // Use a lookup table to find the index.
+    lookup = genLookup(chars),
+    lookupUrl = genLookup(charsUrl);
 
-		if (data[data.length - 1] === "=") {
-			bufferLength--;
-			if (data[data.length - 2] === "=") {
-				bufferLength--;
-			}
-		}
+  const
+    len = data.length;
+  let bufferLength = data.length * 0.75,
+    i,
+    p = 0,
+    encoded1,
+    encoded2,
+    encoded3,
+    encoded4;
 
-		const 
-			arraybuffer = new ArrayBuffer(bufferLength),
-			bytes = new Uint8Array(arraybuffer),
-			target = isUrl ? lookupUrl : lookup;
+  if (data[data.length - 1] === "=") {
+    bufferLength--;
+    if (data[data.length - 2] === "=") {
+      bufferLength--;
+    }
+  }
 
-		for (i = 0; i < len; i += 4) {
-			encoded1 = target[data.charCodeAt(i)];
-			encoded2 = target[data.charCodeAt(i + 1)];
-			encoded3 = target[data.charCodeAt(i + 2)];
-			encoded4 = target[data.charCodeAt(i + 3)];
+  const
+    arraybuffer = new ArrayBuffer(bufferLength),
+    bytes = new Uint8Array(arraybuffer),
+    target = isUrl ? lookupUrl : lookup;
 
-			bytes[p++] = (encoded1 << 2) | (encoded2 >> 4);
-			bytes[p++] = ((encoded2 & 15) << 4) | (encoded3 >> 2);
-			bytes[p++] = ((encoded3 & 3) << 6) | (encoded4 & 63);
-		}
+  for (i = 0; i < len; i += 4) {
+    encoded1 = target[data.charCodeAt(i)];
+    encoded2 = target[data.charCodeAt(i + 1)];
+    encoded3 = target[data.charCodeAt(i + 2)];
+    encoded4 = target[data.charCodeAt(i + 3)];
 
-		return arraybuffer;
+    bytes[p++] = (encoded1 << 2) | (encoded2 >> 4);
+    bytes[p++] = ((encoded2 & 15) << 4) | (encoded3 >> 2);
+    bytes[p++] = ((encoded3 & 3) << 6) | (encoded4 & 63);
+  }
+
+  return arraybuffer;
 };

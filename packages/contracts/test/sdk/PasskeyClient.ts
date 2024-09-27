@@ -28,7 +28,6 @@ export function createZKsyncPasskeyClient<
           response: await parameters.signHash(),
         },
       };
-      // console.log("Passkey signature", passkeySignature);
       const authData = passkeySignature.passkeyAuthenticationResponse.response.authenticatorData;
       const clientDataJson = passkeySignature.passkeyAuthenticationResponse.response.clientDataJSON;
       const signature = unwrapEC2Signature(base64UrlToUint8Array(passkeySignature.passkeyAuthenticationResponse.response.signature));
@@ -40,9 +39,8 @@ export function createZKsyncPasskeyClient<
         ],
         [toHex(base64UrlToUint8Array(authData)), toHex(base64UrlToUint8Array(clientDataJson)), [toHex(signature.r), toHex(signature.s)]],
       );
-      // console.log("fatSignature(PasskeyClient)", fatSignature, fatSignature.length);
-      // XXX: This will need to be updated if the code changes
-      const validator = "0xd3E53b40EdD0C3Ac387993F7Bf24dd9db9f6c87c";
+      // XXX: This will need to be updated when the code changes
+      const validator = "0x095792939e287c6C71071c0e05bef43F6a0da639";
       const fullFormattedSig = encodeAbiParameters(
         [
           { type: "bytes" }, // fat signature
@@ -51,7 +49,6 @@ export function createZKsyncPasskeyClient<
         ],
         [fatSignature, validator, []],
       );
-      // console.log("fullFormattedSig(PasskeyClient)", fullFormattedSig, fullFormattedSig.length);
 
       return fullFormattedSig;
     },

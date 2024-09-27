@@ -1,8 +1,7 @@
-import { type Account, type Address, type Chain, type Transport } from 'viem'
+import { type Account, type Address, type Chain, type Transport } from "viem";
 
-import type { ClientWithZksyncAccountSessionData } from '../clients/session.js';
-
-import { getTokenSpendLimit, type GetTokenSpendLimitReturnType } from '../actions/session.js';
+import { getTokenSpendLimit, type GetTokenSpendLimitReturnType } from "../actions/session.js";
+import type { ClientWithZksyncAccountSessionData } from "../clients/session.js";
 
 export type ZksyncAccountSessionActions = {
   getTokenSpendLimit: (tokenAddress: Address) => Promise<GetTokenSpendLimitReturnType>;
@@ -23,6 +22,5 @@ export function zksyncAccountSessionActions<
         contracts: client.contracts,
       });
     },
-  }
+  };
 }
-

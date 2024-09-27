@@ -1,9 +1,9 @@
-import { createClient, getAddress, publicActions, type Account, type Address, type Chain, type Client, type Hash, type Prettify, type PublicRpcSchema, type RpcSchema, type Transport, type WalletClientConfig, type WalletRpcSchema } from 'viem'
-import { privateKeyToAccount } from 'viem/accounts';
-import { toSmartAccount } from 'viem/zksync';
+import { type Account, type Address, type Chain, type Client, createClient, getAddress, type Hash, type Prettify, publicActions, type PublicRpcSchema, type RpcSchema, type Transport, type WalletClientConfig, type WalletRpcSchema } from "viem";
+import { privateKeyToAccount } from "viem/accounts";
+import { toSmartAccount } from "viem/zksync";
 
-import { zksyncAccountWalletActions, type ZksyncAccountWalletActions } from '../decorators/session_wallet.js';
-import { zksyncAccountSessionActions, type ZksyncAccountSessionActions } from '../decorators/session.js';
+import { type ZksyncAccountSessionActions, zksyncAccountSessionActions } from "../decorators/session.js";
+import { type ZksyncAccountWalletActions, zksyncAccountWalletActions } from "../decorators/session_wallet.js";
 
 export function createZksyncSessionClient<
   transport extends Transport,
@@ -12,19 +12,19 @@ export function createZksyncSessionClient<
 >(_parameters: ZksyncAccountSessionClientConfig<transport, chain, rpcSchema>): ZksyncAccountSessionClient<transport, chain, rpcSchema> {
   type WalletClientParameters = typeof _parameters;
   const parameters: WalletClientParameters & {
-    key: NonNullable<WalletClientParameters['key']>;
-    name: NonNullable<WalletClientParameters['name']>;
+    key: NonNullable<WalletClientParameters["key"]>;
+    name: NonNullable<WalletClientParameters["name"]>;
   } = {
     ..._parameters,
     address: getAddress(_parameters.address),
-    key: _parameters.key || 'wallet',
-    name: _parameters.name || 'ZKsync Account Session Client',
+    key: _parameters.key || "wallet",
+    name: _parameters.name || "ZKsync Account Session Client",
   };
-  
+
   const account = toSmartAccount({
     address: parameters.address,
     sign: async ({ hash }) => {
-      if (!parameters.sessionKey) throw new Error('Session key wasn\'t provided, can\'t sign');
+      if (!parameters.sessionKey) throw new Error("Session key wasn't provided, can't sign");
       const sessionKeySigner = privateKeyToAccount(parameters.sessionKey);
       return sessionKeySigner.sign({ hash });
     },
@@ -32,7 +32,7 @@ export function createZksyncSessionClient<
   const client = createClient<transport, chain, Account, rpcSchema>({
     ...parameters,
     account,
-    type: 'walletClient',
+    type: "walletClient",
   })
     .extend(() => ({
       sessionKey: parameters.sessionKey,
@@ -46,11 +46,11 @@ export function createZksyncSessionClient<
 
 export type SessionRequiredContracts = {
   session: Address; // Session, spend limit, etc.
-}
+};
 type ZksyncAccountSessionData = {
   sessionKey?: Hash;
   contracts: SessionRequiredContracts;
-}
+};
 
 export type ClientWithZksyncAccountSessionData<
   transport extends Transport = Transport,
@@ -73,13 +73,13 @@ export type ZksyncAccountSessionClient<
       : [...PublicRpcSchema, ...WalletRpcSchema],
     ZksyncAccountWalletActions<chain, account> & ZksyncAccountSessionActions
   > & ZksyncAccountSessionData
->
+>;
 
 export interface ZksyncAccountSessionClientConfig<
   transport extends Transport = Transport,
   chain extends Chain = Chain,
-  rpcSchema extends RpcSchema | undefined = undefined
-> extends Omit<WalletClientConfig<transport, chain, Account, rpcSchema>, 'account'> {
+  rpcSchema extends RpcSchema | undefined = undefined,
+> extends Omit<WalletClientConfig<transport, chain, Account, rpcSchema>, "account"> {
   chain: NonNullable<chain>;
   address: Address;
   sessionKey?: Hash;

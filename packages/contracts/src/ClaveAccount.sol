@@ -27,7 +27,7 @@ import { IClaveAccount } from "./interfaces/IClaveAccount.sol";
 import "hardhat/console.sol";
 
 /**
- * @title Main account contract from the Clave wallet infrastructure in zkSync Era
+ * @title Main account contract from the Clave wallet infrastructure in ZKsync Era
  * @author https://getclave.io
  */
 contract ClaveAccount is
@@ -41,8 +41,8 @@ contract ClaveAccount is
 {
   // Helper library for the Transaction struct
   using TransactionHelper for Transaction;
-  /** Removing batch call functionality to simpfily setup
-    TODO: Consider inlining this batch contract to avoid construction dependancy
+  /** Removing batch call functionality to simplify setup
+    TODO: Consider inlining this batch contract to avoid construction dependency
     // Batch transaction helper contract
     address private immutable _BATCH_CALLER;
      */
@@ -179,8 +179,8 @@ contract ClaveAccount is
   /**
      * @notice This function is called by the system if the transaction has a paymaster
         and prepares the interaction with the paymaster
-     * @param - bytes32               - not used 
-     * @param - bytes32               - not used 
+     * @param - bytes32               - not used
+     * @param - bytes32               - not used
      * @param transaction Transaction - The transaction itself
      */
   function prepareForPaymaster(

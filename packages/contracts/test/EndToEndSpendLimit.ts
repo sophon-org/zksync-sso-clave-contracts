@@ -345,7 +345,7 @@ describe("Spend limit validation", function () {
     await provider.broadcastTransaction(sessionKeySignedTransaction);
   });
 
-  it.only("should set spend limit via module with viem", async () => {
+  it("should set spend limit via module with viem", async () => {
     const validatorModule = await fixtures.getWebAuthnVerifierContract();
     const moduleContract = await fixtures.getPasskeyModuleContract();
     const factoryContract = await fixtures.getAaFactory();

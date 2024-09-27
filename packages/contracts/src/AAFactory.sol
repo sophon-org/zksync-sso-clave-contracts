@@ -12,9 +12,10 @@ contract AAFactory {
 
   struct MetaAccountConnection {
     address accountLocation;
-    string publicPasskey; // used for addtional on-chain validation
+    string publicPasskeyDomain; // used for additional on-chain validation
   }
 
+  // TODO: Connect this to the factory
   // This 4 step mapping prevents collisions and does the lookup from public to private information
   // login provider => unique id => creator => account info
   mapping(string => mapping(string => mapping(address => MetaAccountConnection))) public accountMappings;
