@@ -5,7 +5,7 @@ import { BytesLike, parseEther, randomBytes } from "ethers";
 import { AbiCoder, Contract, ethers, ZeroAddress } from "ethers";
 import * as hre from "hardhat";
 import { it } from "mocha";
-import { Address, Chain, createWalletClient, encodeAbiParameters, encodeFunctionData, getAddress, Hash, http, publicActions, toHex } from "viem";
+import { Address, Chain, createWalletClient, encodeAbiParameters, encodeFunctionData, getAddress, Hash, http, isHex, publicActions, toHex } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { sendTransaction, waitForTransactionReceipt, writeContract } from "viem/actions";
 import { zksyncInMemoryNode } from "viem/chains";
@@ -143,7 +143,7 @@ export class ContractFixtures {
 
 describe("Spend limit validation", function () {
   const fixtures = new ContractFixtures();
-  const ethersResponse = new RecordedResponse("test/ethers-passkey.json");
+  const ethersResponse = new RecordedResponse("test/signed-challenge.json");
   const viemResponse = new RecordedResponse("test/signed-viem-challenge.json");
   const abiCoder = new AbiCoder();
   const provider = getProvider();
@@ -234,7 +234,7 @@ describe("Spend limit validation", function () {
     assert(proxyAccountTxReceipt.contractAddress != ethers.ZeroAddress, "valid proxy account address");
   });
 
-  it.only("should set spend limit via module with ethers", async () => {
+  it("should set spend limit via module with ethers", async () => {
     const validatorModule = await fixtures.getWebAuthnVerifierContract();
     const validatorModuleAddress = await validatorModule.getAddress();
     const moduleContract = await fixtures.getPasskeyModuleContract();
@@ -331,12 +331,10 @@ describe("Spend limit validation", function () {
 
     aaTx["gasLimit"] = await provider.estimateGas(aaTx);
 
-    /*
     const passkeySignedTransaction = await ethersSmartAccount.signTransaction(aaTx);
     assert(passkeySignedTransaction != null, "valid passkey transaction to sign");
 
     await provider.broadcastTransaction(passkeySignedTransaction);
-    */
 
     // Now, let's try the session key
     usePasskeySigner = false;
@@ -347,7 +345,7 @@ describe("Spend limit validation", function () {
     await provider.broadcastTransaction(sessionKeySignedTransaction);
   });
 
-  it("should set spend limit via module with viem", async () => {
+  it.only("should set spend limit via module with viem", async () => {
     const validatorModule = await fixtures.getWebAuthnVerifierContract();
     const moduleContract = await fixtures.getPasskeyModuleContract();
     const factoryContract = await fixtures.getAaFactory();
@@ -372,6 +370,9 @@ describe("Spend limit validation", function () {
 
     const factoryArtifact = JSON.parse(await promises.readFile(`./artifacts-zk/src/AAFactory.sol/AAFactory.json`, "utf8"));
 
+    const ethersValidationData = abiCoder.encode(["address", "bytes"], [validatorModuleAddress, await viemResponse.getXyPublicKey()]);
+    const ethersModuleData = abiCoder.encode(["address", "bytes"], [moduleAddress, await fixtures.getEncodedModuleData(fixtures.viemSessionKeyWallet.address)]);
+
     const encodedValidatorData = encodeAbiParameters(
       [
         { name: "validatorAddress", type: "address" },
@@ -379,13 +380,20 @@ describe("Spend limit validation", function () {
       ],
       [getAddress(validatorModuleAddress), toHex(await viemResponse.getXyPublicKey())],
     );
+    if (encodedValidatorData != ethersValidationData) {
+      console.error("validation MISMATCH", encodedValidatorData, ethersValidationData);
+    }
+    const encodedInitModuleData = await fixtures.getEncodedModuleData(fixtures.viemSessionKeyWallet.address);
     const encodedModuleData = encodeAbiParameters(
       [
         { name: "moduleAddress", type: "address" },
         { name: "moduleData", type: "bytes" },
       ],
-      [getAddress(moduleAddress), toHex(await fixtures.getEncodedModuleData(fixtures.viemSessionKeyWallet.address))],
+      [getAddress(moduleAddress), isHex(encodedInitModuleData) ? encodedInitModuleData : toHex(encodedInitModuleData)],
     );
+    if (encodedModuleData != ethersModuleData) {
+      console.error("module MISMATCH", encodedModuleData, ethersModuleData);
+    }
     const proxyAccount = await writeContract(richWallet, {
       address: getAddress(await factoryContract.getAddress()),
       abi: factoryArtifact.abi,
@@ -393,8 +401,8 @@ describe("Spend limit validation", function () {
       args: [
         toHex(fixtures.viemStaticSalt),
         accountImpl,
-        [encodedValidatorData],
-        [encodedModuleData],
+        [encodedValidatorData, encodedModuleData],
+        [],
       ],
     });
     const proxyAccountReceipt = await waitForTransactionReceipt(richWallet, { hash: proxyAccount });
