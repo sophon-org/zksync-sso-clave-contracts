@@ -18,10 +18,9 @@ import "hardhat/console.sol";
 abstract contract ValidationHandler is OwnerManager, ValidatorManager {
   function _handleValidation(
     address validator,
-    bytes32 signedHash, // keccack hash
+    bytes32 signedHash,
     bytes memory signature
   ) internal view returns (bool) {
-    console.log("_handleValidation");
     if (_r1IsValidator(validator)) {
       mapping(bytes => bytes) storage owners = OwnerManager._r1OwnersLinkedList();
       bytes memory cursor = owners[BytesLinkedList.SENTINEL_BYTES];

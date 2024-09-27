@@ -1,7 +1,7 @@
 "*.{js,ts,vue}":
-    - eslint
+  - eslint
 "*.md":
-    - markdownlint-cli2
-    - cspell lint --quiet --no-must-find-files --files
+  - markdownlint-cli2
+  - cspell lint --quiet --no-must-find-files --files
 "*.{json,yml}":
-    - prettier --list-different
+  - prettier --list-different

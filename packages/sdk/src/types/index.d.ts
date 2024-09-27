@@ -5,5 +5,5 @@ export type ChainData = {
   capabilities: Record<string, unknown>;
   contracts: {
     session: Address; // Session, spend limit, etc.
-  }
+  };
 };

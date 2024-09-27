@@ -20,7 +20,7 @@ contract PasskeyValidator is IR1Validator, VerifierCaller {
   string constant IOS_ClIENT_DATA_SUFFIX = '","origin":"https://getclave.io"}';
   string constant ANDROID_ClIENT_DATA_SUFFIX =
     '","origin":"android:apk-key-hash:-sYXRdwJA3hvue3mKpYrOZ9zSPC7b4mbgzJmdZEDO5w","androidPackageName":"com.clave.mobile"}';
-  // hash of 'https://getclave.io' + (BE, BS, UP, UV) flags set + unincremented sign counter
+  // hash of 'https://getclave.io' + (BE, BS, UP, UV) flags set + un-incremented sign counter
   bytes constant AUTHENTICATOR_DATA = hex"175faf8504c2cdd7c01778a8b0efd4874ecb3aefd7ebb7079a941f7be8897d411d00000000";
   // user presence and user verification flags
   bytes1 constant AUTH_DATA_MASK = 0x05;
@@ -144,14 +144,14 @@ contract PasskeyValidator is IR1Validator, VerifierCaller {
           string memory challengeValue = JsmnSolLib.getBytes(clientDataJSON, nextT.start, nextT.end);
           // this should only be set once, otherwise this is an error
           if (validChallenge) {
-            console.log("duplicate challange, bad json!");
+            console.log("duplicate challenge, bad json!");
             return false;
           }
           // this is the key part to ensure the signature is for the provided transaction
           bytes memory challengeDataArray = Base64.decode(challengeValue);
           if (challengeDataArray.length != 32) {
             // wrong hash size
-            console.log("invalid hash data length in json challange field");
+            console.log("invalid hash data length in json challenge field");
             return false;
           }
           bytes32 challengeData = abi.decode(challengeDataArray, (bytes32));

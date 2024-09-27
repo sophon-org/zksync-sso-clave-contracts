@@ -1,1 +1,6 @@
 verdaccio
+alice
+Nuxt
+vueuse
+nuxtjs
+nuxt

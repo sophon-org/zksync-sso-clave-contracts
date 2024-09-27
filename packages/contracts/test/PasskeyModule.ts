@@ -128,15 +128,8 @@ export function fromBuffer(
 
 async function getPublicKey(publicPasskey: Uint8Array): Promise<[string, string]> {
   const cosePublicKey = decodeFirst<Map<number, unknown>>(publicPasskey);
-  console.log("decodeFirst", cosePublicKey);
-  const alg = cosePublicKey.get(COSEKEYS.alg) as COSEALG;
-  const crv = cosePublicKey.get(COSEKEYS.crv);
-  console.log("alg, crv", alg, crv);
   const x = cosePublicKey.get(COSEKEYS.x) as Uint8Array;
   const y = cosePublicKey.get(COSEKEYS.y) as Uint8Array;
-  console.log("raw x, y", x, y);
-  const kty = cosePublicKey.get(COSEKEYS.kty) as COSEKTY;
-  console.log("kty", kty);
 
   return ["0x" + Buffer.from(x).toString("hex"), "0x" + Buffer.from(y).toString("hex")];
 }
