@@ -185,12 +185,6 @@ contract SessionPasskeySpendLimitModule is IERC7579Module, IModule, IModuleValid
       _signature[64] = bytes1(uint8(27));
     }
 
-    // XXX: requires embedding the account in the signature,
-    // otherwise it's not clear which account to validate against
-    // this also probably throws off other alignments later
-    address expectedAccountAddress = address(0);
-    abi.decode(_signature, (address, bytes));
-
     // extract ECDSA signature
     uint8 v;
     bytes32 r;
@@ -223,8 +217,12 @@ contract SessionPasskeySpendLimitModule is IERC7579Module, IModule, IModuleValid
     }
 
     address recoveredAddress = ecrecover(_hash, v, r, s);
+    console.log("recoveredAddress");
+    console.logAddress(recoveredAddress);
 
     SessionData storage sessionData = spendLimitBySession[recoveredAddress];
+    console.log("sessionData.accountAddress");
+    console.logAddress(sessionData.accountAddress);
     if (sessionData.accountAddress != msg.sender || recoveredAddress == address(0)) {
       // Note, that we should abstain from using the require here in order to allow for fee estimation to work
       magic = bytes4(0);

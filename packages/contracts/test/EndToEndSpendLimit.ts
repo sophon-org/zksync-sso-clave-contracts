@@ -1,7 +1,7 @@
 import { promises } from "node:fs";
 
 import { assert, expect } from "chai";
-import { parseEther, randomBytes } from "ethers";
+import { BytesLike, parseEther, randomBytes } from "ethers";
 import { AbiCoder, Contract, ethers, ZeroAddress } from "ethers";
 import * as hre from "hardhat";
 import { it } from "mocha";
@@ -9,7 +9,7 @@ import { Address, Chain, createWalletClient, encodeAbiParameters, encodeFunction
 import { privateKeyToAccount } from "viem/accounts";
 import { sendTransaction, waitForTransactionReceipt, writeContract } from "viem/actions";
 import { zksyncInMemoryNode } from "viem/chains";
-import { SmartAccount, types, utils, Wallet } from "zksync-ethers";
+import { Provider, SmartAccount, types, utils, Wallet } from "zksync-ethers";
 
 import { createZKsyncPasskeyClient } from "./sdk/PasskeyClient";
 import { base64UrlToUint8Array, unwrapEC2Signature } from "./sdk/utils/passkey";
@@ -143,7 +143,7 @@ export class ContractFixtures {
 
 describe("Spend limit validation", function () {
   const fixtures = new ContractFixtures();
-  const ethersResponse = new RecordedResponse("test/signed-challenge.json");
+  const ethersResponse = new RecordedResponse("test/ethers-passkey.json");
   const viemResponse = new RecordedResponse("test/signed-viem-challenge.json");
   const abiCoder = new AbiCoder();
   const provider = getProvider();
@@ -234,13 +234,15 @@ describe("Spend limit validation", function () {
     assert(proxyAccountTxReceipt.contractAddress != ethers.ZeroAddress, "valid proxy account address");
   });
 
-  it("should set spend limit via module with ethers", async () => {
+  it.only("should set spend limit via module with ethers", async () => {
     const validatorModule = await fixtures.getWebAuthnVerifierContract();
     const validatorModuleAddress = await validatorModule.getAddress();
     const moduleContract = await fixtures.getPasskeyModuleContract();
     const moduleAddress = await moduleContract.getAddress();
     const factory = await fixtures.getAaFactory();
     const accountImpl = await fixtures.getAccountImplAddress();
+    const proxyFix = await fixtures.getProxyAccountContract();
+    assert(proxyFix != null, "should deploy proxy");
 
     const validationData = abiCoder.encode(["address", "bytes"], [await validatorModule.getAddress(), await ethersResponse.getXyPublicKey()]);
     const moduleData = abiCoder.encode(["address", "bytes"], [moduleAddress, await fixtures.getEncodedModuleData(fixtures.ethersSessionKeyWallet.address)]);
@@ -269,45 +271,45 @@ describe("Spend limit validation", function () {
     // 2. use this sample signer to get the transaction hash of a realistic transaction
     // 3. take that transaction hash to another app, and sign it (as the challenge)
     // 4. bring that signed hash back here and have it returned as the signer
-    const isTestMode = false;
-    const signWithSessionKey = true;
-    const extractSigningHash = (hash: string, secretKey, provider) => {
-      const b64Hash = ethers.encodeBase64(hash);
-      if (isTestMode) {
-        console.debug("secretKey", secretKey, "provider", provider);
-        return Promise.resolve<string>(b64Hash);
+    const sessionKeySigner = (hash: BytesLike, secret?: string, provider?: null | Provider) => {
+      const sessionKeySignature = fixtures.ethersSessionKeyWallet.signMessageSync(hash);
+      console.debug("(sessionkey)hash", hash, "secretKey", secret, "provider.ready", provider?.ready);
+      return Promise.resolve<string>(abiCoder.encode(["bytes", "address", "bytes[]"], [
+        sessionKeySignature,
+        moduleAddress,
+        [],
+      ]));
+    };
+
+    const passkeySigner = (hash: BytesLike, secret?: string, provider?: null | Provider) => {
+      console.debug("(passkey)hash", hash, "secret", secret, "provider.ready", provider?.ready);
+      const fatSignature = abiCoder.encode(["bytes", "bytes", "bytes32[2]"], [
+        authDataBuffer,
+        clientDataBuffer,
+        [rs.r, rs.s],
+      ]);
+
+      // clave expects signature + validator address + validator hook data
+      const fullFormattedSig = abiCoder.encode(["bytes", "address", "bytes[]"], [
+        fatSignature,
+        validatorModuleAddress,
+        [],
+      ]);
+
+      return Promise.resolve<string>(fullFormattedSig);
+    };
+
+    let usePasskeySigner = true;
+    const configurableSigner = (hash: BytesLike, secret?: string, provider?: null | Provider) => {
+      if (!usePasskeySigner) {
+        return sessionKeySigner(hash, secret, provider);
       } else {
-        // the validator is now responsible for checking and hashing this
-        const fatSignature = abiCoder.encode(["bytes", "bytes", "bytes32[2]"], [
-          authDataBuffer,
-          clientDataBuffer,
-          [rs.r, rs.s],
-        ]);
-        if (signWithSessionKey) {
-          // sign with session key
-          const sessionKeySignature = fixtures.ethersSessionKeyWallet.signMessageSync(hash);
-          return abiCoder.encode(["bytes", "address", "bytes[]"], [
-            sessionKeySignature,
-            moduleAddress,
-            [],
-          ]);
-        }
-
-        // clave expects signature + validator address + validator hook data
-        const fullFormattedSig = abiCoder.encode(["bytes", "address", "bytes[]"], [
-          fatSignature,
-          validatorModuleAddress,
-          [],
-        ]);
-
-        return Promise.resolve<string>(fullFormattedSig);
+        return passkeySigner(hash, secret, provider);
       }
     };
 
-    // smart account secret isn't stored in javascript (because it's a passkey)
-    // but we do have sessionkey secret
-    const ethersTestSmartAccount = new SmartAccount({
-      payloadSigner: extractSigningHash,
+    const ethersSmartAccount = new SmartAccount({
+      payloadSigner: configurableSigner,
       address: proxyAccountAddress,
       secret: fixtures.ethersSessionKeyWallet.privateKey,
     }, getProvider());
@@ -329,10 +331,20 @@ describe("Spend limit validation", function () {
 
     aaTx["gasLimit"] = await provider.estimateGas(aaTx);
 
-    const signedTransaction = await ethersTestSmartAccount.signTransaction(aaTx);
-    assert(signedTransaction != null, "valid transaction to sign");
+    /*
+    const passkeySignedTransaction = await ethersSmartAccount.signTransaction(aaTx);
+    assert(passkeySignedTransaction != null, "valid passkey transaction to sign");
 
-    await provider.broadcastTransaction(signedTransaction);
+    await provider.broadcastTransaction(passkeySignedTransaction);
+    */
+
+    // Now, let's try the session key
+    usePasskeySigner = false;
+    aaTx.nonce = await provider.getTransactionCount(proxyAccountAddress);
+    const sessionKeySignedTransaction = await ethersSmartAccount.signTransaction(aaTx);
+    assert(sessionKeySignedTransaction != null, "valid session key transaction to sign");
+
+    await provider.broadcastTransaction(sessionKeySignedTransaction);
   });
 
   it("should set spend limit via module with viem", async () => {
