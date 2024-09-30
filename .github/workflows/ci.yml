@@ -46,11 +46,6 @@ jobs:
     - name: Build contracts
       run: pnpm nx build contracts
 
-    # Build contracts and generate types
-    - name: Build contracts
-      working-directory: ./packages/contracts
-      run: npm run build
-
     # Start the Gateway
     - name: Run Gateway in the background
       run: |

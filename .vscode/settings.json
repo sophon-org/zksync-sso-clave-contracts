@@ -33,5 +33,4 @@
     }
   },
   "vue.server.hybridMode": "auto",
-  "cSpell.words": ["cbor", "COSEALG", "COSEKTY", "levischuck"]
 }
