@@ -3,7 +3,7 @@ import { parseEther, randomBytes } from "ethers";
 import { AbiCoder, Contract, ethers, ZeroAddress } from "ethers";
 import * as hre from "hardhat";
 import { it } from "mocha";
-import { Address, Chain, createWalletClient, encodeFunctionData, getAddress, Hash, http, publicActions, toHex } from "viem";
+import { Address, Chain, createWalletClient, encodeFunctionData, getAddress, Hash, http, isHex, publicActions, toHex } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { sendTransaction, waitForTransactionReceipt, writeContract } from "viem/actions";
 import { zksyncInMemoryNode } from "viem/chains";
@@ -94,19 +94,6 @@ describe("Spend limit validation", function () {
   const abiCoder = new AbiCoder();
   const provider = getProvider();
 
-  // Token Config Interface definitions
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  interface TokenConfig {
-    token: string; // address
-    publicKey: Buffer; // bytes
-    limit: ethers.BigNumberish; // uint256
-  }
-  const tokenConfigTypes = [
-    "address", // token
-    "bytes", // publicKey
-    "uint256", // limit
-  ];
-
   async function getTokenConfig() {
     return {
       token: fixtures.tokenForSpendLimit,
@@ -116,6 +103,11 @@ describe("Spend limit validation", function () {
   }
 
   async function getModuleData() {
+    const tokenConfigTypes = [
+      "address", // token
+      "bytes", // publicKey
+      "uint256", // limit
+    ];
     return abiCoder.encode(
       [`tuple(${tokenConfigTypes.join(",")})[]`], // Solidity equivalent: TokenConfig[]
       [[await getTokenConfig()].map((config) => [
@@ -208,6 +200,9 @@ describe("Spend limit validation", function () {
   });
 
   it("should set spend limit via module with ethers", async () => {
+    // fix for using .only
+    await fixtures.getProxyAccountContract();
+
     const verifierContract = await fixtures.getExpensiveVerifierContract();
     const expensiveVerifierAddress = await verifierContract.getAddress();
     const moduleContract = await fixtures.getPasskeyModuleContract();
@@ -240,31 +235,28 @@ describe("Spend limit validation", function () {
     // steps to get the data for this test
     // 1. build the transaction here in the test (aaTx)
     // 2. use this sample signer to get the transaction hash of a realistic transaction
-    // 3. take that transaction hash to another app, and sign it (as the challange)
+    // 3. take that transaction hash to another app, and sign it (as the challenge)
     // 4. bring that signed hash back here and have it returned as the signer
-    const isTestMode = false;
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const extractSigningHash = (hash: string, secretKey, provider) => {
+    const extractSigningHash = (hash: ethers.BytesLike, secret?: string, provider?: null | ethers.Provider) => {
       const b64Hash = ethers.encodeBase64(hash);
-      if (isTestMode) {
-        return Promise.resolve<string>(b64Hash);
-      } else {
-        // the validator is now responsible for checking and hashing this
-        const fatSignature = abiCoder.encode(["bytes", "bytes", "bytes32[2]"], [
-          authDataBuffer,
-          clientDataBuffer,
-          [rs.r, rs.s],
-        ]);
+      console.debug("(ethers)b64Hash", b64Hash, "hex", hash, "binary hash", base64UrlToUint8Array(b64Hash));
+      console.debug("secretKey", secret, "provider", provider);
 
-        // clave expects sigature + validator address + validator hook data
-        const fullFormattedSig = abiCoder.encode(["bytes", "address", "bytes[]"], [
-          fatSignature,
-          expensiveVerifierAddress,
-          [],
-        ]);
+      // the validator is now responsible for checking and hashing this
+      const fatSignature = abiCoder.encode(["bytes", "bytes", "bytes32[2]"], [
+        authDataBuffer,
+        clientDataBuffer,
+        [rs.r, rs.s],
+      ]);
 
-        return Promise.resolve<string>(fullFormattedSig);
-      }
+      // clave expects sigature + validator address + validator hook data
+      const fullFormattedSig = abiCoder.encode(["bytes", "address", "bytes[]"], [
+        fatSignature,
+        expensiveVerifierAddress,
+        [],
+      ]);
+
+      return Promise.resolve<string>(fullFormattedSig);
     };
 
     // smart account secret isn't stored in javascript (because it's a passkey)
@@ -302,10 +294,15 @@ describe("Spend limit validation", function () {
     const signedTransaction = await ethersTestSmartAccount.signTransaction(aaTx);
     assert(signedTransaction != null, "valid transaction to sign");
 
-    await provider.broadcastTransaction(signedTransaction);
+    const broadcastedTransaction = await provider.broadcastTransaction(signedTransaction);
+    const broadcastTransactionReciept = await broadcastedTransaction.wait();
+    assert.equal(broadcastTransactionReciept.status, 1, "addSessionKey should be successful(1)");
   });
 
   it("should set spend limit via module with viem", async () => {
+    // fix for using .only
+    await fixtures.getProxyAccountContract();
+
     const verifierContract = await fixtures.getExpensiveVerifierContract();
     const moduleContract = await fixtures.getPasskeyModuleContract();
     const factoryContract = await fixtures.getAaFactory();
@@ -317,8 +314,7 @@ describe("Spend limit validation", function () {
       ...zksyncInMemoryNode,
       rpcUrls: {
         default: {
-          // @ts-expect-error - ignore the url not existing in config
-          http: [hre.network.config.url], // Override if not using the default port
+          http: [hre.network.config["url"]], // Override if not using the default port
         },
       },
     };
@@ -328,9 +324,10 @@ describe("Spend limit validation", function () {
       chain: localClient,
       transport: http(),
     }).extend(publicActions);
-
-    const proxyAccount = await writeContract(richWallet as any, {
-      address: await factoryContract.getAddress(),
+    const moduleData = await getModuleData();
+    const hexModuleData = isHex(moduleData) ? moduleData : toHex(moduleData);
+    const proxyAccount = await writeContract(richWallet, {
+      address: getAddress(await factoryContract.getAddress()),
       abi: [
         {
           inputs: [
@@ -380,22 +377,22 @@ describe("Spend limit validation", function () {
       functionName: "deployProxy7579Account",
       args: [
         toHex(fixtures.viemStaticSalt),
-        accountImpl,
+        getAddress(accountImpl),
         toHex(await viemResponse.getXyPublicKey()),
-        expensiveVerifierAddress,
-        moduleAddress,
-        await getModuleData(),
+        getAddress(expensiveVerifierAddress),
+        getAddress(moduleAddress),
+        hexModuleData,
       ],
-    } as any);
-    const proxyAccountReceipt = await waitForTransactionReceipt(richWallet as any, { hash: proxyAccount });
+    });
+    const proxyAccountReceipt = await waitForTransactionReceipt(richWallet, { hash: proxyAccount });
     const proxyAccountAddress = getAddress(proxyAccountReceipt.contractAddress!);
 
     assert.isDefined(proxyAccountAddress, "no address set");
-    const chainResponse = await waitForTransactionReceipt(richWallet as any, {
+    const chainResponse = await waitForTransactionReceipt(richWallet, {
       hash: await richWallet.sendTransaction({
         to: proxyAccountAddress,
         value: parseEther("0.05"),
-      } as any),
+      }),
     });
     assert.equal(chainResponse.status, "success", "should fund without errors");
 
@@ -404,6 +401,7 @@ describe("Spend limit validation", function () {
       chain: localClient,
       key: "wallet",
       name: "ZKsync Account Passkey Client",
+      validator: getAddress(expensiveVerifierAddress),
       signHash: async () => ({
         authenticatorData: viemResponse.authenticatorData,
         clientDataJSON: viemResponse.clientData,
@@ -452,7 +450,7 @@ describe("Spend limit validation", function () {
     const transactionHash = await sendTransaction(passkeyClient, {
       to: moduleAddress as Address,
       data: callData as Hash,
-    } as any);
+    });
 
     const receipt = await waitForTransactionReceipt(passkeyClient, { hash: transactionHash });
     assert.equal(receipt.status, "success", "addSessionKey transaction should be successful");

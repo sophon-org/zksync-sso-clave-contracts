@@ -1,14 +1,12 @@
 import "@matterlabs/hardhat-zksync-node/dist/type-extensions";
 import "@matterlabs/hardhat-zksync-verify/dist/src/type-extensions";
 
-import { Deployer } from "@matterlabs/hardhat-zksync";
 import dotenv from "dotenv";
 import { ethers } from "ethers";
 import { readFileSync } from "fs";
 import { promises } from "fs";
 import * as hre from "hardhat";
 import { ContractFactory, Provider, utils, Wallet } from "zksync-ethers";
-import { IContractDeployer__factory } from "zksync-ethers/build/typechain";
 
 import { getPublicKeyBytesFromPasskeySignature } from "./sdk/utils/passkey";
 
@@ -16,11 +14,10 @@ import { getPublicKeyBytesFromPasskeySignature } from "./sdk/utils/passkey";
 dotenv.config();
 
 export const getProvider = () => {
-  // @ts-expect-error - ignore missing url from config
-  const rpcUrl = hre.network.config.url;
+  const rpcUrl = hre.network.config["url"];
   if (!rpcUrl) throw `⛔️ RPC URL wasn't found in "${hre.network.name}"! Please add a "url" field to the network config in hardhat.config.ts`;
 
-  // Initialize zkSync Provider
+  // Initialize ZKsync Provider
   const provider = new Provider(rpcUrl);
 
   return provider;
@@ -79,7 +76,7 @@ export const verifyContract = async (data: {
   return verificationRequestId;
 };
 
-export const create2 = async (contractName: string, wallet: Wallet, salt: ethers.BytesLike, args: any = undefined) => {
+export const create2 = async (contractName: string, wallet: Wallet, salt: ethers.BytesLike, args?: ReadonlyArray<string>) => {
   if (!salt["startsWith"]) {
     salt = ethers.hexlify(salt);
   }
@@ -114,80 +111,6 @@ export function logInfo(message: string) {
 export function logWarning(message: string) {
   console.log("\x1b[33m%s\x1b[0m", message);
 }
-
-type DeployContractOptions = {
-  /**
-   * If true, the deployment process will not print any logs
-   */
-  silent?: boolean;
-  /**
-   * If true, the contract will not be verified on Block Explorer
-   */
-  noVerify?: boolean;
-  /**
-   * If specified, the contract will be deployed using this wallet
-   */
-  wallet?: Wallet;
-};
-export const deployContract = async (contractArtifactName: string, constructorArguments?: any[], options?: DeployContractOptions, expectedAddress?: string) => {
-  const log = (message: string) => {
-    if (!options?.silent) console.log(message);
-  };
-
-  log(`\nStarting deployment process of "${contractArtifactName}"...`);
-
-  const wallet = options?.wallet ?? getWallet();
-  const deployer = new Deployer(hre, wallet);
-  const artifact = await deployer.loadArtifact(contractArtifactName).catch((error) => {
-    if (error?.message?.includes(`Artifact for contract "${contractArtifactName}" not found.`)) {
-      console.error(error.message);
-      throw `⛔️ Please make sure you have compiled your contracts or specified the correct contract name!`;
-    } else {
-      throw error;
-    }
-  });
-
-  // Estimate contract deployment fee
-  const deploymentFee = await deployer.estimateDeployFee(artifact, constructorArguments || []);
-  log(`Estimated deployment cost: ${ethers.formatEther(deploymentFee)} ETH`);
-
-  // Check if the wallet has enough balance
-  await verifyEnoughBalance(wallet, deploymentFee);
-
-  // Deploy the contract to zkSync to a stable address
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const contractDeployer = IContractDeployer__factory.connect("0x0000000000000000000000000000000000008006", wallet);
-  // const contract = contractDeployer.create2(ethers.ZeroAddress, artifact.bytecode);
-  const contract = await deployer.deploy(artifact, constructorArguments);
-
-  const address = await contract.getAddress();
-  const constructorArgs = contract.interface.encodeDeploy(constructorArguments);
-  const fullContractSource = `${artifact.sourceName}:${artifact.contractName}`;
-
-  // Display contract deployment info
-  log(`\n"${artifact.contractName}" was successfully deployed:`);
-  log(` - Contract address: ${address}`);
-  log(` - Contract source: ${fullContractSource}`);
-  log(` - Encoded constructor arguments: ${constructorArgs}\n`);
-
-  if (expectedAddress && address != expectedAddress) {
-    console.warn(`!!! ${artifact.contractName} address is not the expected default address (${expectedAddress}). !!!`);
-    console.warn(`!!! Please update the default value in your tests or restart Era Test Node. Proceeding with expected default address... !!!`);
-    return new ethers.Contract(expectedAddress, artifact.abi, wallet);
-  }
-
-  if (!options?.noVerify && hre.network.config.verifyURL) {
-    log(`Requesting contract verification...`);
-    await verifyContract({
-      address,
-      contract: fullContractSource,
-      constructorArguments: constructorArgs,
-      bytecode: artifact.bytecode,
-    });
-  }
-
-  return contract;
-};
 
 /**
  * Rich wallets can be used for testing purposes.

@@ -114,13 +114,13 @@ contract PasskeyValidator is IR1Validator, VerifierCaller {
     // malleability check
     if (rs[1] > lowSmax) {
       console.log("malleability check failed");
-      // return false; // XXX FIXME REMOVED WHILE TESTING DO NOT SHIP
+      return false;
     }
 
     // check if the flags are set
     if (authenticatorData[32] & AUTH_DATA_MASK != AUTH_DATA_MASK) {
       console.log("auth data mask failed");
-      // return false; // XXX FIXME REMOVED WHILE TESTING DO NOT SHIP
+      return false;
     }
 
     // parse out the important fields (type, challenge, and origin): https://goo.gl/yabPex

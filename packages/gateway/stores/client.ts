@@ -1,6 +1,6 @@
-import { http, createPublicClient, createWalletClient, publicActions, walletActions } from "viem";
+import { createPublicClient, createWalletClient, http, publicActions, walletActions } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
-import { zksync, zksyncSepoliaTestnet, zksyncInMemoryNode } from "viem/chains";
+import { zksync, zksyncInMemoryNode, zksyncSepoliaTestnet } from "viem/chains";
 import { createZksyncPasskeyClient, type PasskeyRequiredContracts } from "zksync-account/client";
 
 export const supportedChains = [zksync, zksyncSepoliaTestnet, zksyncInMemoryNode];
