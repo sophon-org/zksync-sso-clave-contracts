@@ -47,7 +47,7 @@ export function unwrapEC2Signature(signature: Uint8Array): { r: Uint8Array; s: U
   };
 }
 
-// normalize s (to prevent signature mallebility)
+// normalize s (to prevent signature malleability)
 /**
  * Normalizes the 's' value of an ECDSA signature to prevent signature malleability.
  *
