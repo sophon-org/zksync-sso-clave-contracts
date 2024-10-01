@@ -9,9 +9,9 @@ import { Address, Chain, createWalletClient, encodeAbiParameters, encodeFunction
 import { privateKeyToAccount } from "viem/accounts";
 import { sendTransaction, waitForTransactionReceipt, writeContract } from "viem/actions";
 import { zksyncInMemoryNode } from "viem/chains";
-import { createZksyncSessionClient } from "zksync-account/client";
 import { Provider, SmartAccount, types, utils, Wallet } from "zksync-ethers";
 
+import { createZksyncSessionClient } from "../../sdk/dist/types/client/clients/session";
 import { createZKsyncPasskeyClient } from "./sdk/PasskeyClient";
 import { base64UrlToUint8Array, unwrapEC2Signature } from "./sdk/utils/passkey";
 import { create2, deployFactory, getProvider, getWallet, LOCAL_RICH_WALLETS, logInfo, RecordedResponse } from "./utils";
@@ -415,6 +415,7 @@ describe("Spend limit validation", function () {
       chain: localClient,
       key: "wallet",
       name: "ZKsync Account Passkey Client",
+      validator: getAddress(moduleAddress),
       signHash: async () => ({
         authenticatorData: viemResponse.authenticatorData,
         clientDataJSON: viemResponse.clientData,

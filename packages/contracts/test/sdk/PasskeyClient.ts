@@ -28,6 +28,7 @@ export function createZKsyncPasskeyClient<
           response: await parameters.signHash(),
         },
       };
+      console.debug("Passkey signature", passkeySignature);
       const authData = passkeySignature.passkeyAuthenticationResponse.response.authenticatorData;
       const clientDataJson = passkeySignature.passkeyAuthenticationResponse.response.clientDataJSON;
       const signature = unwrapEC2Signature(base64UrlToUint8Array(passkeySignature.passkeyAuthenticationResponse.response.signature));
@@ -39,16 +40,16 @@ export function createZKsyncPasskeyClient<
         ],
         [toHex(base64UrlToUint8Array(authData)), toHex(base64UrlToUint8Array(clientDataJson)), [toHex(signature.r), toHex(signature.s)]],
       );
-      // XXX: This will need to be updated when the code changes
-      const validator = "0x095792939e287c6C71071c0e05bef43F6a0da639";
+      console.debug("fatSignature(PasskeyClient)", fatSignature, fatSignature.length);
       const fullFormattedSig = encodeAbiParameters(
         [
           { type: "bytes" }, // fat signature
           { type: "address" }, // validator address
           { type: "bytes[]" }, // validator data
         ],
-        [fatSignature, validator, []],
+        [fatSignature, _parameters.validator, []],
       );
+      console.debug("fullFormattedSig(PasskeyClient)", fullFormattedSig, fullFormattedSig.length);
 
       return fullFormattedSig;
     },
@@ -99,6 +100,7 @@ export interface ZksyncAccountPasskeyClientConfig<
   chain extends Chain = Chain,
   rpcSchema extends RpcSchema | undefined = undefined,
 > extends Omit<WalletClientConfig<transport, chain, Account, rpcSchema>, "account"> {
+  validator: `0x${string}`;
   chain: NonNullable<chain>;
   address: Address;
   userName: string;
