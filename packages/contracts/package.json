@@ -8,7 +8,8 @@
   "scripts": {
     "build": "nx exec -- hardhat compile",
     "clean": "nx exec -- hardhat clean",
-    "test": "nx exec -- hardhat test"
+    "test": "nx exec -- hardhat test",
+    "deploy": "nx exec -- hardhat test --grep 'should deploy all contracts'"
   },
   "devDependencies": {
     "@ethersproject/contracts": "^5.7.0",
