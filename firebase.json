@@ -1,0 +1,10 @@
+{
+  "hosting": [
+    {
+      "target": "account-gateway-staging",
+      "tailingSlash": false,
+      "public": "packages/gateway/.output/public",
+      "ignore": ["firebase.json", "**/.*", "**/node_modules/**"]
+    }
+  ]
+}

@@ -1,0 +1,6 @@
+{
+  "projects": {
+    "account-gateway-staging": "zk-account-gateway-staging",
+    "account-gateway-prod": "zk-account-gateway"
+  }
+}
