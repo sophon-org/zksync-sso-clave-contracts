@@ -1,6 +1,12 @@
 {
-  "projects": {
-    "account-gateway-staging": "zk-account-gateway-staging",
-    "account-gateway-prod": "zk-account-gateway"
-  }
+  "targets": {
+    "zk-account-gateway-staging": {
+      "hosting": {
+        "account-gateway-staging": [
+          "zk-account-gateway-staging"
+        ]
+      }
+    }
+  },
+  "etags": {}
 }
