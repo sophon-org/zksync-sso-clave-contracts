@@ -131,6 +131,7 @@
     "@peculiar/asn1-ecc": "^2.3.13",
     "@peculiar/asn1-schema": "^2.3.13",
     "abitype": "^1.0.6",
+    "bigint-conversion": "^2.4.3",
     "buffer": "^6.0.3",
     "cbor-web": "^9.0.2"
   }
