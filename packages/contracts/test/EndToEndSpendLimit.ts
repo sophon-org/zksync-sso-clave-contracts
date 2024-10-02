@@ -408,6 +408,7 @@ describe("Spend limit validation", function () {
       chain: localClient,
       key: "wallet",
       name: "ZKsync Account Passkey Client",
+      validator: getAddress(moduleAddress),
       signHash: async () => ({
         authenticatorData: viemResponse.authenticatorData,
         clientDataJSON: viemResponse.clientData,

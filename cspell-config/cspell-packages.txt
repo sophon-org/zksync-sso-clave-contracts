@@ -2,3 +2,5 @@
 hexlify
 viem
 wagmi
+cbor
+levischuck

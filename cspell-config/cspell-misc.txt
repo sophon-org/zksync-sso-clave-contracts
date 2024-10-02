@@ -4,3 +4,5 @@ Nuxt
 vueuse
 nuxtjs
 nuxt
+COSEALG
+COSEKTY

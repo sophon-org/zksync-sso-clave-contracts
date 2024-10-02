@@ -3,8 +3,8 @@ import { decodePartialCBOR } from "@levischuck/tiny-cbor";
 import { Deployer } from "@matterlabs/hardhat-zksync-deploy";
 import { ECDSASigValue } from "@peculiar/asn1-ecc";
 import { AsnParser } from "@peculiar/asn1-schema";
+import { bigintToBuf, bufToBigint } from "bigint-conversion";
 import { assert } from "chai";
-import { ethers } from "ethers";
 import * as hre from "hardhat";
 import { Wallet } from "zksync-ethers";
 
@@ -126,9 +126,9 @@ export function fromBuffer(
 }
 
 async function getPublicKey(publicPasskey: Uint8Array): Promise<[string, string]> {
-  const cosePublicKey = decodeFirst<Map<number, any>>(publicPasskey);
-  const x = cosePublicKey.get(COSEKEYS.x);
-  const y = cosePublicKey.get(COSEKEYS.y);
+  const cosePublicKey = decodeFirst<Map<number, unknown>>(publicPasskey);
+  const x = cosePublicKey.get(COSEKEYS.x) as Uint8Array;
+  const y = cosePublicKey.get(COSEKEYS.y) as Uint8Array;
 
   return ["0x" + Buffer.from(x).toString("hex"), "0x" + Buffer.from(y).toString("hex")];
 }
@@ -168,7 +168,20 @@ export function unwrapEC2Signature(signature: Uint8Array): [Uint8Array, Uint8Arr
     sBytes = sBytes.slice(1);
   }
 
-  return [rBytes, sBytes];
+  return [rBytes, normalizeS(sBytes)];
+}
+
+// normalize s (to prevent signature malleability)
+function normalizeS(sBuf: Uint8Array): Uint8Array {
+  const n = BigInt("0xFFFFFFFF00000000FFFFFFFFFFFFFFFFBCE6FAADA7179E84F3B9CAC2FC632551");
+  const halfN = n / BigInt(2);
+  const sNumber: bigint = bufToBigint(sBuf);
+
+  if (sNumber / halfN) {
+    return new Uint8Array(bigintToBuf(n - sNumber));
+  } else {
+    return sBuf;
+  }
 }
 
 /**
