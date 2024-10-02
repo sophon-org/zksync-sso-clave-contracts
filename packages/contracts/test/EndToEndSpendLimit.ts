@@ -10,9 +10,10 @@ import { privateKeyToAccount } from "viem/accounts";
 import { sendTransaction, waitForTransactionReceipt, writeContract } from "viem/actions";
 import { zksyncInMemoryNode } from "viem/chains";
 import { createZksyncSessionClient } from "zksync-account/client";
+// import { createZKsyncPasskeyClient } from "./sdk/PasskeyClient";
+import { createZksyncPasskeyClient } from "zksync-account/client/passkey";
 import { Provider, SmartAccount, types, utils, Wallet } from "zksync-ethers";
 
-import { createZKsyncPasskeyClient } from "./sdk/PasskeyClient";
 import { create2, deployFactory, getProvider, getWallet, LOCAL_RICH_WALLETS, logInfo, RecordedResponse } from "./utils";
 
 // Token Config Interface definitions
@@ -106,7 +107,7 @@ export class ContractFixtures {
     return this._proxyAccountContract;
   }
 
-  async getModuleData(sessionKey: string): Promise<SessionKey> {
+  async getSessionSpendLimitModuleData(sessionKey: string): Promise<SessionKey> {
     return {
       sessionKey: sessionKey,
       expiresAt: BigInt(1000000),
@@ -130,7 +131,7 @@ export class ContractFixtures {
     ];
     return this.abiCoder.encode(
       [`tuple(${sessionKeyTypes.join(",")})[]`], // Solidity equivalent: SessionKey[]
-      [[await this.getModuleData(sessionKey)].map((config) => [
+      [[await this.getSessionSpendLimitModuleData(sessionKey)].map((config) => [
         config.sessionKey,
         config.expiresAt,
         config.spendLimits,
@@ -271,7 +272,7 @@ describe("Spend limit validation", function () {
       accountImpl,
       "ethersSpendLimitAccount",
       [sessionModuleData, passkeyModuleData],
-      [passkeyModuleData],
+      [],
     );
 
     const proxyAccountReceipt = await proxyAccount.wait();
@@ -283,6 +284,8 @@ describe("Spend limit validation", function () {
         value: parseEther("0.002"),
       })
     ).wait();
+
+    console.log("factory deploy and funding complete");
 
     // steps to get the data for this test
     // 1. build the transaction here in the test (aaTx)
@@ -299,8 +302,9 @@ describe("Spend limit validation", function () {
       ]));
     };
 
-    const passkeySigner = (hash: BytesLike, secret: RecordedResponse, provider?: null | Provider) => {
+    const passkeySigner = async (hash: BytesLike, secret: RecordedResponse, provider?: null | Provider) => {
       console.debug("(passkey)hash", hash, "secret", secret, "provider.ready", provider?.ready);
+      console.debug("secret.rs", secret.rs.r, secret.rs.s);
       const fatSignature = abiCoder.encode(["bytes", "bytes", "bytes32[2]"], [
         secret.authDataBuffer,
         secret.clientDataBuffer,
@@ -324,7 +328,7 @@ describe("Spend limit validation", function () {
     }, getProvider());
 
     const extraSessionKeyWallet: Wallet = getWallet(LOCAL_RICH_WALLETS[4].privateKey);
-    const tokenData = await fixtures.getModuleData(extraSessionKeyWallet.address);
+    const tokenData = await fixtures.getSessionSpendLimitModuleData(extraSessionKeyWallet.address);
     const callData = sessionModuleContract.interface.encodeFunctionData("setSessionKeys", [[tokenData]]);
     const aaTx = {
       from: proxyAccountAddress,
@@ -332,9 +336,10 @@ describe("Spend limit validation", function () {
       data: callData,
       gasPrice: await provider.getGasPrice(),
       customData: {} as types.Eip712Meta,
-      gasLimit: 0n,
+      gasLimit: BigInt(0),
     };
     aaTx["gasLimit"] = await provider.estimateGas(aaTx);
+    console.log("gas estimation complete");
 
     const passkeySignedTransaction = await passkeySmartAccount.signTransaction(aaTx);
     assert(passkeySignedTransaction != null, "valid passkey transaction to sign");
@@ -342,6 +347,7 @@ describe("Spend limit validation", function () {
     const passkeyTransactionResponse = await provider.broadcastTransaction(passkeySignedTransaction);
     const passkeyTransactionRecipt = await passkeyTransactionResponse.wait();
     assert.equal(passkeyTransactionRecipt.status, 1, "failed passkey transaction");
+    console.log("passkey signing complete");
 
     // now sign a transfer with a session key
     const sessionKeySmartAccount = new SmartAccount({
@@ -428,7 +434,7 @@ describe("Spend limit validation", function () {
     });
     assert.equal(chainResponse.status, "success", "should fund without errors");
 
-    const passkeyClient = createZKsyncPasskeyClient({
+    const passkeyClient = createZksyncPasskeyClient({
       address: proxyAccountAddress as Address,
       chain: localClient,
       key: "wallet",
@@ -446,7 +452,7 @@ describe("Spend limit validation", function () {
 
     const sessionArtifact = JSON.parse(await promises.readFile("./artifacts-zk/src/validators/SessionPasskeySpendLimitModule.sol/SessionPasskeySpendLimitModule.json", "utf8"));
 
-    const tokenConfig = await fixtures.getModuleData(fixtures.viemSessionKeyWallet.address);
+    const tokenConfig = await fixtures.getSessionSpendLimitModuleData(fixtures.viemSessionKeyWallet.address);
     const callData = encodeFunctionData({
       abi: sessionArtifact.abi,
       functionName: "setSessionKeys",

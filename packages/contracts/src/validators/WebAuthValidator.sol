@@ -91,14 +91,14 @@ contract WebAuthValidator is PasskeyValidator, IModuleValidator {
           string memory challengeValue = JsmnSolLib.getBytes(clientDataJSON, nextT.start, nextT.end);
           // this should only be set once, otherwise this is an error
           if (validChallenge) {
-            console.log("duplicate challange, bad json!");
+            console.log("duplicate challenge, bad json!");
             return false;
           }
           // this is the key part to ensure the signature is for the provided transaction
           bytes memory challengeDataArray = Base64.decode(challengeValue);
           if (challengeDataArray.length != 32) {
             // wrong hash size
-            console.log("invalid hash data length in json challange field");
+            console.log("invalid hash data length in json challenge field");
             return false;
           }
           bytes32 challengeData = abi.decode(challengeDataArray, (bytes32));
