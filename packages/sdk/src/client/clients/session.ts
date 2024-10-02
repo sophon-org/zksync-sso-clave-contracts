@@ -1,9 +1,9 @@
-import { type Account, type Address, type Chain, type Client, createClient, getAddress, type Hash, type Prettify, publicActions, type PublicRpcSchema, type RpcSchema, type Transport, type WalletClientConfig, type WalletRpcSchema } from "viem";
+import { type Account, type Address, type Chain, type Client, createClient, encodeAbiParameters, getAddress, type Hash, type Prettify, publicActions, type PublicRpcSchema, type RpcSchema, type Transport, type WalletClientConfig, type WalletRpcSchema } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
-import { toSmartAccount } from "viem/zksync";
 
 import { type ZksyncAccountSessionActions, zksyncAccountSessionActions } from "../decorators/session.js";
 import { type ZksyncAccountWalletActions, zksyncAccountWalletActions } from "../decorators/session_wallet.js";
+import { toSmartAccount } from "../smart-account.js";
 
 export function createZksyncSessionClient<
   transport extends Transport,
@@ -26,7 +26,11 @@ export function createZksyncSessionClient<
     sign: async ({ hash }) => {
       if (!parameters.sessionKey) throw new Error("Session key wasn't provided, can't sign");
       const sessionKeySigner = privateKeyToAccount(parameters.sessionKey);
-      return sessionKeySigner.sign({ hash });
+      const hashSignature = await sessionKeySigner.sign({ hash });
+      return encodeAbiParameters(
+        [{ type: "bytes" }, { type: "address" }, { type: "bytes[]" }],
+        [hashSignature, parameters.contracts.session, []],
+      );
     },
   });
   const client = createClient<transport, chain, Account, rpcSchema>({

@@ -1,138 +1,16 @@
 {
-  "name": "zksync-account",
-  "description": "ZKsync Smart Account SDK",
-  "version": "0.0.0-development",
-  "publishConfig": {
-    "registry": "http://localhost:4873"
-  },
-  "license": "MIT",
-  "author": "Matter Labs",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/matter-labs/zksync-account-sdk.git"
-  },
-  "scripts": {
-    "build": "npm run clean && npm run build:esm+types && npm run build:cjs",
-    "build:esm+types": "tsc --project tsconfig.build.json --outDir ./dist/esm --declaration --declarationMap --declarationDir ./dist/types",
-    "build:cjs": "tsc --project tsconfig.build.cjs.json",
-    "clean": "rm -rf dist tsconfig.tsbuildinfo",
-    "typecheck": "tsc --noEmit",
-    "publish:local": "pnpm publish --no-git-checks --force"
-  },
-  "peerDependencies": {
-    "@simplewebauthn/browser": "10.x",
-    "@simplewebauthn/server": "10.x",
-    "@wagmi/core": "2.x"
-  },
-  "peerDependenciesMeta": {
-    "typescript": {
-      "optional": true
-    }
-  },
-  "devDependencies": {
-    "@simplewebauthn/types": "^10.0.0",
-    "@types/node": "^22.1.0",
-    "eventemitter3": "^5.0.1",
-    "viem": "^2.21.14"
-  },
-  "files": [
-    "dist/**",
-    "src/**/*.ts",
-    "!src/**/*.test.ts",
-    "!src/**/*.test-d.ts"
-  ],
-  "sideEffects": false,
+  "private": true,
   "type": "module",
-  "main": "./dist/cjs/index.js",
-  "module": "./dist/esm/index.js",
-  "types": "./dist/types/index.d.ts",
-  "typings": "./dist/types/index.d.ts",
-  "exports": {
-    ".": {
-      "types": "./dist/types/index.d.ts",
-      "import": "./dist/esm/index.js",
-      "require": "./dist/cjs/index.js"
-    },
-    "./connector": {
-      "types": "./dist/types/connector/index.d.ts",
-      "import": "./dist/esm/connector/index.js",
-      "require": "./dist/cjs/connector/index.js"
-    },
-    "./client-gateway": {
-      "types": "./dist/types/client-gateway/index.d.ts",
-      "import": "./dist/esm/client-gateway/index.js",
-      "require": "./dist/cjs/client-gateway/index.js"
-    },
-    "./client": {
-      "types": "./dist/types/client/index.d.ts",
-      "import": "./dist/esm/client/index.js",
-      "require": "./dist/cjs/client/index.js"
-    },
-    "./client/actions": {
-      "types": "./dist/types/client/actions/index.d.ts",
-      "import": "./dist/esm/client/actions/index.js",
-      "require": "./dist/cjs/client/actions/index.js"
-    },
-    "./client/decorators": {
-      "types": "./dist/types/client/decorators/index.d.ts",
-      "import": "./dist/esm/client/decorators/index.js",
-      "require": "./dist/cjs/client/decorators/index.js"
-    },
-    "./communicator": {
-      "types": "./dist/types/communicator/index.d.ts",
-      "import": "./dist/esm/communicator/index.js",
-      "require": "./dist/cjs/communicator/index.js"
-    },
-    "./errors": {
-      "types": "./dist/types/errors/index.d.ts",
-      "import": "./dist/esm/errors/index.js",
-      "require": "./dist/cjs/errors/index.js"
-    },
-    "./utils": {
-      "types": "./dist/types/utils/index.d.ts",
-      "import": "./dist/esm/utils/index.js",
-      "require": "./dist/cjs/utils/index.js"
-    },
-    "./package.json": "./package.json"
+  "scripts": {
+    "build": "npm run clean && npm run build:esm && npm run build:cjs && npm run build:types",
+    "build:esm": "tsc --project tsconfig.build.json --module es2020 --outDir ./src/_esm && printf '{\"type\": \"module\",\"sideEffects\":false}' > ./src/_esm/package.json",
+    "build:cjs": "tsc --project ./tsconfig.build.json --module commonjs --outDir ./src/_cjs --removeComments --verbatimModuleSyntax false && printf '{\"type\":\"commonjs\"}' > ./src/_cjs/package.json",
+    "build:types": "tsc --project ./tsconfig.build.json --module esnext --declarationDir ./src/_types --emitDeclarationOnly --declaration --declarationMap",
+    "clean": "rm -rf *.tsbuildinfo src/*.tsbuildinfo src/_esm src/_cjs src/_types",
+    "typecheck": "tsc --noEmit",
+    "publish:local": "pnpm nx publish:local sdk-package"
   },
-  "typesVersions": {
-    "*": {
-      ".": [
-        "./dist/types/index.d.ts"
-      ],
-      "client": [
-        "./dist/types/client/index.d.ts"
-      ],
-      "client-gateway": [
-        "./dist/types/client-gateway/index.d.ts"
-      ],
-      "communicator": [
-        "./dist/types/communicator/index.d.ts"
-      ],
-      "connector": [
-        "./dist/types/connector/index.d.ts"
-      ],
-      "errors": [
-        "./dist/types/errors/index.d.ts"
-      ]
-    }
-  },
-  "keywords": [
-    "zksync",
-    "smart",
-    "account",
-    "eth",
-    "ethereum",
-    "wallet",
-    "web3"
-  ],
   "dependencies": {
-    "@peculiar/asn1-ecc": "^2.3.13",
-    "@peculiar/asn1-schema": "^2.3.13",
-    "bigint-conversion": "^2.4.3",
-    "abitype": "^1.0.6",
-    "buffer": "^6.0.3",
-    "cbor-web": "^9.0.2",
-    "zksync-ethers": "^6.12.1"
+    "typescript": "5.5.2"
   }
 }

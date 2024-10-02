@@ -9,9 +9,9 @@ import { Address, Chain, createWalletClient, encodeAbiParameters, encodeFunction
 import { privateKeyToAccount } from "viem/accounts";
 import { sendTransaction, waitForTransactionReceipt, writeContract } from "viem/actions";
 import { zksyncInMemoryNode } from "viem/chains";
+import { createZksyncSessionClient } from "zksync-account/client";
 import { Provider, SmartAccount, types, utils, Wallet } from "zksync-ethers";
 
-// import { createZksyncSessionClient } from "../../sdk/dist/types/client/clients/session";
 import { createZKsyncPasskeyClient } from "./sdk/PasskeyClient";
 import { create2, deployFactory, getProvider, getWallet, LOCAL_RICH_WALLETS, logInfo, RecordedResponse } from "./utils";
 
@@ -327,18 +327,13 @@ describe("Spend limit validation", function () {
     const tokenData = await fixtures.getModuleData(extraSessionKeyWallet.address);
     const callData = sessionModuleContract.interface.encodeFunctionData("setSessionKeys", [[tokenData]]);
     const aaTx = {
-      type: 113,
       from: proxyAccountAddress,
       to: sessionModuleAddress as Address,
       data: callData,
-      chainId: (await provider.getNetwork()).chainId,
-      nonce: await provider.getTransactionCount(proxyAccountAddress),
       gasPrice: await provider.getGasPrice(),
-      customData: {
-        gasPerPubdata: utils.DEFAULT_GAS_PER_PUBDATA_LIMIT,
-      } as types.Eip712Meta,
+      customData: {} as types.Eip712Meta,
+      gasLimit: 0n,
     };
-
     aaTx["gasLimit"] = await provider.estimateGas(aaTx);
 
     const passkeySignedTransaction = await passkeySmartAccount.signTransaction(aaTx);
@@ -354,7 +349,7 @@ describe("Spend limit validation", function () {
       address: proxyAccountAddress,
       secret: initialSessionKeyWallet.signingKey,
     }, getProvider());
-    aaTx.nonce = await provider.getTransactionCount(proxyAccountAddress);
+    aaTx["nonce"] = await provider.getTransactionCount(proxyAccountAddress);
     const transferTx = await sessionKeySmartAccount.transfer({
       token: utils.ETH_ADDRESS,
       to: Wallet.createRandom().address,
@@ -469,25 +464,23 @@ describe("Spend limit validation", function () {
     assert.equal(receipt.status, "success", "(passkey)addSessionKey transaction should be successful");
 
     // repeat with different signer
-    /*
     const sessionKeyClient = createZksyncSessionClient({
-      address: getAddress(proxyAccountAddress),
-      sessionKey: isHex(fixtures.viemSessionKeyWallet.privateKey) ? fixtures.viemSessionKeyWallet.privateKey : toHex(fixtures.viemSessionKeyWallet.privateKey),
+      address: proxyAccountAddress,
+      sessionKey: fixtures.viemSessionKeyWallet.privateKey as Hash,
       contracts: {
-        session: getAddress(moduleAddress),
+        session: sessionModuleAddress,
       },
       chain: localClient,
       transport: http(),
     });
 
-    const sessionKeyTransactionHash = await sendTransaction(sessionKeyClient, {
-      to: moduleAddress as Address,
+    const sessionKeyTransactionHash = await sessionKeyClient.sendTransaction({
+      to: LOCAL_RICH_WALLETS[3].address,
       data: callData as Hash,
     });
 
     const sessionKeyReceipt = await waitForTransactionReceipt(sessionKeyClient, { hash: sessionKeyTransactionHash });
     assert.equal(sessionKeyReceipt.status, "success", "(sessionkey) addSessionKey transaction should be successful");
-    */
   });
 
   // NOTE: If you just want to deploy contracts to your local node for testing,
