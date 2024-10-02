@@ -2,7 +2,7 @@
   "hosting": [
     {
       "target": "account-gateway-staging",
-      "tailingSlash": false,
+      "trailingSlash": false,
       "public": "packages/gateway/.output/public",
       "ignore": ["firebase.json", "**/.*", "**/node_modules/**"]
     }
