@@ -16,12 +16,12 @@ contract WebAuthValidator is PasskeyValidator, IModuleValidator {
     string originDomain;
   }
 
-  // each inner array should be two 32byte words
   mapping(address => AttestationPasskey[]) accountAddressToKeys;
 
   function addValidationKey(bytes memory key) external returns (bool) {
     (bytes32[2] memory key32, string memory originDomain) = abi.decode(key, (bytes32[2], string));
     accountAddressToKeys[msg.sender].push(AttestationPasskey({ passkey: key32, originDomain: originDomain }));
+
     return true;
   }
 
@@ -34,7 +34,6 @@ contract WebAuthValidator is PasskeyValidator, IModuleValidator {
       console.logBytes32(signedHash);
       AttestationPasskey memory attestationPasskey = validationKeys[validationKeyIndex];
 
-      // address(this) might be wrong when doing a proxy account
       bool _success = webAuthVerify(signedHash, signature, attestationPasskey);
 
       if (_success) {
@@ -54,8 +53,6 @@ contract WebAuthValidator is PasskeyValidator, IModuleValidator {
       fatSignature
     );
 
-    console.log("authenticatorData");
-    console.logBytes(authenticatorData);
     console.log("clientDataJSON");
     console.logString(clientDataJSON);
     // malleability check
@@ -80,6 +77,7 @@ contract WebAuthValidator is PasskeyValidator, IModuleValidator {
     }
 
     bytes32[2] memory pubKey = attestationPasskey.passkey;
+
     // look for fields by name, then compare to expected values
     bool validChallenge = false;
     bool validType = false;
@@ -109,7 +107,6 @@ contract WebAuthValidator is PasskeyValidator, IModuleValidator {
           console.log("validChallenge");
           console.logBool(validChallenge);
         } else if (Strings.equal(keyOrValue, "type")) {
-          string memory keyOrValue = JsmnSolLib.getBytes(clientDataJSON, t.start, t.end);
           JsmnSolLib.Token memory nextT = tokens[index + 1];
           string memory typeValue = JsmnSolLib.getBytes(clientDataJSON, nextT.start, nextT.end);
           // this should only be set once, otherwise this is an error
@@ -121,7 +118,6 @@ contract WebAuthValidator is PasskeyValidator, IModuleValidator {
           console.log("valid type");
           console.logBool(validType);
         } else if (Strings.equal(keyOrValue, "origin")) {
-          string memory keyOrValue = JsmnSolLib.getBytes(clientDataJSON, t.start, t.end);
           JsmnSolLib.Token memory nextT = tokens[index + 1];
           string memory originValue = JsmnSolLib.getBytes(clientDataJSON, nextT.start, nextT.end);
           // this should only be set once, otherwise this is an error
@@ -129,8 +125,10 @@ contract WebAuthValidator is PasskeyValidator, IModuleValidator {
             console.log("duplicate origin field, bad json");
             return false;
           }
+          console.logString(attestationPasskey.originDomain);
           validOrigin = Strings.equal(attestationPasskey.originDomain, originValue);
           console.log("valid origin");
+          console.logBool(validOrigin);
         }
         // TODO: check 'cross-origin' keys as part of signature
       }

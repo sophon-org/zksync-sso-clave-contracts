@@ -8,7 +8,8 @@ import { promises } from "fs";
 import * as hre from "hardhat";
 import { ContractFactory, Provider, utils, Wallet } from "zksync-ethers";
 
-import { getPublicKeyBytesFromPasskeySignature } from "./sdk/utils/passkey";
+import { base64UrlToUint8Array, unwrapEC2Signature } from "./sdk/utils/passkey";
+import { getPublicKeyBytesFromPasskeySignature, getPublicKeysBytesFromPasskeySignature } from "./sdk/utils/passkey";
 
 // Load env file
 dotenv.config();
@@ -183,12 +184,21 @@ export class RecordedResponse {
     this.clientData = responseData.response.response.clientDataJSON;
     this.b64SignedChallenge = responseData.response.response.signature;
     this.passkeyBytes = convertObjArrayToUint8Array(responseData.authenticator.credentialPublicKey);
+    this.expectedOrigin = responseData.expectedOrigin;
   }
 
   // this is just the public key in xy format without the alg type
   async getXyPublicKey() {
     return await getPublicKeyBytesFromPasskeySignature(this.passkeyBytes);
   }
+
+  async getXyPublicKeys() {
+    return await getPublicKeysBytesFromPasskeySignature(this.passkeyBytes);
+  }
+
+  get authDataBuffer() { return base64UrlToUint8Array(this.authenticatorData); }
+  get clientDataBuffer() { return base64UrlToUint8Array(this.clientData); }
+  get rs() { return unwrapEC2Signature(base64UrlToUint8Array(this.b64SignedChallenge)); }
 
   // this is the encoded data explaining what authenticator was used (fido, web, etc)
   readonly authenticatorData: string;
@@ -198,4 +208,6 @@ export class RecordedResponse {
   readonly b64SignedChallenge: string;
   // This is a binary object formatted by @simplewebauthn that contains the alg type and public key
   readonly passkeyBytes: Uint8Array;
+  // the domain linked the passkey that needs to be validated
+  readonly expectedOrigin: string;
 }
