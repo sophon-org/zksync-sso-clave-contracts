@@ -10,7 +10,6 @@ import { privateKeyToAccount } from "viem/accounts";
 import { sendTransaction, waitForTransactionReceipt, writeContract } from "viem/actions";
 import { zksyncInMemoryNode } from "viem/chains";
 import { createZksyncSessionClient } from "zksync-account/client";
-// import { createZKsyncPasskeyClient } from "./sdk/PasskeyClient";
 import { createZksyncPasskeyClient } from "zksync-account/client/passkey";
 import { Provider, SmartAccount, types, utils, Wallet } from "zksync-ethers";
 
@@ -369,6 +368,7 @@ describe("Spend limit validation", function () {
     const passkeyModule = await fixtures.getWebAuthnVerifierContract();
     const sessionModule = await fixtures.getSessionSpendLimitContract();
     const factoryContract = await fixtures.getAaFactory();
+    const factoryAddress = getAddress(await factoryContract.getAddress());
 
     const sessionModuleAddress = await sessionModule.getAddress();
     const passkeyModuleAddress = await passkeyModule.getAddress();
@@ -410,7 +410,7 @@ describe("Spend limit validation", function () {
       [getAddress(passkeyModuleAddress), isHex(sessionModuleData) ? sessionModuleData : toHex(sessionModuleData)],
     );
     const proxyAccount = await writeContract(richWallet, {
-      address: getAddress(await factoryContract.getAddress()),
+      address: factoryAddress,
       abi: factoryArtifact.abi,
       functionName: "deployProxy7579Account",
       args: [
@@ -439,12 +439,20 @@ describe("Spend limit validation", function () {
       chain: localClient,
       key: "wallet",
       name: "ZKsync Account Passkey Client",
-      validator: getAddress(passkeyModuleAddress),
+      contracts: {
+        validator: getAddress(passkeyModuleAddress),
+        session: getAddress(sessionModuleAddress),
+        accountFactory: factoryAddress,
+        accountImplementation: getAddress(accountImpl),
+      },
+      credentialPublicKey: await viemResponse.getXyPublicKey(),
+      /*
       signHash: async () => ({
         authenticatorData: viemResponse.authenticatorData,
         clientDataJSON: viemResponse.clientData,
         signature: viemResponse.b64SignedChallenge,
       }),
+      */
       transport: http(),
       userDisplayName: "",
       userName: "",
@@ -462,8 +470,10 @@ describe("Spend limit validation", function () {
     });
 
     const transactionHash = await sendTransaction(passkeyClient, {
+      chain: localClient,
       to: getAddress(LOCAL_RICH_WALLETS[3].address),
       data: callData as Hash,
+      account: privateKeyToAccount(fixtures.viemSessionKeyWallet.privateKey as Hash),
     });
 
     const receipt = await waitForTransactionReceipt(passkeyClient, { hash: transactionHash });
@@ -474,14 +484,14 @@ describe("Spend limit validation", function () {
       address: proxyAccountAddress,
       sessionKey: fixtures.viemSessionKeyWallet.privateKey as Hash,
       contracts: {
-        session: sessionModuleAddress,
+        session: getAddress(sessionModuleAddress),
       },
       chain: localClient,
       transport: http(),
     });
 
     const sessionKeyTransactionHash = await sessionKeyClient.sendTransaction({
-      to: LOCAL_RICH_WALLETS[3].address,
+      to: getAddress(LOCAL_RICH_WALLETS[3].address),
       data: callData as Hash,
     });
 
