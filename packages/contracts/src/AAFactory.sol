@@ -10,23 +10,20 @@ import "hardhat/console.sol";
 contract AAFactory {
   bytes32 public proxyAaBytecodeHash;
 
-  struct MetaAccountConnection {
-    address accountLocation;
-    string publicPasskeyDomain; // used for additional on-chain validation
-  }
-
-  // TODO: Connect this to the factory
-  // This 4 step mapping prevents collisions and does the lookup from public to private information
-  // login provider => unique id => creator => account info
-  mapping(string => mapping(string => mapping(address => MetaAccountConnection))) public accountMappings;
+  // This 3 step mapping prevents collisions and does the lookup from public to private information
+  // creator => unique id => account info
+  mapping(address => mapping(string => address)) public accountMappings;
 
   constructor(bytes32 _proxyAaBytecodeHash) {
     proxyAaBytecodeHash = _proxyAaBytecodeHash;
   }
 
+  function addNewUniqueId(bytes32 uniqueAccountId) external {}
+
   function deployProxy7579Account(
     bytes32 salt,
     address accountImplementionLocation,
+    string calldata uniqueAccountId,
     bytes[] calldata initialValidators,
     bytes[] calldata initialModules
   ) external returns (address accountAddress) {
@@ -51,5 +48,10 @@ contract AAFactory {
 
     // add session-key/spend-limit module (similar code)
     IClaveAccount(accountAddress).initialize(initialValidators, initialModules);
+
+    if (accountMappings[msg.sender][uniqueAccountId] != address(0)) {
+      revert("Account already exists");
+    }
+    accountMappings[msg.sender][uniqueAccountId] = accountAddress;
   }
 }

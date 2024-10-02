@@ -22,6 +22,14 @@ export const getPublicKeyBytesFromPasskeySignature = async (publicPasskey: Uint8
   return Buffer.concat([Buffer.from(x), Buffer.from(y)]);
 };
 
+export const getPublicKeysBytesFromPasskeySignature = async (publicPasskey: Uint8Array) => {
+  const cosePublicKey = await decode(publicPasskey); // Decodes CBOR-encoded COSE key
+  const x = cosePublicKey.get(COSEKEYS.x);
+  const y = cosePublicKey.get(COSEKEYS.y);
+
+  return [Buffer.from(x), Buffer.from(y)];
+};
+
 /**
  * Return 2 32byte words for the R & S for the EC2 signature, 0 l-trimmed
  * @param signature
