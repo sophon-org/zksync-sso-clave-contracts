@@ -157,6 +157,7 @@ export const addAccountOwnerPasskey = async <
     args: [args.passkeyPublicKey],
     abi: [] as const,
     functionName: "USE_ACTUAL_METHOD_HERE",
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } as any);
   return transactionHash;
 };

@@ -1,2 +1,7 @@
-dist
+_cjs
+_esm
+_types
+
 node_modules
+tsconfig*.tsbuildinfo
+.DS_Store

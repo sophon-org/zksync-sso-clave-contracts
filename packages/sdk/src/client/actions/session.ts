@@ -1,6 +1,6 @@
 import { type Account, type Address, type Chain, type Client, encodeFunctionData, type Hash, type Prettify, type TransactionReceipt, type Transport } from "viem";
 import { readContract, waitForTransactionReceipt } from "viem/actions";
-import { Provider, SmartAccount, type types as ethersTypes, utils as ethersUtils } from "zksync-ethers";
+import { sendTransaction } from "viem/zksync";
 
 import { SessionPasskeySpendLimitModuleAbi } from "../../abi/SessionPasskeySpendLimitModule.js";
 import { noThrow } from "../../utils/helpers.js";
@@ -99,7 +99,6 @@ export const getTokenSpendLimit = async <
 };
 
 export type AddSessionKeyArgs = {
-  accountAddress: Address;
   sessionPublicKey: Address;
   token: Address;
   expiresAt: bigint | Date; // Time in seconds as bigint or Date
@@ -116,15 +115,6 @@ export const addSessionKey = async <
   chain extends Chain,
   account extends Account,
 >(client: Client<transport, chain, account>, args: Prettify<AddSessionKeyArgs>): Promise<Prettify<AddSessionKeyReturnType>> => {
-  const provider = new Provider(client.chain.rpcUrls.default.http[0]);
-  const passkeyClient = new SmartAccount({
-    payloadSigner: (hash: any) => {
-      return Promise.resolve(client.account.sign!({ hash: hash }));
-    },
-    address: args.accountAddress,
-    secret: null,
-  }, provider);
-
   const callData = encodeFunctionData({
     abi: SessionPasskeySpendLimitModuleAbi,
     functionName: "addSessionKey",
@@ -135,23 +125,11 @@ export const addSessionKey = async <
     ],
   });
 
-  const aaTx = {
-    type: 113,
-    from: args.accountAddress,
+  const transactionHash = await sendTransaction(client, {
     to: args.contracts.session,
     data: callData,
-    chainId: (await provider.getNetwork()).chainId,
-    nonce: await provider.getTransactionCount(args.accountAddress),
-    gasPrice: await provider.getGasPrice(),
-    customData: {
-      gasPerPubdata: ethersUtils.DEFAULT_GAS_PER_PUBDATA_LIMIT,
-    } as ethersTypes.Eip712Meta,
-  };
-  (aaTx as any)["gasLimit"] = await provider.estimateGas(aaTx);
-
-  const signedTransaction = await passkeyClient.signTransaction(aaTx);
-  const tx = await provider.broadcastTransaction(signedTransaction);
-  const transactionHash = tx.hash as Hash;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  } as any);
   if (args.onTransactionSent) {
     noThrow(() => args.onTransactionSent?.(transactionHash));
   }

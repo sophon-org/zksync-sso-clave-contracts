@@ -10,7 +10,7 @@ import { privateKeyToAccount } from "viem/accounts";
 import { sendTransaction, waitForTransactionReceipt, writeContract } from "viem/actions";
 import { zksyncInMemoryNode } from "viem/chains";
 import { createZksyncSessionClient } from "zksync-account/client";
-import { Provider, SmartAccount, types, utils, Wallet } from "zksync-ethers";
+import { Provider, SmartAccount, types, Wallet } from "zksync-ethers";
 
 import { createZKsyncPasskeyClient } from "./sdk/PasskeyClient";
 import { base64UrlToUint8Array, unwrapEC2Signature } from "./sdk/utils/passkey";
@@ -272,9 +272,8 @@ describe("Spend limit validation", function () {
     // 2. use this sample signer to get the transaction hash of a realistic transaction
     // 3. take that transaction hash to another app, and sign it (as the challenge)
     // 4. bring that signed hash back here and have it returned as the signer
-    const sessionKeySigner = (hash: BytesLike, secret?: string, provider?: null | Provider) => {
+    const sessionKeySigner = (hash: BytesLike) => {
       const sessionKeySignature = fixtures.ethersSessionKeyWallet.signingKey.sign(hash);
-      console.debug("(sessionkey)hash", hash, "secretKey", secret, "provider.ready", provider?.ready);
       return Promise.resolve<string>(abiCoder.encode(["bytes", "address", "bytes[]"], [
         sessionKeySignature.serialized,
         moduleAddress,
@@ -303,7 +302,7 @@ describe("Spend limit validation", function () {
     let usePasskeySigner = true;
     const configurableSigner = (hash: BytesLike, secret?: string, provider?: null | Provider) => {
       if (!usePasskeySigner) {
-        return sessionKeySigner(hash, secret, provider);
+        return sessionKeySigner(hash);
       } else {
         return passkeySigner(hash, secret, provider);
       }
@@ -318,18 +317,13 @@ describe("Spend limit validation", function () {
     const tokenData = await fixtures.getModuleData(fixtures.ethersSessionKeyWallet.address);
     const callData = moduleContract.interface.encodeFunctionData("setSessionKeys", [[tokenData]]);
     const aaTx = {
-      type: 113,
       from: proxyAccountAddress,
       to: moduleAddress as Address,
       data: callData,
-      chainId: (await provider.getNetwork()).chainId,
-      nonce: await provider.getTransactionCount(proxyAccountAddress),
       gasPrice: await provider.getGasPrice(),
-      customData: {
-        gasPerPubdata: utils.DEFAULT_GAS_PER_PUBDATA_LIMIT,
-      } as types.Eip712Meta,
+      customData: {} as types.Eip712Meta,
+      gasLimit: 0n,
     };
-
     aaTx["gasLimit"] = await provider.estimateGas(aaTx);
 
     const passkeySignedTransaction = await ethersSmartAccount.signTransaction(aaTx);
@@ -339,7 +333,6 @@ describe("Spend limit validation", function () {
 
     // Now, let's try the session key
     usePasskeySigner = false;
-    aaTx.nonce = await provider.getTransactionCount(proxyAccountAddress);
     const sessionKeySignedTransaction = await ethersSmartAccount.signTransaction(aaTx);
     assert(sessionKeySignedTransaction != null, "valid session key transaction to sign");
 
@@ -446,16 +439,16 @@ describe("Spend limit validation", function () {
 
     // repeat with different signer
     const sessionKeyClient = createZksyncSessionClient({
-      address: getAddress(proxyAccountAddress),
-      sessionKey: isHex(fixtures.viemSessionKeyWallet.privateKey) ? fixtures.viemSessionKeyWallet.privateKey : toHex(fixtures.viemSessionKeyWallet.privateKey),
+      address: proxyAccountAddress,
+      sessionKey: fixtures.viemSessionKeyWallet.privateKey as Hash,
       contracts: {
-        session: getAddress(moduleAddress),
+        session: moduleAddress as Address,
       },
       chain: localClient,
       transport: http(),
     });
 
-    const sessionKeyTransactionHash = await sendTransaction(sessionKeyClient, {
+    const sessionKeyTransactionHash = await sessionKeyClient.sendTransaction({
       to: moduleAddress as Address,
       data: callData as Hash,
     });

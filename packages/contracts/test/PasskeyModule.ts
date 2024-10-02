@@ -127,15 +127,8 @@ export function fromBuffer(
 
 async function getPublicKey(publicPasskey: Uint8Array): Promise<[string, string]> {
   const cosePublicKey = decodeFirst<Map<number, any>>(publicPasskey);
-  console.log("decodeFirst", cosePublicKey);
-  const alg = cosePublicKey.get(COSEKEYS.alg) as COSEALG;
-  const crv = cosePublicKey.get(COSEKEYS.crv);
-  console.log("alg, crv", alg, crv);
   const x = cosePublicKey.get(COSEKEYS.x);
   const y = cosePublicKey.get(COSEKEYS.y);
-  console.log("raw x, y", x, y);
-  const kty = cosePublicKey.get(COSEKEYS.kty) as COSEKTY;
-  console.log("kty", kty);
 
   return ["0x" + Buffer.from(x).toString("hex"), "0x" + Buffer.from(y).toString("hex")];
 }
@@ -214,9 +207,9 @@ async function rawVerify(
   const hashedData = await toHash(concat([authDataBuffer, clientDataHash]));
   const rs = unwrapEC2Signature(toBuffer(b64SignedChallange));
   const publicKeys = await getPublicKey(publicKeyEs256Bytes);
-  console.log("externalSignature", ethers.hexlify(hashedData));
+  /* console.log("externalSignature", ethers.hexlify(hashedData));
   console.log("rs", ethers.hexlify(rs[0]), ethers.hexlify(rs[1]));
-  console.log("pubkey xy", publicKeys);
+  console.log("pubkey xy", publicKeys); */
   return await passkeyValidator.rawVerify(hashedData, rs, publicKeys);
 }
 

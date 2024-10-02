@@ -20,7 +20,6 @@ export function zksyncAccountPasskeyActions<
     addSessionKey: async (args: Omit<AddSessionKeyArgs, "accountAddress" | "contracts">) => {
       return await addSessionKey(client, {
         ...args,
-        accountAddress: client.account.address,
         contracts: client.contracts,
       });
     },
