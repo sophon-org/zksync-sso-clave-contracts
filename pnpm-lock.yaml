@@ -127,19 +127,19 @@ importers:
         specifier: 0.2.2
         version: 0.2.2
       '@matterlabs/hardhat-zksync':
-        specifier: ^1.1.0
+        specifier: 1.2.0
         version: 1.2.0(x3nqzy2pkpyb3nvzydoxbrfaee)
       '@matterlabs/hardhat-zksync-deploy':
-        specifier: ^1.5.0
+        specifier: 1.5.0
         version: 1.5.0(ethers@6.13.2)(hardhat@2.22.12(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@20.16.10)(typescript@5.6.2))(typescript@5.6.2))(zksync-ethers@6.13.0(ethers@6.13.2))
       '@nomicfoundation/hardhat-chai-matchers':
-        specifier: ^2.0.7
+        specifier: 2.0.8
         version: 2.0.8(@nomicfoundation/hardhat-ethers@3.0.8(ethers@6.13.2)(hardhat@2.22.12(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@20.16.10)(typescript@5.6.2))(typescript@5.6.2)))(chai@4.5.0)(ethers@6.13.2)(hardhat@2.22.12(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@20.16.10)(typescript@5.6.2))(typescript@5.6.2))
       '@nomicfoundation/hardhat-ethers':
-        specifier: ^3.0.7
+        specifier: 3.0.8
         version: 3.0.8(ethers@6.13.2)(hardhat@2.22.12(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@20.16.10)(typescript@5.6.2))(typescript@5.6.2))
       '@nomicfoundation/hardhat-verify':
-        specifier: ^2.0.11
+        specifier: 2.0.11
         version: 2.0.11(hardhat@2.22.12(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@20.16.10)(typescript@5.6.2))(typescript@5.6.2))
       '@peculiar/asn1-ecc':
         specifier: 2.3.14
@@ -151,7 +151,7 @@ importers:
         specifier: 0.5.1
         version: 0.5.1(ethers@6.13.2)(typechain@8.3.2(typescript@5.6.2))(typescript@5.6.2)
       '@typechain/hardhat':
-        specifier: ^9.1.0
+        specifier: 9.1.0
         version: 9.1.0(@typechain/ethers-v6@0.5.1(ethers@6.13.2)(typechain@8.3.2(typescript@5.6.2))(typescript@5.6.2))(ethers@6.13.2)(hardhat@2.22.12(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@20.16.10)(typescript@5.6.2))(typescript@5.6.2))(typechain@8.3.2(typescript@5.6.2))
       '@types/chai':
         specifier: 4.3.20
