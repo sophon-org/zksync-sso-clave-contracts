@@ -14,13 +14,13 @@ jobs:
       run:
         working-directory: ./
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
       with:
           fetch-depth: 0
 
     # Start node
     - name: Era Test Node Action
-      uses: dutterbutter/era-test-node-action@v1
+      uses: dutterbutter/era-test-node-action@36ffd2eefd46dc16e7e2a8e1715124400ec0a3ba # v1
 
     # Setup pnpm
     - name: Setup pnpm
@@ -29,7 +29,7 @@ jobs:
         version: 9.11.0
 
     - name: Use Node.js
-      uses: actions/setup-node@v4
+      uses: actions/setup-node@0a44ba7841725637a19e28fa30b79a866c81b0a6 # v4
       with:
         node-version: lts/Iron
         cache: 'pnpm'

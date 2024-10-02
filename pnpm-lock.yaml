@@ -9,19 +9,19 @@ importers:
   .:
     devDependencies:
       '@commitlint/cli':
-        specifier: ^19.5.0
+        specifier: 19.5.0
         version: 19.5.0(@types/node@22.7.4)(typescript@5.6.2)
       '@commitlint/config-conventional':
-        specifier: ^19.5.0
+        specifier: 19.5.0
         version: 19.5.0
       '@eslint/js':
-        specifier: ^9.10.0
+        specifier: 9.11.1
         version: 9.11.1
       '@nx/eslint':
         specifier: 19.8.0
         version: 19.8.0(@babel/traverse@7.25.6)(@swc-node/register@1.10.9(@swc/core@1.7.26(@swc/helpers@0.5.13))(@swc/types@0.1.12)(typescript@5.6.2))(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@22.7.4)(@zkochan/js-yaml@0.0.7)(eslint@9.11.1(jiti@2.0.0))(nx@19.8.0(@swc-node/register@1.10.9(@swc/core@1.7.26(@swc/helpers@0.5.13))(@swc/types@0.1.12)(typescript@5.6.2))(@swc/core@1.7.26(@swc/helpers@0.5.13)))(verdaccio@5.32.2(typanion@3.14.0))
       '@nx/js':
-        specifier: ^19.8.0
+        specifier: 19.8.2
         version: 19.8.2(@babel/traverse@7.25.6)(@swc-node/register@1.10.9(@swc/core@1.7.26(@swc/helpers@0.5.13))(@swc/types@0.1.12)(typescript@5.6.2))(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@22.7.4)(nx@19.8.0(@swc-node/register@1.10.9(@swc/core@1.7.26(@swc/helpers@0.5.13))(@swc/types@0.1.12)(typescript@5.6.2))(@swc/core@1.7.26(@swc/helpers@0.5.13)))(typescript@5.6.2)(verdaccio@5.32.2(typanion@3.14.0))
       '@nx/nuxt':
         specifier: 19.8.0
@@ -30,52 +30,52 @@ importers:
         specifier: 19.8.0
         version: 19.8.0(@babel/traverse@7.25.6)(@swc-node/register@1.10.9(@swc/core@1.7.26(@swc/helpers@0.5.13))(@swc/types@0.1.12)(typescript@5.6.2))(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@22.7.4)(nx@19.8.0(@swc-node/register@1.10.9(@swc/core@1.7.26(@swc/helpers@0.5.13))(@swc/types@0.1.12)(typescript@5.6.2))(@swc/core@1.7.26(@swc/helpers@0.5.13)))(typescript@5.6.2)(verdaccio@5.32.2(typanion@3.14.0))(vite@5.4.8(@types/node@22.7.4)(sass@1.79.4)(terser@5.34.1))(vitest@2.1.1(@types/node@22.7.4)(sass@1.79.4)(terser@5.34.1))
       '@stylistic/eslint-plugin':
-        specifier: ^2.8.0
+        specifier: 2.8.0
         version: 2.8.0(eslint@9.11.1(jiti@2.0.0))(typescript@5.6.2)
       '@swc-node/register':
-        specifier: ^1.10.9
+        specifier: 1.10.9
         version: 1.10.9(@swc/core@1.7.26(@swc/helpers@0.5.13))(@swc/types@0.1.12)(typescript@5.6.2)
       '@swc/core':
-        specifier: ^1.7.26
+        specifier: 1.7.26
         version: 1.7.26(@swc/helpers@0.5.13)
       cspell:
-        specifier: ^8.14.4
+        specifier: 8.14.4
         version: 8.14.4
       eslint:
-        specifier: ^9.10.0
+        specifier: 9.11.1
         version: 9.11.1(jiti@2.0.0)
       eslint-plugin-simple-import-sort:
-        specifier: ^12.1.1
+        specifier: 12.1.1
         version: 12.1.1(eslint@9.11.1(jiti@2.0.0))
       globals:
-        specifier: ^15.9.0
+        specifier: 15.9.0
         version: 15.9.0
       husky:
-        specifier: ^9.1.6
+        specifier: 9.1.6
         version: 9.1.6
       lint-staged:
-        specifier: ^15.2.10
+        specifier: 15.2.10
         version: 15.2.10
       markdownlint-cli2:
-        specifier: ^0.14.0
+        specifier: 0.14.0
         version: 0.14.0
       nuxt:
-        specifier: ^3.10.0
+        specifier: 3.13.2
         version: 3.13.2(@parcel/watcher@2.4.1)(@types/node@22.7.4)(eslint@9.11.1(jiti@2.0.0))(ioredis@5.4.1)(magicast@0.3.5)(optionator@0.9.4)(rollup@4.22.5)(sass@1.79.4)(terser@5.34.1)(typescript@5.6.2)(vite@5.4.8(@types/node@22.7.4)(sass@1.79.4)(terser@5.34.1))
       nx:
         specifier: 19.8.0
         version: 19.8.0(@swc-node/register@1.10.9(@swc/core@1.7.26(@swc/helpers@0.5.13))(@swc/types@0.1.12)(typescript@5.6.2))(@swc/core@1.7.26(@swc/helpers@0.5.13))
       prettier:
-        specifier: ^3.3.3
+        specifier: 3.3.3
         version: 3.3.3
       typescript:
-        specifier: ^5.5.4
+        specifier: 5.6.2
         version: 5.6.2
       typescript-eslint:
-        specifier: ^8.6.0
+        specifier: 8.7.0
         version: 8.7.0(eslint@9.11.1(jiti@2.0.0))(typescript@5.6.2)
       verdaccio:
-        specifier: ^5.0.4
+        specifier: 5.32.2
         version: 5.32.2(typanion@3.14.0)
 
   packages/contracts:
@@ -115,16 +115,16 @@ importers:
         version: link:../sdk
     devDependencies:
       '@ethersproject/contracts':
-        specifier: ^5.7.0
+        specifier: 5.7.0
         version: 5.7.0
       '@ethersproject/providers':
-        specifier: ^5.7.2
+        specifier: 5.7.2
         version: 5.7.2
       '@hexagon/base64':
-        specifier: ^1.1.28
+        specifier: 1.1.28
         version: 1.1.28
       '@levischuck/tiny-cbor':
-        specifier: ^0.2.2
+        specifier: 0.2.2
         version: 0.2.2
       '@matterlabs/hardhat-zksync':
         specifier: ^1.1.0
@@ -142,55 +142,55 @@ importers:
         specifier: ^2.0.11
         version: 2.0.11(hardhat@2.22.12(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@20.16.10)(typescript@5.6.2))(typescript@5.6.2))
       '@peculiar/asn1-ecc':
-        specifier: ^2.3.8
+        specifier: 2.3.14
         version: 2.3.14
       '@peculiar/asn1-schema':
-        specifier: ^2.3.8
+        specifier: 2.3.13
         version: 2.3.13
       '@typechain/ethers-v6':
-        specifier: ^0.5.1
+        specifier: 0.5.1
         version: 0.5.1(ethers@6.13.2)(typechain@8.3.2(typescript@5.6.2))(typescript@5.6.2)
       '@typechain/hardhat':
         specifier: ^9.1.0
         version: 9.1.0(@typechain/ethers-v6@0.5.1(ethers@6.13.2)(typechain@8.3.2(typescript@5.6.2))(typescript@5.6.2))(ethers@6.13.2)(hardhat@2.22.12(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@20.16.10)(typescript@5.6.2))(typescript@5.6.2))(typechain@8.3.2(typescript@5.6.2))
       '@types/chai':
-        specifier: ^4.3.18
+        specifier: 4.3.20
         version: 4.3.20
       '@types/elliptic':
-        specifier: ^6
+        specifier: 6.4.18
         version: 6.4.18
       '@types/ini':
-        specifier: ^4.1.0
+        specifier: 4.1.1
         version: 4.1.1
       '@types/mocha':
-        specifier: ^10.0.1
+        specifier: 10.0.8
         version: 10.0.8
       '@types/node':
-        specifier: ^20.16.1
+        specifier: 20.16.10
         version: 20.16.10
       chai:
-        specifier: ^4.5.0
+        specifier: 4.5.0
         version: 4.5.0
       dotenv:
-        specifier: ^16.0.3
+        specifier: 16.4.5
         version: 16.4.5
       elliptic:
-        specifier: ^6.5.5
+        specifier: 6.5.7
         version: 6.5.7
       ethers:
-        specifier: ^6.13.2
+        specifier: 6.13.2
         version: 6.13.2
       ini:
-        specifier: ^4.1.3
+        specifier: 4.1.3
         version: 4.1.3
       mocha:
-        specifier: ^10.7.3
+        specifier: 10.7.3
         version: 10.7.3
       typechain:
-        specifier: ^8.3.2
+        specifier: 8.3.2
         version: 8.3.2(typescript@5.6.2)
       zksync-ethers:
-        specifier: ^6.11.2
+        specifier: 6.13.0
         version: 6.13.0(ethers@6.13.2)
 
   packages/gateway:
@@ -272,16 +272,16 @@ importers:
         version: 6.13.0(ethers@6.13.2)
     devDependencies:
       '@simplewebauthn/types':
-        specifier: ^10.0.0
+        specifier: 10.0.0
         version: 10.0.0
       '@types/node':
-        specifier: ^22.1.0
+        specifier: 22.7.4
         version: 22.7.4
       eventemitter3:
-        specifier: ^5.0.1
+        specifier: 5.0.1
         version: 5.0.1
       viem:
-        specifier: ^2.21.14
+        specifier: 2.21.16
         version: 2.21.16(typescript@5.6.2)
 
 packages:
@@ -12219,11 +12219,11 @@ snapshots:
 
   '@types/bn.js@4.11.6':
     dependencies:
-      '@types/node': 20.16.10
+      '@types/node': 22.7.4
 
   '@types/bn.js@5.1.6':
     dependencies:
-      '@types/node': 20.16.10
+      '@types/node': 22.7.4
 
   '@types/chai-as-promised@7.1.8':
     dependencies:
@@ -12269,7 +12269,7 @@ snapshots:
 
   '@types/pbkdf2@3.1.2':
     dependencies:
-      '@types/node': 20.16.10
+      '@types/node': 22.7.4
 
   '@types/prettier@2.7.3': {}
 
@@ -12277,7 +12277,7 @@ snapshots:
 
   '@types/secp256k1@4.0.6':
     dependencies:
-      '@types/node': 20.16.10
+      '@types/node': 22.7.4
 
   '@types/web-bluetooth@0.0.20': {}
 
@@ -18600,7 +18600,7 @@ snapshots:
   webauthn-p256@0.0.5:
     dependencies:
       '@noble/curves': 1.4.0
-      '@noble/hashes': 1.4.0
+      '@noble/hashes': 1.5.0
 
   webidl-conversions@3.0.1: {}
 
