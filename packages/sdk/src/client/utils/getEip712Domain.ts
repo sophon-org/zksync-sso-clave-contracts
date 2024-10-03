@@ -19,7 +19,7 @@ export const getEip712Domain: EIP712DomainFn<
 
   return {
     domain: {
-      name: `${"zk"}Sync`,
+      name: `zkSync`,
       version: "2",
       chainId: transaction.chainId,
     },
