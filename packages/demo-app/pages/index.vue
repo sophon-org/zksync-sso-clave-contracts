@@ -26,29 +26,32 @@
       class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
       @click="sendTokens()"
     >
-      Send 0.5 ETH
+      Send 0.1 ETH
     </button>
+
+    <div
+      v-if="errorMessage"
+      class="p-4 mt-4 mb-4 max-w-96 text-sm text-red-800 rounded-lg bg-red-50 dark:bg-gray-800 dark:text-red-400"
+    >
+      <span class="font-medium">{{ errorMessage }}</span>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { disconnect, getBalance, watchAccount } from "@wagmi/core";
-// import { useSendTransaction } from "@wagmi/vue";
+import { disconnect, getBalance, watchAccount, sendTransaction } from "@wagmi/core";
 import { createWeb3Modal, defaultWagmiConfig } from "@web3modal/wagmi/vue";
-// import { parseEther } from "viem";
+import { parseEther } from "viem";
 import { zksyncInMemoryNode } from "viem/chains";
 import { zksyncAccountConnector } from "zksync-account/connector";
 
 const address = ref(null);
 const balance = ref(null);
+const errorMessage = ref(null);
 const projectId = "dde7b251fcfd7e11d5270497a053816e"; // TODO: Move to env
 
-// Define the chains you want to support
-const chains = [zksyncInMemoryNode];
-
-// Create wagmi config
 const config = defaultWagmiConfig({
-  chains,
+  chains: [zksyncInMemoryNode],
   projectId,
   appName: "ZKsync SSO Demo",
   connectors: [
@@ -68,7 +71,7 @@ const config = defaultWagmiConfig({
   ],
 });
 
-const web3modal = createWeb3Modal({ wagmiConfig: config, projectId, chains });
+const web3modal = createWeb3Modal({ wagmiConfig: config, projectId });
 
 // Check for updates to the current account
 watchAccount(config, {
@@ -82,27 +85,39 @@ watchAccount(config, {
 });
 
 const connectWallet = async () => {
-  if (address.value) {
-    await disconnect(config);
-    return;
-  }
+  errorMessage.value = "";
 
   try {
+    if (address.value) {
+      await disconnect(config);
+      return;
+    }
+
     await web3modal.open();
   } catch (error) {
+    errorMessage.value = "Connect/Disconnect failed, see console for more info.";
     // eslint-disable-next-line no-console
     console.error("Connection failed:", error);
   }
 };
 
-// const { sendTransaction } = useSendTransaction({ config });
-
 const sendTokens = async () => {
-  console.log("send tokens");
-  // sendTransaction(config, {
-  //   from: address.value,
-  //   to: "0x55bE1B079b53962746B2e86d12f158a41DF294A6", // Rich Account 1
-  //   value: parseEther("0.1"),
-  // });
+  errorMessage.value = "";
+
+  try {
+    await sendTransaction(config, {
+      to: "0x55bE1B079b53962746B2e86d12f158a41DF294A6", // Rich Account 1
+      value: parseEther("0.1"),
+    });
+  } catch (error) {
+    const transactionFailureDetails = error.cause?.cause?.cause?.data?.originalError?.cause?.details;
+    if (transactionFailureDetails) {
+      errorMessage.value = transactionFailureDetails;
+    } else {
+      errorMessage.value = "Transaction failed, see console for more info.";
+      // eslint-disable-next-line no-console
+      console.error("Transaction failed:", error);
+    }
+  }
 };
 </script>
