@@ -52,10 +52,6 @@ jobs:
         pnpm nx dev gateway --port 3002 &
         for attempt in {1..20}; do sleep 1; if (curl localhost:3002| head -n1 | grep -Ev 'Nuxt Dev server is starting...|Starting Nuxt...'); then echo ready; break; fi; echo waiting...; done
 
-    # Link sdk to contracts
-    - name: Run e2e test
-      run: pnpm link --dir packages/contracts packages/sdk/src
-
     # Run e2e tests
     - name: Run e2e test
       run: pnpm nx test contracts -- --typecheck
