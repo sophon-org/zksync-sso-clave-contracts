@@ -69,6 +69,11 @@
       "import": "./_esm/client/passkey.js",
       "require": "./_cjs/client/passkey.js"
     },
+    "./client/smart-account": {
+      "types": "./_types/client/smart-account.d.ts",
+      "import": "./_esm/client/smart-account.js",
+      "require": "./_cjs/client/smart-account.js"
+    },
     "./client/actions": {
       "types": "./_types/client/actions/index.d.ts",
       "import": "./_esm/client/actions/index.js",

@@ -72,7 +72,7 @@ export const deployAccount = async <
         args.initialSpendLimit.map(({ token, amount }) => ({
           token,
           /* TODO: I think this should be not passkey pub key */
-          publicKey: passkeyPublicKey,
+          publicKey: toHex(Buffer.concat(passkeyPublicKey)),
           limit: amount,
         })),
       ],

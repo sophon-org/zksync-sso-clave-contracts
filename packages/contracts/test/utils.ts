@@ -6,10 +6,8 @@ import { ethers } from "ethers";
 import { readFileSync } from "fs";
 import { promises } from "fs";
 import * as hre from "hardhat";
+import { base64UrlToUint8Array, getPublicKeyBytesFromPasskeySignature, unwrapEC2Signature } from "zksync-account/utils";
 import { ContractFactory, Provider, utils, Wallet } from "zksync-ethers";
-
-import { base64UrlToUint8Array, unwrapEC2Signature } from "./sdk/utils/passkey";
-import { getPublicKeyBytesFromPasskeySignature, getPublicKeysBytesFromPasskeySignature } from "./sdk/utils/passkey";
 
 // Load env file
 dotenv.config();
@@ -187,13 +185,8 @@ export class RecordedResponse {
     this.expectedOrigin = responseData.expectedOrigin;
   }
 
-  // this is just the public key in xy format without the alg type
-  async getXyPublicKey() {
-    return await getPublicKeyBytesFromPasskeySignature(this.passkeyBytes);
-  }
-
   async getXyPublicKeys() {
-    return await getPublicKeysBytesFromPasskeySignature(this.passkeyBytes);
+    return await getPublicKeyBytesFromPasskeySignature(this.passkeyBytes);
   }
 
   get authDataBuffer() { return base64UrlToUint8Array(this.authenticatorData); }

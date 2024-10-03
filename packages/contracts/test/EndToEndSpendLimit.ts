@@ -5,14 +5,14 @@ import { BytesLike, parseEther, randomBytes } from "ethers";
 import { AbiCoder, Contract, ethers, ZeroAddress } from "ethers";
 import * as hre from "hardhat";
 import { it } from "mocha";
-import { Address, Chain, createWalletClient, encodeAbiParameters, encodeFunctionData, getAddress, Hash, http, isHex, publicActions, toHex } from "viem";
+import { Address, createWalletClient, encodeAbiParameters, encodeFunctionData, getAddress, Hash, http, isHex, publicActions, toHex } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { sendTransaction, waitForTransactionReceipt, writeContract } from "viem/actions";
 import { zksyncInMemoryNode } from "viem/chains";
 import { createZksyncSessionClient } from "zksync-account/client";
-import { createZksyncPasskeyClient } from "zksync-account/client/passkey";
 import { Provider, SmartAccount, types, utils, Wallet } from "zksync-ethers";
 
+import { createZksyncPasskeyClient } from "./sdk/PasskeyClient";
 import { create2, deployFactory, getProvider, getWallet, LOCAL_RICH_WALLETS, logInfo, RecordedResponse } from "./utils";
 
 // Token Config Interface definitions
@@ -377,7 +377,7 @@ describe("Spend limit validation", function () {
     // fix for .only deployment
     const proxyFix = await fixtures.getProxyAccountContract();
     assert(proxyFix != null, "should deploy proxy");
-    const localClient: Chain = {
+    const localClient = {
       ...zksyncInMemoryNode,
       rpcUrls: {
         default: {
@@ -426,41 +426,35 @@ describe("Spend limit validation", function () {
     const proxyAccountAddress = getAddress(proxyAccountReceipt.contractAddress!);
 
     assert.isDefined(proxyAccountAddress, "no address set");
-    const chainResponse = await waitForTransactionReceipt(richWallet, {
+    const fundAccountTransactionHash = await waitForTransactionReceipt(richWallet, {
       hash: await richWallet.sendTransaction({
         to: proxyAccountAddress,
         value: parseEther("0.05"),
       }),
     });
-    assert.equal(chainResponse.status, "success", "should fund without errors");
+    assert.equal(fundAccountTransactionHash.status, "success", "should fund without errors");
 
     const passkeyClient = createZksyncPasskeyClient({
       address: proxyAccountAddress as Address,
       chain: localClient,
-      key: "wallet",
-      name: "ZKsync Account Passkey Client",
       contracts: {
         validator: getAddress(passkeyModuleAddress),
         session: getAddress(sessionModuleAddress),
         accountFactory: factoryAddress,
         accountImplementation: getAddress(accountImpl),
       },
-      credentialPublicKey: await viemResponse.getXyPublicKey(),
-      /*
       signHash: async () => ({
         authenticatorData: viemResponse.authenticatorData,
         clientDataJSON: viemResponse.clientData,
         signature: viemResponse.b64SignedChallenge,
       }),
-      */
       transport: http(),
-      userDisplayName: "",
-      userName: "",
     });
 
     const sessionArtifact = JSON.parse(await promises.readFile("./artifacts-zk/src/validators/SessionPasskeySpendLimitModule.sol/SessionPasskeySpendLimitModule.json", "utf8"));
 
     const tokenConfig = await fixtures.getSessionSpendLimitModuleData(fixtures.viemSessionKeyWallet.address);
+
     const callData = encodeFunctionData({
       abi: sessionArtifact.abi,
       functionName: "setSessionKeys",
@@ -470,10 +464,8 @@ describe("Spend limit validation", function () {
     });
 
     const transactionHash = await sendTransaction(passkeyClient, {
-      chain: localClient,
-      to: getAddress(LOCAL_RICH_WALLETS[3].address),
+      to: passkeyClient.contracts.session,
       data: callData as Hash,
-      account: privateKeyToAccount(fixtures.viemSessionKeyWallet.privateKey as Hash),
     });
 
     const receipt = await waitForTransactionReceipt(passkeyClient, { hash: transactionHash });
@@ -491,7 +483,7 @@ describe("Spend limit validation", function () {
     });
 
     const sessionKeyTransactionHash = await sessionKeyClient.sendTransaction({
-      to: getAddress(LOCAL_RICH_WALLETS[3].address),
+      to: sessionKeyClient.contracts.session,
       data: callData as Hash,
     });
 
