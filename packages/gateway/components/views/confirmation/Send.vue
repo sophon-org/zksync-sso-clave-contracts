@@ -81,8 +81,10 @@ const { getClient } = useClientStore();
 const tokenAndAmount = computed(() => {
   const defaultValue = { amount: "0", token: { symbol: "ETH", decimals: 18, iconUrl: "/img/eth.svg" } };
   if (!request.value) return defaultValue;
-  if (!request.value.request.action?.params?.length) return defaultValue;
-  const { value } = request.value.request.action.params[0];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  if (!(request.value.content.action.params as any).length) return defaultValue;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { value } = (request.value.content.action.params as any)[0];
   if (!value) return defaultValue;
   return {
     amount: value,
@@ -91,21 +93,21 @@ const tokenAndAmount = computed(() => {
 });
 
 const to = computed<Hash | null>(() => {
-  if (!request.value?.request.action?.params?.length) return null;
-  const { to } = request.value.request.action.params[0];
+  if (!request.value?.content.action?.params?.length) return null;
+  const { to } = request.value.content.action.params[0];
   return to || null;
 });
 
 const totalFee = computed<bigint | null>(() => {
-  if (!request.value?.request.action?.params?.length) return null;
-  const { gas, gasPrice } = request.value.request.action.params[0];
+  if (!request.value?.content.action?.params?.length) return null;
+  const { gas, gasPrice } = request.value.content.action.params[0];
   return gas && gasPrice ? BigInt(gas) * BigInt(gasPrice) : null;
 });
 
 const confirmTransaction = async () => {
   respond(async () => {
-    const client = getClient({ chainId: request.value!.request.chainId });
-    const params = request.value!.request.action.params;
+    const client = getClient({ chainId: request.value!.content.chainId });
+    const params = request.value!.content.action.params;
     const transactionParams: { from: Hash; to: Hash; gas: Hash; gasPrice: Hash; type: Hash; value: Hash } = params[0];
     try {
       const transactionHash = await client.sendTransaction({

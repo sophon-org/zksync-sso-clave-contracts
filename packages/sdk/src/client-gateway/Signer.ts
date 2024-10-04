@@ -1,5 +1,4 @@
 import { type Address, type Chain, type Hash, hexToNumber, http, type RpcSchema as RpcSchemaGeneric, type SendTransactionParameters, type Transport } from "viem";
-import { privateKeyToAccount } from "viem/accounts";
 
 import { createZksyncSessionClient, type ZksyncAccountSessionClient } from "../client/index.js";
 import type { Communicator } from "../communicator/index.js";
@@ -100,10 +99,11 @@ export class Signer implements SignerInterface {
     const session = this.session;
     const chain = this.chain;
     const chainInfo = this.chainsInfo.find((e) => e.id === chain.id);
+    if (!this.account) throw new Error("Account is not set");
     if (!session) throw new Error("Session is not set");
     if (!chainInfo) throw new Error(`Chain info for ${chain} wasn't set during handshake`);
     this.walletClient = createZksyncSessionClient({
-      address: privateKeyToAccount(session.sessionKey).address,
+      address: this.account.address,
       contracts: chainInfo.contracts,
       chain,
       transport: this.transports[chain.id] || http(),
@@ -172,6 +172,12 @@ export class Signer implements SignerInterface {
 
   private async tryLocalHandling<TMethod extends Method>(request: RequestArguments<TMethod>): Promise<ExtractReturnType<TMethod> | undefined> {
     switch (request.method) {
+      case "eth_estimateGas": {
+        if (!this.walletClient || !this.session) return undefined;
+        const params = request.params as ExtractParams<"eth_estimateGas">;
+        const res = await this.walletClient.request({ method: request.method, params: params });
+        return res as ExtractReturnType<TMethod>;
+      }
       case "eth_sendTransaction": {
         if (!this.walletClient || !this.session) return undefined;
         const params = request.params as ExtractParams<"eth_sendTransaction">;
@@ -179,7 +185,6 @@ export class Signer implements SignerInterface {
         const res = await this.walletClient.sendTransaction(transactionRequest as unknown as SendTransactionParameters);
         return res as ExtractReturnType<TMethod>;
       }
-
       case "wallet_switchEthereumChain": {
         const params = request.params as ExtractParams<"wallet_switchEthereumChain">;
         const chainId = params[0].chainId;
