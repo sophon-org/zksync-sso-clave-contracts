@@ -19,7 +19,9 @@
     "lint:markdown": "markdownlint-cli2 '**/*.md'",
     "lint:spelling": "cspell .",
     "lint:prettier": "prettier --list-different .",
-    "registry": "pnpm nx local-registry"
+    "registry": "pnpm nx local-registry",
+    "dev:demo": "pnpm nx run-many -t serve -p gateway demo-app",
+    "graph": "pnpm nx graph"
   },
   "devDependencies": {
     "@commitlint/cli": "19.5.0",

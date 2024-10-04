@@ -23,7 +23,7 @@ This monorepo is comprised of the following packages/products:
 2. Start up the Verdaccio proxy registry.
 
    ```bash
-   pnpm nx local-registry
+   pnpm run registry
    ```
 
 3. Publish the SDK package to your proxy registry.
