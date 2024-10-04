@@ -1,3 +1,13 @@
 {
-  "name": "demo-app"
+  "name": "demo-app",
+  "targets": {
+    "dev": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "packages/demo-app",
+        "command": "PORT=3004 nuxt dev"
+      },
+      "dependsOn": []
+    }
+  }
 }
