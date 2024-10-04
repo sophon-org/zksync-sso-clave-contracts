@@ -1,38 +1,36 @@
 <template>
-  <div class="h-full flex flex-col justify-center pb-8">
-    <div class="mx-auto mt-6 w-20 h-20 rounded-full bg-neutral-800">
-      <img
-        v-if="appMeta && appMeta.icon"
-        :src="appMeta.icon"
-        :alt="appMeta.name"
-        class="h-full w-full object-cover rounded-full"
-      >
+  <div class="h-full flex flex-col justify-center px-4">
+    <div class="h-[40%] justify-center items-center flex flex-col">
+      <div class="mx-auto mt-6 w-20 h-20 rounded-full bg-neutral-800">
+        <img
+          v-if="appMeta && appMeta.icon"
+          :src="appMeta.icon"
+          :alt="appMeta.name"
+          class="h-full w-full object-cover rounded-full"
+        >
+      </div>
+      <h1 class="text-white text-center text-2xl mt-4 font-semibold">
+        Connect to {{ appMeta?.name }}
+      </h1>
     </div>
-    <h1 class="text-white text-center text-2xl mt-4 font-semibold">
-      Connect to {{ appMeta?.name }}
-    </h1>
 
     <div
       v-if="screen === 'choose-auth-method'"
-      class="form-content"
+      class="flex flex-col gap-4 mt-8 py-8"
     >
-      <CommonButton
-        class="w-full"
+      <ZkButton @click="screen = 'login'">
+        Log in
+      </ZkButton>
+      <ZkButton
+        type="secondary"
         @click="screen = 'register'"
       >
-        Create account
-      </CommonButton>
-      <CommonButton
-        class="w-full"
-        variant="neutral"
-        @click="screen = 'login'"
-      >
-        I already have account
-      </CommonButton>
+        Create new account
+      </ZkButton>
     </div>
     <form
       v-else-if="screen === 'register' || screen === 'login'"
-      class="form-content"
+      class="flex flex-col gap-4 mt-8"
       @submit.prevent="onFormSubmit()"
     >
       <div>
@@ -88,7 +86,7 @@
       </CommonButton>
       <div
         v-if="secondaryButton"
-        class="prevent-content-shift"
+        class="h-0 -mb-4"
       >
         <CommonButton
           variant="transparent"
@@ -185,7 +183,7 @@ const { inProgress: loginInProgress, execute: connectToAccount } = useAsync(asyn
       challenge: new Uint8Array(32),
       userVerification: "discouraged",
     },
-  });
+  }) as PublicKeyCredential | null;
   if (!credential) throw new Error("No registered passkeys");
 
   // eslint-disable-next-line no-console
@@ -229,13 +227,3 @@ const onFormSubmit = async () => {
   }
 };
 </script>
-
-<style lang="scss" scoped>
-.form-content {
-  @apply flex flex-col gap-4 mt-8;
-
-  .prevent-content-shift {
-    @apply h-0 -mb-4;
-  }
-}
-</style>

@@ -17,7 +17,6 @@ export class PopupCommunicator implements Communicator {
   postMessage = async (message: Message) => {
     const popup = await this.waitForPopupLoaded();
     popup.postMessage(message, this.url.origin);
-    console.log("Post message", message);
   };
 
   postRequestAndWaitForResponse = async <M extends Message>(
@@ -35,7 +34,6 @@ export class PopupCommunicator implements Communicator {
 
         const message = event.data;
         if (predicate(message)) {
-          console.log("Receive message", message);
           resolve(message);
           window.removeEventListener("message", listener);
           this.listeners.delete(listener);

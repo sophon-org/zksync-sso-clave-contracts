@@ -113,7 +113,7 @@ export const setSessionKeys = async <
     args: [
       args.sessions.map((sessionData) => ({
         sessionKey: sessionData.sessionKey,
-        expiresAt: BigInt(Math.floor(new Date(sessionData.expiresAt).getTime() / 1000)),
+        expiresAt: BigInt(Math.floor(new Date(+sessionData.expiresAt).getTime() / 1000)),
         spendLimits: Object.entries(sessionData.spendLimit).map(([tokenAddress, limit]) => ({
           tokenAddress: tokenAddress as Address,
           limit: BigInt(limit),

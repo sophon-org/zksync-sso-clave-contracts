@@ -45,6 +45,9 @@ export const useFetchAccountData = (_username: MaybeRef<string>, _chainId: Maybe
     execute: fetchAccountData,
   } = useAsync(async () => {
     const usernameToFetch = username.value;
+    if (username.value === "error") {
+      throw new Error("Testing error. Use a different username.");
+    }
     if (usernameToFetch === accountData.value?.username) return;
     try {
       const data = await fetchAccountDataByUsername(usernameToFetch);
