@@ -10,7 +10,7 @@ import { privateKeyToAccount } from "viem/accounts";
 import { sendTransaction, waitForTransactionReceipt, writeContract } from "viem/actions";
 import { zksyncInMemoryNode } from "viem/chains";
 import { createZksyncSessionClient } from "zksync-account/client";
-import { Provider, SmartAccount, types, Wallet } from "zksync-ethers";
+import { Provider, SmartAccount, types, utils, Wallet } from "zksync-ethers";
 
 import { createZksyncPasskeyClient } from "./sdk/PasskeyClient";
 import { create2, deployFactory, getProvider, getWallet, LOCAL_RICH_WALLETS, logInfo, RecordedResponse } from "./utils";
@@ -78,6 +78,15 @@ export class ContractFixtures {
     return this._webauthnValidatorModule;
   }
 
+  private _passkeyModuleAddress: Address;
+  async getPasskeyModuleAddress() {
+    if (!this._passkeyModuleAddress) {
+      const passkeyModule = await this.getWebAuthnVerifierContract();
+      this._passkeyModuleAddress = getAddress(await passkeyModule.getAddress());
+    }
+    return this._passkeyModuleAddress;
+  }
+
   private _accountImplContract: Contract;
   // wraps the clave account
   async getAccountImplContract() {
@@ -105,6 +114,82 @@ export class ContractFixtures {
     }
     return this._proxyAccountContract;
   }
+
+  // need to store values that works on equal for use in map to memoize results
+  private _fundedProxyAccountAddress: Map<string, Address> = new Map();
+  async getFundedProxyAccount(salt: Uint8Array, response: RecordedResponse, initialSessionKeyWallet: Wallet) {
+    const uniqueAccountKey = salt.toString() + response.passkeyBytes.toString() + initialSessionKeyWallet.address;
+    const cachedProxyAddress = this._fundedProxyAccountAddress.get(uniqueAccountKey);
+    if (cachedProxyAddress) {
+      return cachedProxyAddress;
+    }
+    const passkeyModule = await this.getWebAuthnVerifierContract();
+    const passkeyModuleAddress = await passkeyModule.getAddress();
+    const sessionModuleContract = await this.getSessionSpendLimitContract();
+    const sessionModuleAddress = await sessionModuleContract.getAddress();
+    const factory = await this.getAaFactory();
+    const accountImpl = await this.getAccountImplAddress();
+    const proxyFix = await this.getProxyAccountContract();
+    assert(proxyFix != null, "should deploy proxy");
+
+    const sessionModuleData = this.abiCoder.encode(
+      ["address", "bytes"],
+      [sessionModuleAddress, await this.getEncodedSessionModuleData(initialSessionKeyWallet.address)]);
+    const passkeyModuleData = this.abiCoder.encode(
+      ["address", "bytes"],
+      [passkeyModuleAddress, await this.getEncodedPasskeyModuleData(response)]);
+    const proxyAccount = await factory.deployProxy7579Account(
+      salt,
+      accountImpl,
+      uniqueAccountKey,
+      [sessionModuleData, passkeyModuleData],
+      [],
+    );
+
+    const proxyAccountReceipt = await proxyAccount.wait();
+    const proxyAccountAddress = proxyAccountReceipt.contractAddress;
+    assert.isDefined(proxyAccountAddress, "no address set");
+    await (
+      await this.wallet.sendTransaction({
+        to: proxyAccountAddress,
+        value: parseEther("0.002"),
+      })
+    ).wait();
+    const accountBalance = await this.wallet.provider.getBalance(proxyAccountAddress);
+    assert(accountBalance > BigInt(0), "account balance should be positive");
+
+    this._fundedProxyAccountAddress.set(uniqueAccountKey, proxyAccountAddress);
+    return getAddress(proxyAccountAddress);
+  }
+
+  async passkeySigner(hash: BytesLike, secret: RecordedResponse, provider?: null | Provider) {
+    console.debug("(passkey)hash", hash, "ready", provider?.ready);
+    const fatSignature = this.abiCoder.encode(["bytes", "bytes", "bytes32[2]"], [
+      secret.authDataBuffer,
+      secret.clientDataBuffer,
+      [secret.rs.r, secret.rs.s],
+    ]);
+
+    // clave expects signature + validator address + validator hook data
+    const fullFormattedSig = this.abiCoder.encode(["bytes", "address", "bytes[]"], [
+      fatSignature,
+      await this.getPasskeyModuleAddress(),
+      [],
+    ]);
+
+    return Promise.resolve<string>(fullFormattedSig);
+  };
+
+  async sessionKeySigner(hash: BytesLike, secret: ethers.SigningKey, provider?: null | Provider) {
+    const sessionKeySignature = secret.sign(hash);
+    console.debug("(sessionkey)hash", hash, "secretKey", secret, "provider.ready", provider?.ready);
+    const spendLimitModule = await this.getSessionSpendLimitContract();
+    return Promise.resolve<string>(this.abiCoder.encode(["bytes", "address", "bytes[]"], [
+      sessionKeySignature.serialized,
+      await spendLimitModule.getAddress(),
+      [],
+    ]));
+  };
 
   async getSessionSpendLimitModuleData(sessionKey: string): Promise<SessionKey> {
     return {
@@ -172,261 +257,312 @@ describe("Spend limit validation", function () {
     assert(proxyAccountContract != null, "No account proxy deployed");
   });
 
-  it("should deploy proxy account via factory", async () => {
-    const aaFactoryContract = await fixtures.getAaFactory();
-    assert(aaFactoryContract != null, "No AA Factory deployed");
+  describe("using ethers", () => {
+    it("should deploy proxy account via factory", async () => {
+      const aaFactoryContract = await fixtures.getAaFactory();
+      assert(aaFactoryContract != null, "No AA Factory deployed");
 
-    const spendLimitModule = await fixtures.getSessionSpendLimitContract();
-    assert(spendLimitModule != null, "no module available");
+      const spendLimitModule = await fixtures.getSessionSpendLimitContract();
+      assert(spendLimitModule != null, "no module available");
 
-    const passkeyModule = await fixtures.getWebAuthnVerifierContract();
-    assert(passkeyModule != null, "no verifier available");
+      const passkeyModule = await fixtures.getWebAuthnVerifierContract();
+      assert(passkeyModule != null, "no verifier available");
 
-    const forceDeploy = await fixtures.getProxyAccountContract();
-    assert(forceDeploy != null, "proxy fails");
+      const forceDeploy = await fixtures.getProxyAccountContract();
+      assert(forceDeploy != null, "proxy fails");
 
-    const sessionKeyWallet = Wallet.createRandom(getProvider());
-    const webauthModuleData = abiCoder.encode(
-      ["address", "bytes"],
-      [await passkeyModule.getAddress(), await fixtures.getEncodedPasskeyModuleData(ethersResponse)]);
-    const sessionSpendModuleData = abiCoder.encode(
-      ["address", "bytes"],
-      [await spendLimitModule.getAddress(), await fixtures.getEncodedSessionModuleData(sessionKeyWallet.address)]);
-    const proxyAccount = await aaFactoryContract.deployProxy7579Account(
-      randomBytes(32),
-      await fixtures.getAccountImplAddress(),
-      "testProxyAccount",
-      [webauthModuleData, sessionSpendModuleData],
-      [],
-    );
-    const proxyAccountTxReceipt = await proxyAccount.wait();
-
-    // Extract and decode the return address from the return data/logs
-    // Assuming the return data is in the first log's data field
-    //
-    // Alternatively, we could emit an event like:
-    //      event ProxyAccountDeployed(address accountAddress)
-    //
-    // Then, this would be more precise with decodeEventLog()
-    const newAddress = abiCoder.decode(["address"], proxyAccountTxReceipt.logs[0].data);
-    const proxyAccountAddress = newAddress[0];
-
-    expect(proxyAccountAddress, "the proxy account location via logs").to.not.equal(ZeroAddress, "be a valid address");
-    expect(proxyAccountTxReceipt.contractAddress, "the proxy account location via return").to.not.equal(ZeroAddress, "be a non-zero address");
-  });
-
-  it("should add passkey and verifier to account", async () => {
-    //
-    // PART ONE: Initialize ClaveAccount implemention, verifier module, spendlimit module, and factory
-    //
-    const aaFactoryContract = await fixtures.getAaFactory();
-    assert(aaFactoryContract != null, "No AA Factory deployed");
-
-    const validatorModule = await fixtures.getWebAuthnVerifierContract();
-    const expensiveVerifierAddress = await validatorModule.getAddress();
-
-    const sessionModuleAddress = await (await fixtures.getSessionSpendLimitContract()).getAddress();
-    //
-    // PART TWO: Install Module with passkey (salt needs to be random to not collide with other tests)
-    //
-    const sessionKeyWallet = Wallet.createRandom(getProvider());
-    const passkeyModuleData = abiCoder.encode(
-      ["address", "bytes"],
-      [expensiveVerifierAddress, await fixtures.getEncodedPasskeyModuleData(ethersResponse)]);
-    const sessionModuleData = abiCoder.encode(
-      ["address", "bytes"],
-      [sessionModuleAddress, await fixtures.getEncodedSessionModuleData(sessionKeyWallet.address)]);
-    const proxyAccount = await aaFactoryContract.deployProxy7579Account(
-      randomBytes(32),
-      await fixtures.getAccountImplAddress(),
-      "passkeyVerifierAccount",
-      [passkeyModuleData],
-      [sessionModuleData],
-    );
-    const proxyAccountTxReceipt = await proxyAccount.wait();
-
-    assert(proxyAccountTxReceipt.contractAddress != ethers.ZeroAddress, "valid proxy account address");
-  });
-
-  it("should add a new session key with ethers", async () => {
-    const passkeyModule = await fixtures.getWebAuthnVerifierContract();
-    const passkeyModuleAddress = await passkeyModule.getAddress();
-    const sessionModuleContract = await fixtures.getSessionSpendLimitContract();
-    const sessionModuleAddress = await sessionModuleContract.getAddress();
-    const factory = await fixtures.getAaFactory();
-    const accountImpl = await fixtures.getAccountImplAddress();
-    const proxyFix = await fixtures.getProxyAccountContract();
-    assert(proxyFix != null, "should deploy proxy");
-
-    // specfially empty wallet to ensure that it doesn't pay like an EOA
-    const initialSessionKeyWallet: Wallet = getWallet("0xf51513036f18ef46508ddb0fff7aa153260ff76721b2f53c33fc178152fb481e");
-    const sessionModuleData = abiCoder.encode(
-      ["address", "bytes"],
-      [sessionModuleAddress, await fixtures.getEncodedSessionModuleData(initialSessionKeyWallet.address)]);
-    const passkeyModuleData = abiCoder.encode(
-      ["address", "bytes"],
-      [await passkeyModule.getAddress(), await fixtures.getEncodedPasskeyModuleData(ethersResponse)]);
-    const proxyAccount = await factory.deployProxy7579Account(
-      fixtures.ethersStaticSalt,
-      accountImpl,
-      "ethersSpendLimitAccount",
-      [sessionModuleData, passkeyModuleData],
-      [],
-    );
-
-    const proxyAccountReceipt = await proxyAccount.wait();
-    const proxyAccountAddress = proxyAccountReceipt.contractAddress;
-    assert.isDefined(proxyAccountAddress, "no address set");
-    await (
-      await fixtures.wallet.sendTransaction({
-        to: proxyAccountAddress,
-        value: parseEther("0.002"),
-      })
-    ).wait();
-
-    const passkeySigner = async (hash: BytesLike, secret: RecordedResponse, provider?: null | Provider) => {
-      console.debug("(passkey)hash", hash, "secret", secret, "provider.ready", provider?.ready);
-      const fatSignature = abiCoder.encode(["bytes", "bytes", "bytes32[2]"], [
-        secret.authDataBuffer,
-        secret.clientDataBuffer,
-        [secret.rs.r, secret.rs.s],
-      ]);
-
-      // clave expects signature + validator address + validator hook data
-      const fullFormattedSig = abiCoder.encode(["bytes", "address", "bytes[]"], [
-        fatSignature,
-        passkeyModuleAddress,
+      const sessionKeyWallet = Wallet.createRandom(getProvider());
+      const webauthModuleData = abiCoder.encode(
+        ["address", "bytes"],
+        [await passkeyModule.getAddress(), await fixtures.getEncodedPasskeyModuleData(ethersResponse)]);
+      const sessionSpendModuleData = abiCoder.encode(
+        ["address", "bytes"],
+        [await spendLimitModule.getAddress(), await fixtures.getEncodedSessionModuleData(sessionKeyWallet.address)]);
+      const proxyAccount = await aaFactoryContract.deployProxy7579Account(
+        randomBytes(32),
+        await fixtures.getAccountImplAddress(),
+        "testProxyAccount",
+        [webauthModuleData, sessionSpendModuleData],
         [],
-      ]);
+      );
+      const proxyAccountTxReceipt = await proxyAccount.wait();
 
-      return Promise.resolve<string>(fullFormattedSig);
-    };
+      // Extract and decode the return address from the return data/logs
+      // Assuming the return data is in the first log's data field
+      //
+      // Alternatively, we could emit an event like:
+      //      event ProxyAccountDeployed(address accountAddress)
+      //
+      // Then, this would be more precise with decodeEventLog()
+      const newAddress = abiCoder.decode(["address"], proxyAccountTxReceipt.logs[0].data);
+      const proxyAccountAddress = newAddress[0];
 
-    const passkeySmartAccount = new SmartAccount({
-      payloadSigner: passkeySigner,
-      address: proxyAccountAddress,
-      secret: ethersResponse,
-    }, getProvider());
-
-    // we just need a stable wallet address, the fact that this is a rich wallet shouldn't matter
-    const extraSessionKeyWallet: Wallet = getWallet(LOCAL_RICH_WALLETS[4].privateKey);
-    const tokenData = await fixtures.getSessionSpendLimitModuleData(extraSessionKeyWallet.address);
-    const callData = sessionModuleContract.interface.encodeFunctionData("setSessionKeys", [[tokenData]]);
-    const aaTx = {
-      from: proxyAccountAddress,
-      to: sessionModuleAddress as Address,
-      data: callData,
-      gasPrice: await provider.getGasPrice(),
-      customData: {} as types.Eip712Meta,
-      gasLimit: BigInt(0),
-    };
-    aaTx["gasLimit"] = await provider.estimateGas(aaTx);
-
-    const passkeySignedTransaction = await passkeySmartAccount.signTransaction(aaTx);
-    assert(passkeySignedTransaction != null, "valid passkey transaction to sign");
-
-    const passkeyTransactionResponse = await provider.broadcastTransaction(passkeySignedTransaction);
-    const passkeyTransactionRecipt = await passkeyTransactionResponse.wait();
-    assert.equal(passkeyTransactionRecipt.status, 1, "failed passkey transaction");
-  });
-
-  // (this will break when we implement permissions)
-  it("can currently add a session key with another session key", async () => {
-    const sessionModuleContract = await fixtures.getSessionSpendLimitContract();
-    const sessionModuleAddress = await sessionModuleContract.getAddress();
-    const factory = await fixtures.getAaFactory();
-    const accountImpl = await fixtures.getAccountImplAddress();
-    const proxyFix = await fixtures.getProxyAccountContract();
-    assert(proxyFix != null, "should deploy proxy");
-
-    // specfially empty wallet to ensure that it doesn't pay like an EOA
-    const initialSessionKeyWallet = Wallet.createRandom(getProvider());
-    const sessionModuleData = abiCoder.encode(
-      ["address", "bytes"],
-      [sessionModuleAddress, await fixtures.getEncodedSessionModuleData(initialSessionKeyWallet.address)]);
-    const proxyAccount = await factory.deployProxy7579Account(
-      randomBytes(32),
-      accountImpl,
-      "ethersSessionKeyAccount",
-      [sessionModuleData],
-      [],
-    );
-
-    const proxyAccountReceipt = await proxyAccount.wait();
-    const proxyAccountAddress = proxyAccountReceipt.contractAddress;
-    assert.isDefined(proxyAccountAddress, "no address set");
-    await (
-      await fixtures.wallet.sendTransaction({
-        to: proxyAccountAddress,
-        value: parseEther("0.002"),
-      })
-    ).wait();
-
-    const extraSessionKeyWallet = Wallet.createRandom(getProvider());
-    const tokenData = await fixtures.getSessionSpendLimitModuleData(extraSessionKeyWallet.address);
-    const callData = sessionModuleContract.interface.encodeFunctionData("setSessionKeys", [[tokenData]]);
-    const aaTx = {
-      from: proxyAccountAddress,
-      to: sessionModuleAddress as Address,
-      data: callData,
-      gasPrice: await provider.getGasPrice(),
-      customData: {} as types.Eip712Meta,
-      gasLimit: BigInt(0),
-    };
-    aaTx["gasLimit"] = await provider.estimateGas(aaTx);
-
-    const sessionKeySigner = (hash: BytesLike, secret: ethers.SigningKey, provider?: null | Provider) => {
-      const sessionKeySignature = secret.sign(hash);
-      console.debug("(sessionkey)hash", hash, "secretKey", secret, "provider.ready", provider?.ready);
-      return Promise.resolve<string>(abiCoder.encode(["bytes", "address", "bytes[]"], [
-        sessionKeySignature.serialized,
-        sessionModuleAddress,
-        [],
-      ]));
-    };
-    aaTx["nonce"] = await provider.getTransactionCount(proxyAccountAddress);
-    aaTx["gasLimit"] = await provider.estimateGas(aaTx);
-    const sessionKeySmartAccount = new SmartAccount({
-      payloadSigner: sessionKeySigner,
-      address: proxyAccountAddress,
-      secret: initialSessionKeyWallet.signingKey,
-    }, getProvider());
-
-    const sessionKeySignedTransaction = await sessionKeySmartAccount.signTransaction(aaTx);
-    assert(sessionKeySignedTransaction != null, "valid session key transaction to sign");
-
-    const sessionKeyTransactionResponse = await provider.broadcastTransaction(sessionKeySignedTransaction);
-    const sessionKeyTransactionRecipt = await sessionKeyTransactionResponse.wait();
-    assert.equal(sessionKeyTransactionRecipt.status, 1, "failed session key transaction");
-  });
-
-  it("should be able to use a session key to perform a transfer", async () => {
-    const sessionModuleContract = await fixtures.getSessionSpendLimitContract();
-    const sessionModuleAddress = await sessionModuleContract.getAddress();
-    const sessionKeySigner = (hash: BytesLike, secret: ethers.SigningKey, provider?: null | Provider) => {
-      const sessionKeySignature = secret.sign(hash);
-      console.debug("(sessionkey)hash", hash, "secretKey", secret, "provider.ready", provider?.ready);
-      return Promise.resolve<string>(abiCoder.encode(["bytes", "address", "bytes[]"], [
-        sessionKeySignature.serialized,
-        sessionModuleAddress,
-        [],
-      ]));
-    };
-
-    const proxyAccount = await fixtures.getProxyAccountContract();
-    const proxyAccountAddress = await proxyAccount.getAddress();
-    const sessionKeySmartAccount = new SmartAccount({
-      payloadSigner: sessionKeySigner,
-      address: proxyAccountAddress,
-      secret: Wallet.createRandom().signingKey,
-    }, getProvider());
-    const transferTx = await sessionKeySmartAccount.sendTransaction({
-      from: proxyAccountAddress,
-      to: Wallet.createRandom().address,
-      value: parseEther("0.00001"),
+      expect(proxyAccountAddress, "the proxy account location via logs").to.not.equal(ZeroAddress, "be a valid address");
+      expect(proxyAccountTxReceipt.contractAddress, "the proxy account location via return").to.not.equal(ZeroAddress, "be a non-zero address");
     });
-    const sessionKeyTransferReceipt = await transferTx.wait();
-    assert.equal(sessionKeyTransferReceipt.status, 1, "failed session key transfer");
+
+    it("should add passkey and verifier to account", async () => {
+      //
+      // PART ONE: Initialize ClaveAccount implemention, verifier module, spendlimit module, and factory
+      //
+      const aaFactoryContract = await fixtures.getAaFactory();
+      assert(aaFactoryContract != null, "No AA Factory deployed");
+
+      const validatorModule = await fixtures.getWebAuthnVerifierContract();
+      const expensiveVerifierAddress = await validatorModule.getAddress();
+
+      const sessionModuleAddress = await (await fixtures.getSessionSpendLimitContract()).getAddress();
+      //
+      // PART TWO: Install Module with passkey (salt needs to be random to not collide with other tests)
+      //
+      const sessionKeyWallet = Wallet.createRandom(getProvider());
+      const passkeyModuleData = abiCoder.encode(
+        ["address", "bytes"],
+        [expensiveVerifierAddress, await fixtures.getEncodedPasskeyModuleData(ethersResponse)]);
+      const sessionModuleData = abiCoder.encode(
+        ["address", "bytes"],
+        [sessionModuleAddress, await fixtures.getEncodedSessionModuleData(sessionKeyWallet.address)]);
+      const proxyAccount = await aaFactoryContract.deployProxy7579Account(
+        randomBytes(32),
+        await fixtures.getAccountImplAddress(),
+        "passkeyVerifierAccount",
+        [passkeyModuleData],
+        [sessionModuleData],
+      );
+      const proxyAccountTxReceipt = await proxyAccount.wait();
+
+      assert(proxyAccountTxReceipt.contractAddress != ethers.ZeroAddress, "valid proxy account address");
+    });
+    it("should add a new session key with a passkey", async () => {
+      const initialSessionKeyWallet: Wallet = getWallet("0xf51513036f18ef46508ddb0fff7aa153260ff76721b2f53c33fc178152fb481e");
+      const proxyAccountAddress = await fixtures.getFundedProxyAccount(
+        fixtures.ethersStaticSalt,
+        ethersResponse,
+        initialSessionKeyWallet);
+
+      const passkeySmartAccount = new SmartAccount({
+        payloadSigner: fixtures.passkeySigner.bind(fixtures),
+        address: proxyAccountAddress,
+        secret: ethersResponse,
+      }, getProvider());
+
+      // we just need a stable wallet address, the fact that this is a rich wallet shouldn't matter
+      const extraSessionKeyWallet: Wallet = getWallet(LOCAL_RICH_WALLETS[4].privateKey);
+      const tokenData = await fixtures.getSessionSpendLimitModuleData(extraSessionKeyWallet.address);
+      const sessionModuleContract = await fixtures.getSessionSpendLimitContract();
+      const callData = sessionModuleContract.interface.encodeFunctionData("setSessionKeys", [[tokenData]]);
+      const aaTx = {
+        from: proxyAccountAddress,
+        to: getAddress(await sessionModuleContract.getAddress()),
+        data: callData,
+        gasPrice: await provider.getGasPrice(),
+        customData: {} as types.Eip712Meta,
+        gasLimit: BigInt(0),
+      };
+      aaTx["gasLimit"] = await provider.estimateGas(aaTx);
+
+      const passkeySignedTransaction = await passkeySmartAccount.signTransaction(aaTx);
+      assert(passkeySignedTransaction != null, "valid passkey transaction to sign");
+
+      const passkeyTransactionResponse = await provider.broadcastTransaction(passkeySignedTransaction);
+      const passkeyTransactionRecipt = await passkeyTransactionResponse.wait();
+      assert.equal(passkeyTransactionRecipt.status, 1, "failed passkey transaction");
+    });
+
+    it("might be able to add a session key with passkey, then a session key", async () => {
+      const initialSessionKeyWallet = getWallet("0xae3f083edae2d6fb1dfeaa6952ea260596eb67f9f26f4e17ca7d6916479ff9fa");
+      const salt = new Uint8Array([
+        200, 241, 161, 186, 101, 105, 79,
+        240, 98, 64, 50, 124, 168, 204,
+        200, 71, 214, 169, 195, 118, 199,
+        60, 140, 111, 128, 47, 32, 21,
+        170, 177, 174, 166,
+      ]);
+      const proxyAccountAddress = await fixtures.getFundedProxyAccount(
+        salt,
+        ethersResponse,
+        initialSessionKeyWallet);
+
+      const passkeySmartAccount = new SmartAccount({
+        payloadSigner: fixtures.passkeySigner.bind(fixtures),
+        address: proxyAccountAddress,
+        secret: ethersResponse,
+      }, getProvider());
+
+      // we just need a stable wallet address, the fact that this is a rich wallet shouldn't matter
+      const extraSessionKeyWallet: Wallet = getWallet("0x97006fa3cfc8f133ae17d8f0c9a815a8224246b0c667bf08b7a122f5be858c34");
+      const tokenData = await fixtures.getSessionSpendLimitModuleData(extraSessionKeyWallet.address);
+
+      const sessionModuleContract = await fixtures.getSessionSpendLimitContract();
+      const callData = sessionModuleContract.interface.encodeFunctionData("setSessionKeys", [[tokenData]]);
+      const transactionForPasskey = {
+        from: proxyAccountAddress,
+        to: getAddress(await sessionModuleContract.getAddress()),
+        data: callData,
+        gasPrice: await provider.getGasPrice(),
+        customData: {} as types.Eip712Meta,
+        gasLimit: BigInt(0),
+      };
+      transactionForPasskey["gasLimit"] = await provider.estimateGas(transactionForPasskey);
+
+      const passkeySignedTransaction = await passkeySmartAccount.signTransaction(transactionForPasskey);
+      assert(passkeySignedTransaction != null, "valid passkey transaction to sign");
+
+      const passkeyTransactionResponse = await provider.broadcastTransaction(passkeySignedTransaction);
+      const passkeyTransactionRecipt = await passkeyTransactionResponse.wait();
+      assert.equal(passkeyTransactionRecipt.status, 1, "failed passkey transaction");
+
+      // now the part that fails for a different novel reason?
+      const thirdSessionKeyWallet = Wallet.createRandom(getProvider());
+      const secondExtraSessionKeyData = await fixtures.getSessionSpendLimitModuleData(thirdSessionKeyWallet.address);
+      const thirdSessionKeyCallData = sessionModuleContract.interface.encodeFunctionData("setSessionKeys", [[secondExtraSessionKeyData]]);
+      const sessionModuleAddress = await sessionModuleContract.getAddress();
+      const transactionForSessionKey = {
+        from: proxyAccountAddress,
+        to: getAddress(sessionModuleAddress),
+        data: thirdSessionKeyCallData,
+        gasPrice: await provider.getGasPrice(),
+        customData: {} as types.Eip712Meta,
+        gasLimit: BigInt(0),
+      };
+      transactionForSessionKey["gasLimit"] = await provider.estimateGas(transactionForSessionKey);
+
+      transactionForSessionKey["nonce"] = await provider.getTransactionCount(proxyAccountAddress);
+      transactionForSessionKey["gasLimit"] = await provider.estimateGas(transactionForSessionKey);
+      const sessionKeySmartAccount = new SmartAccount({
+        payloadSigner: fixtures.sessionKeySigner.bind(fixtures),
+        address: proxyAccountAddress,
+        secret: initialSessionKeyWallet.signingKey,
+      }, getProvider());
+
+      const sessionKeySignedTransaction = await sessionKeySmartAccount.signTransaction(transactionForSessionKey);
+      assert(sessionKeySignedTransaction != null, "valid session key transaction to sign");
+
+      const sessionKeyTransactionResponse = await provider.broadcastTransaction(sessionKeySignedTransaction);
+      const sessionKeyTransactionRecipt = await sessionKeyTransactionResponse.wait();
+      assert.equal(sessionKeyTransactionRecipt.status, 1, "failed session key transaction");
+    });
+
+    // (this will break when we implement permissions)
+    it("can currently add a session key with another session key", async () => {
+      const sessionModuleContract = await fixtures.getSessionSpendLimitContract();
+      const sessionModuleAddress = await sessionModuleContract.getAddress();
+      const factory = await fixtures.getAaFactory();
+      const accountImpl = await fixtures.getAccountImplAddress();
+      const proxyFix = await fixtures.getProxyAccountContract();
+      assert(proxyFix != null, "should deploy proxy");
+
+      // specfially empty wallet to ensure that it doesn't pay like an EOA
+      const initialSessionKeyWallet = Wallet.createRandom(getProvider());
+      const sessionModuleData = abiCoder.encode(
+        ["address", "bytes"],
+        [sessionModuleAddress, await fixtures.getEncodedSessionModuleData(initialSessionKeyWallet.address)]);
+      const salt = new Uint8Array([
+        200, 241, 161, 186, 101, 105, 70,
+        240, 98, 64, 50, 124, 168, 200,
+        200, 71, 214, 169, 195, 118, 190,
+        60, 140, 111, 128, 47, 32, 20,
+        170, 177, 174, 160,
+      ]);
+      const proxyAccount = await factory.deployProxy7579Account(
+        salt,
+        accountImpl,
+        "sessionKeyAddingAnotherSessionKey",
+        [sessionModuleData],
+        [],
+      );
+
+      const proxyAccountReceipt = await proxyAccount.wait();
+      const proxyAccountAddress = proxyAccountReceipt.contractAddress;
+      assert.isDefined(proxyAccountAddress, "no address set");
+      await (
+        await fixtures.wallet.sendTransaction({
+          to: proxyAccountAddress,
+          value: parseEther("0.002"),
+        })
+      ).wait();
+
+      const accountBalance = await provider.getBalance(proxyAccountAddress);
+      assert(accountBalance > BigInt(0), "account balance needs to be positive");
+
+      const extraSessionKeyWallet = Wallet.createRandom(getProvider());
+      const tokenData = await fixtures.getSessionSpendLimitModuleData(extraSessionKeyWallet.address);
+      const callData = sessionModuleContract.interface.encodeFunctionData("setSessionKeys", [[tokenData]]);
+      const aaTx = {
+        from: proxyAccountAddress,
+        to: sessionModuleAddress as Address,
+        data: callData,
+        gasPrice: await provider.getGasPrice(),
+        customData: {} as types.Eip712Meta,
+        gasLimit: BigInt(0),
+      };
+      aaTx["gasLimit"] = await provider.estimateGas(aaTx);
+
+      aaTx["nonce"] = await provider.getTransactionCount(proxyAccountAddress);
+      aaTx["gasLimit"] = await provider.estimateGas(aaTx);
+      const sessionKeySmartAccount = new SmartAccount({
+        payloadSigner: fixtures.sessionKeySigner.bind(fixtures),
+        address: proxyAccountAddress,
+        secret: initialSessionKeyWallet.signingKey,
+      }, getProvider());
+
+      const sessionKeySignedTransaction = await sessionKeySmartAccount.signTransaction(aaTx);
+      assert(sessionKeySignedTransaction != null, "valid session key transaction to sign");
+
+      const sessionKeyTransactionResponse = await provider.broadcastTransaction(sessionKeySignedTransaction);
+      const sessionKeyTransactionRecipt = await sessionKeyTransactionResponse.wait();
+      assert.equal(sessionKeyTransactionRecipt.status, 1, "failed session key transaction");
+    });
+
+    it("should be able to use a session key to perform a transfer", async () => {
+      const proxyAccountAddress = await fixtures.getFundedProxyAccount(randomBytes(32), ethersResponse, getWallet(Wallet.createRandom().privateKey));
+      const sessionKeySmartAccount = new SmartAccount({
+        payloadSigner: fixtures.sessionKeySigner.bind(fixtures),
+        address: proxyAccountAddress,
+        secret: Wallet.createRandom().signingKey,
+      }, getProvider());
+      const transferTx = await sessionKeySmartAccount.transfer({
+        token: utils.ETH_ADDRESS,
+        to: Wallet.createRandom().address,
+        amount: ethers.parseEther("0.01"),
+      });
+      /*
+      const transferTx = await sessionKeySmartAccount.sendTransaction({
+        from: proxyAccountAddress,
+        to: Wallet.createRandom().address,
+        value: parseEther("0.00001"),
+      });
+      */
+      const sessionKeyTransferReceipt = await transferTx.wait();
+      assert.equal(sessionKeyTransferReceipt.status, 1, "failed session key transfer");
+    });
+
+    it("should be able to use a passkey to perform a transfer", async () => {
+      const salt = new Uint8Array([
+        200, 240, 161, 186, 101, 105, 70,
+        240, 90, 64, 50, 124, 168, 200,
+        200, 70, 214, 169, 195, 118, 190,
+        60, 140, 111, 128, 47, 32, 20,
+        170, 170, 174, 160,
+      ]);
+      const proxyAccountAddress = await fixtures.getFundedProxyAccount(
+        salt,
+        ethersResponse,
+        getWallet("0x2073ec805e7eaeefacccff067834afa4d81ea817c5d73fd05f0a1bc470b49887"));
+      console.log("funded cacocunt", proxyAccountAddress);
+      const passKeySmartAccount = new SmartAccount({
+        payloadSigner: fixtures.passkeySigner.bind(fixtures),
+        address: proxyAccountAddress,
+        secret: ethersResponse,
+      }, getProvider());
+      const transferTx = await passKeySmartAccount.transfer({
+        token: utils.ETH_ADDRESS,
+        to: Wallet.createRandom().address,
+        amount: ethers.parseEther("0.01"),
+      });
+      const passKeyTransferReceipt = await transferTx.wait();
+      assert.equal(passKeyTransferReceipt.status, 1, "failed pass key transfer");
+    });
   });
 
   it("should set spend limit via module with viem", async () => {
