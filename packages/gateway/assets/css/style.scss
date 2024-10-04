@@ -1,12 +1,9 @@
-html.dark {
-  @apply bg-black;
-}
-html,
+// html,
+// body {
+//   @apply min-h-full w-full overscroll-none font-sans antialiased bg-black text-white;
+//   -webkit-text-size-adjust: 100%;
+// }
+
 body {
-  @apply min-h-full w-full overscroll-none font-sans antialiased bg-black text-white;
-  -webkit-text-size-adjust: 100%;
-}
-button,
-a {
-  -webkit-tap-highlight-color: transparent;
+  @apply min-h-screen bg-white dark:bg-black dark:text-white;
 }

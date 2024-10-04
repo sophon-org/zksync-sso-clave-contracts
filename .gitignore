@@ -3,6 +3,8 @@
 .nx/cache
 .nx/workspace-data
 
+.nuxt
+
 # nodejs
 node_modules/
 

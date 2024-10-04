@@ -18,16 +18,10 @@ Run the following commands from the root of the monorepo.
 pnpm install
 ```
 
-Deploy contracts from the `contracts` workspace.
+Running the Demo App requires the Gateway. The following will start both.
 
 ```bash
-pnpm nx deploy contracts
-```
-
-Run both `gateway` and `demo-app` using NX.
-
-```bash
-pnpm nx run-many -t serve -p gateway demo-app
+pnpm nx dev demo-app
 ```
 
 The output will list the localhost addresses for both running applications.
