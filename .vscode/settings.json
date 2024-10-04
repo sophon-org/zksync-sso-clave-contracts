@@ -36,5 +36,5 @@
   "[solidity]": {
     "editor.defaultFormatter": "esbenp.prettier-vscode"
   },
-  "vue.server.hybridMode": "auto"
+  "css.customData": [".vscode/tailwind.json"]
 }
