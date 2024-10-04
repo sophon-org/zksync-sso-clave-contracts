@@ -1,7 +1,7 @@
 {
   "hosting": [
     {
-      "target": "account-gateway-staging",
+      "target": "zksync-auth-server-staging",
       "trailingSlash": false,
       "public": "packages/gateway/.output/public",
       "ignore": ["firebase.json", "**/.*", "**/node_modules/**"]

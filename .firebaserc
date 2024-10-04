@@ -1,9 +1,9 @@
 {
   "targets": {
-    "zk-account-gateway-staging": {
+    "zksync-auth-server-staging": {
       "hosting": {
-        "account-gateway-staging": [
-          "zk-account-gateway-staging"
+        "zksync-auth-server-staging": [
+          "zksync-auth-server-staging"
         ]
       }
     }
