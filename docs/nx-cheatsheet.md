@@ -6,10 +6,14 @@ A collection of commands to help with running NX in the monorepo.
 
 Use the `pnpm nx` command to use the monorepo's NX package, or install NX
 globally on your machine with npm. Project names are based on the name defined
-in the `package.json`, not the directory name.
+in the workspace's `project.json`, not the directory name.
 
 ```bash
 pnpm nx <target> <project>
+# examples
+# pnpm nx deploy contracts
+# pnpm nx serve gateway
+# pnpm nx build sdk
 ```
 
 ## Run commands in parallel across all packages
@@ -24,7 +28,7 @@ pnpm nx run-many --target=build --all
 Finetune to specific projects:
 
 ```bash
-pnpm nx run-many --target=build --projects=zksync-account,smart-account-gateway
+pnpm nx run-many -t serve -p demo-app gateway
 ```
 
 ## View project commands
