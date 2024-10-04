@@ -32,5 +32,9 @@
       "source.fixAll.eslint": "explicit"
     }
   },
+  "prettier.documentSelectors": ["**/*.sol"],
+  "[solidity]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
   "vue.server.hybridMode": "auto"
 }

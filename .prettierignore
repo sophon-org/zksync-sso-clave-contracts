@@ -24,3 +24,5 @@ typechain-types
 **/*.ts
 **/*.jsx
 **/*.tsx
+**/*.mjs
+**/*.cjs
