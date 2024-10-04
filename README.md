@@ -21,10 +21,10 @@ This monorepo is comprised of the following packages/products:
    ```
 
 You have two options for using the SDK in the monorepo workspaces, via PNPM
-workspace protocol or using Verdaccio.
-The project is currently configured to use the SDK package via PNPM.
-If you want to use the SDK outside of the monorepo in another local project,
-setup the Verdaccio option to easily use the SDK package.
+workspace protocol or using Verdaccio. The project is currently configured to
+use the SDK package via PNPM. If you want to use the SDK outside of the monorepo
+in another local project, setup the Verdaccio option to easily use the SDK
+package.
 
 ### Using the SDK package via PNPM
 
@@ -70,8 +70,8 @@ pnpm nx run-many --targets=lint,test,build   # run multiple commands
 ```
 
 Some commands are inferred and built-in with NX, thus you may not see commands
-available from via the `package.json`. To review all the available
-commands in a project:
+available from via the `package.json`. To review all the available commands in a
+project:
 
 ```bash
 pnpm nx show project <project> --web

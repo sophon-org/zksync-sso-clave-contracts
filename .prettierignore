@@ -17,6 +17,8 @@ package-lock.json
 artifacts-zk
 cache-zk
 typechain-types
+.output
+deployments-zk
 
 # Disable prettier for files if VSCode settings are ignored
 **/*.vue

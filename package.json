@@ -20,7 +20,7 @@
     "lint:eslint": "pnpm nx run-many -t lint --all && pnpm eslint --ignore-pattern 'packages/*' .",
     "lint:markdown": "markdownlint-cli2 '**/*.md'",
     "lint:spelling": "cspell .",
-    "lint:prettier": "prettier --list-different ."
+    "lint:prettier": "prettier --check ."
   },
   "devDependencies": {
     "@commitlint/cli": "19.5.0",
