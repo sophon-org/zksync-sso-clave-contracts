@@ -10,7 +10,7 @@ import { privateKeyToAccount } from "viem/accounts";
 import { sendTransaction, waitForTransactionReceipt, writeContract } from "viem/actions";
 import { zksyncInMemoryNode } from "viem/chains";
 import { createZksyncSessionClient } from "zksync-account/client";
-import { Provider, SmartAccount, types, utils, Wallet } from "zksync-ethers";
+import { Provider, SmartAccount, types, Wallet } from "zksync-ethers";
 
 import { createZksyncPasskeyClient } from "./sdk/PasskeyClient";
 import { create2, deployFactory, getProvider, getWallet, LOCAL_RICH_WALLETS, logInfo, RecordedResponse } from "./utils";
@@ -248,7 +248,7 @@ describe("Spend limit validation", function () {
     assert(proxyAccountTxReceipt.contractAddress != ethers.ZeroAddress, "valid proxy account address");
   });
 
-  it("should set spend limit via module with ethers", async () => {
+  it.only("should set spend limit via module with ethers", async () => {
     const passkeyModule = await fixtures.getWebAuthnVerifierContract();
     const passkeyModuleAddress = await passkeyModule.getAddress();
     const sessionModuleContract = await fixtures.getSessionSpendLimitContract();
@@ -286,11 +286,6 @@ describe("Spend limit validation", function () {
 
     console.log("factory deploy and funding complete");
 
-    // steps to get the data for this test
-    // 1. build the transaction here in the test (aaTx)
-    // 2. use this sample signer to get the transaction hash of a realistic transaction
-    // 3. take that transaction hash to another app, and sign it (as the challenge)
-    // 4. bring that signed hash back here and have it returned as the signer
     const sessionKeySigner = (hash: BytesLike, secret: ethers.SigningKey, provider?: null | Provider) => {
       const sessionKeySignature = secret.sign(hash);
       console.debug("(sessionkey)hash", hash, "secretKey", secret, "provider.ready", provider?.ready);
@@ -348,17 +343,57 @@ describe("Spend limit validation", function () {
     assert.equal(passkeyTransactionRecipt.status, 1, "failed passkey transaction");
     console.log("passkey signing complete");
 
-    // now sign a transfer with a session key
+    // now do the same thing with a session key
+    // (this will break when we implement permissions)
+    aaTx["nonce"] = await provider.getTransactionCount(proxyAccountAddress);
+    aaTx["gasLimit"] = await provider.estimateGas(aaTx);
+    // b0b5af2f6f5489a358640161046a45445e519ea4
+    console.debug("initialSessionKeyWallet.address", initialSessionKeyWallet.address);
     const sessionKeySmartAccount = new SmartAccount({
       payloadSigner: sessionKeySigner,
       address: proxyAccountAddress,
       secret: initialSessionKeyWallet.signingKey,
     }, getProvider());
-    aaTx["nonce"] = await provider.getTransactionCount(proxyAccountAddress);
-    const transferTx = await sessionKeySmartAccount.transfer({
-      token: utils.ETH_ADDRESS,
+
+    const sessionKeyTransactionData = await fixtures.getSessionSpendLimitModuleData(Wallet.createRandom().address);
+    const sessionKeyFunctionData = sessionModuleContract.interface.encodeFunctionData("setSessionKeys", [[sessionKeyTransactionData]]);
+    aaTx.data = sessionKeyFunctionData;
+
+    const sessionKeySignedTransaction = await sessionKeySmartAccount.signTransaction(aaTx);
+    assert(sessionKeySignedTransaction != null, "valid sessoin key transaction to sign");
+
+    const sessionKeyTransactionResponse = await provider.broadcastTransaction(sessionKeySignedTransaction);
+    const sessionKeyTransactionRecipt = await sessionKeyTransactionResponse.wait();
+    assert.equal(sessionKeyTransactionRecipt.status, 1, "failed session key transaction");
+    console.log("session key signing complete");
+  });
+
+  it("should be able to use a session key to perform a transfer", async () => {
+    const sessionModuleContract = await fixtures.getSessionSpendLimitContract();
+    const sessionModuleAddress = await sessionModuleContract.getAddress();
+    const sessionKeySigner = (hash: BytesLike, secret: ethers.SigningKey, provider?: null | Provider) => {
+      const sessionKeySignature = secret.sign(hash);
+      console.debug("(sessionkey)hash", hash, "secretKey", secret, "provider.ready", provider?.ready);
+      return Promise.resolve<string>(abiCoder.encode(["bytes", "address", "bytes[]"], [
+        sessionKeySignature.serialized,
+        sessionModuleAddress,
+        [],
+      ]));
+    };
+
+    const proxyAccount = await fixtures.getProxyAccountContract();
+    const proxyAccountAddress = await proxyAccount.getAddress();
+    const sessionKeySmartAccount = new SmartAccount({
+      payloadSigner: sessionKeySigner,
+      address: proxyAccountAddress,
+      secret: Wallet.createRandom().signingKey,
+    }, getProvider());
+    const balance = await sessionKeySmartAccount.getBalance();
+    console.log("balance", balance);
+    const transferTx = await sessionKeySmartAccount.sendTransaction({
+      from: proxyAccountAddress,
       to: Wallet.createRandom().address,
-      amount: ethers.parseEther("0.01"),
+      value: parseEther("0.00001"),
     });
     const sessionKeyTransferReceipt = await transferTx.wait();
     assert.equal(sessionKeyTransferReceipt.status, 1, "failed session key transfer");

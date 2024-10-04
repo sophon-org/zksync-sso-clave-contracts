@@ -201,6 +201,7 @@ contract SessionPasskeySpendLimitModule is IERC7579Module, IModule, IModuleValid
 
     if (v != 27 && v != 28) {
       magic = bytes4(0);
+      console.log("session key signature v is invalid(27 or 28)");
     }
 
     // EIP-2 still allows signature malleability for ecrecover(). Remove this possibility and make the signature
@@ -214,18 +215,22 @@ contract SessionPasskeySpendLimitModule is IERC7579Module, IModule, IModuleValid
     // these malleable signatures as well.
     if (uint256(s) > 0x7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF5D576E7357A4501DDFE92F46681B20A0) {
       magic = bytes4(0);
+      console.log("session key signature s is too high");
     }
 
     address recoveredAddress = ecrecover(_hash, v, r, s);
-    console.log("recoveredAddress");
+    console.log("recoveredAddress(sessionKey)");
     console.logAddress(recoveredAddress);
 
     SessionData storage sessionData = spendLimitBySession[recoveredAddress];
     console.log("sessionData.accountAddress");
     console.logAddress(sessionData.accountAddress);
+    console.log("msg.sender");
+    console.logAddress(msg.sender);
     if (sessionData.accountAddress != msg.sender || recoveredAddress == address(0)) {
       // Note, that we should abstain from using the require here in order to allow for fee estimation to work
       magic = bytes4(0);
+      console.log("invalid session key");
     }
   }
 

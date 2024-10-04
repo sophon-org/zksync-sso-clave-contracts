@@ -8,7 +8,7 @@
   "scripts": {
     "build": "nx exec -- hardhat compile",
     "clean": "nx exec -- hardhat clean",
-    "test": "nx exec -- hardhat test --network hardhat"
+    "test": "nx exec -- hardhat test"
   },
   "devDependencies": {
     "@ethersproject/contracts": "5.7.0",

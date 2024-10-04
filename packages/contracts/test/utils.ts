@@ -173,6 +173,11 @@ const convertObjArrayToUint8Array = (objArray: {
   }, new Uint8Array(objEntries.length));
 };
 
+// steps to get the data for this class
+// 1. build a transaction in a test (aaTx)
+// 2. use this sample signer to get the transaction hash of a realistic transaction
+// 3. take that transaction hash to another app, and sign it (as the challenge)
+// 4. bring that signed hash back here and have it returned as the signer
 export class RecordedResponse {
   constructor(filename: string) {
     // loading directly from the response that was written (verifyAuthenticationResponse)
