@@ -5,7 +5,7 @@ import { BytesLike, parseEther, randomBytes } from "ethers";
 import { AbiCoder, Contract, ethers, ZeroAddress } from "ethers";
 import * as hre from "hardhat";
 import { it } from "mocha";
-import { Address, createWalletClient, encodeAbiParameters, encodeFunctionData, getAddress, Hash, http, isHex, publicActions, toHex } from "viem";
+import { Address, bytesToHex, createWalletClient, encodeAbiParameters, encodeFunctionData, getAddress, Hash, http, isHex, parseAbiParameters, publicActions, toHex } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { sendTransaction, waitForTransactionReceipt, writeContract } from "viem/actions";
 import { zksyncInMemoryNode } from "viem/chains";
@@ -223,6 +223,7 @@ export class ContractFixtures {
     );
   }
 
+  // passkey has the public key + origin domain
   async getEncodedPasskeyModuleData(response: RecordedResponse) {
     return this.abiCoder.encode(
       ["bytes32[2]", "string"],
@@ -565,131 +566,133 @@ describe("Spend limit validation", function () {
     });
   });
 
-  it("should set spend limit via module with viem", async () => {
-    const passkeyModule = await fixtures.getWebAuthnVerifierContract();
-    const sessionModule = await fixtures.getSessionSpendLimitContract();
-    const factoryContract = await fixtures.getAaFactory();
-    const factoryAddress = getAddress(await factoryContract.getAddress());
+  describe("using viem", () => {
+    it("should deploy proxy account via factory, create a new session key with a passkey, then send funds with the initial session key", async () => {
+      const passkeyModule = await fixtures.getWebAuthnVerifierContract();
+      const sessionModule = await fixtures.getSessionSpendLimitContract();
+      const factoryContract = await fixtures.getAaFactory();
+      const factoryAddress = getAddress(await factoryContract.getAddress());
 
-    const sessionModuleAddress = await sessionModule.getAddress();
-    const passkeyModuleAddress = await passkeyModule.getAddress();
-    const accountImpl = await fixtures.getAccountImplAddress();
+      const sessionModuleAddress = await sessionModule.getAddress();
+      const passkeyModuleAddress = await passkeyModule.getAddress();
+      const accountImpl = getAddress(await fixtures.getAccountImplAddress());
 
-    // fix for .only deployment
-    const proxyFix = await fixtures.getProxyAccountContract();
-    assert(proxyFix != null, "should deploy proxy");
-    const localClient = {
-      ...zksyncInMemoryNode,
-      rpcUrls: {
-        default: {
-          http: [hre.network.config["url"]], // Override if not using the default port
+      // fix for .only deployment
+      const proxyFix = await fixtures.getProxyAccountContract();
+      assert(proxyFix != null, "should deploy proxy");
+      const localClient = {
+        ...zksyncInMemoryNode,
+        rpcUrls: {
+          default: {
+            http: [hre.network.config["url"]], // Override if not using the default port
+          },
         },
-      },
-    };
+      };
 
-    const richWallet = createWalletClient({
-      account: privateKeyToAccount(fixtures.wallet.privateKey as Hash),
-      chain: localClient,
-      transport: http(),
-    }).extend(publicActions);
+      const richWallet = createWalletClient({
+        account: privateKeyToAccount(fixtures.wallet.privateKey as Hash),
+        chain: localClient,
+        transport: http(),
+      }).extend(publicActions);
 
-    const factoryArtifact = JSON.parse(await promises.readFile(`./artifacts-zk/src/AAFactory.sol/AAFactory.json`, "utf8"));
-    const passkeyModuleData = await fixtures.getEncodedPasskeyModuleData(viemResponse);
-    const encodedValidatorData = encodeAbiParameters(
-      [
-        { name: "validatorAddress", type: "address" },
-        { name: "validatorData", type: "bytes" },
-      ],
-      [getAddress(sessionModuleAddress), isHex(passkeyModuleData) ? passkeyModuleData : toHex(passkeyModuleData)],
-    );
-    const sessionModuleData = await fixtures.getEncodedSessionModuleData(fixtures.viemSessionKeyWallet.address);
-    const encodedModuleData = encodeAbiParameters(
-      [
-        { name: "moduleAddress", type: "address" },
-        { name: "moduleData", type: "bytes" },
-      ],
-      [getAddress(passkeyModuleAddress), isHex(sessionModuleData) ? sessionModuleData : toHex(sessionModuleData)],
-    );
-    const proxyAccount = await writeContract(richWallet, {
-      address: factoryAddress,
-      abi: factoryArtifact.abi,
-      functionName: "deployProxy7579Account",
-      args: [
-        toHex(fixtures.viemStaticSalt),
-        accountImpl,
-        "viemSpendLimitAccount",
-        [encodedValidatorData, encodedModuleData],
-        [],
-      ],
+      const publicKeys: Buffer[] = await viemResponse.getXyPublicKeys();
+      const hexKeys = publicKeys.map((pk) => bytesToHex(pk));
+      const passkeyModuleData = encodeAbiParameters(
+        parseAbiParameters("bytes32[2], string"),
+        [[hexKeys[0], hexKeys[1]], viemResponse.expectedOrigin]);
+
+      const moduleParams = parseAbiParameters("address, bytes");
+      const encodedPasskeyModuleData = encodeAbiParameters(moduleParams,
+        [getAddress(passkeyModuleAddress), isHex(passkeyModuleData) ? passkeyModuleData : toHex(passkeyModuleData)],
+      );
+
+      const sessionModuleData = await fixtures.getEncodedSessionModuleData(fixtures.viemSessionKeyWallet.address);
+      const encodedSessionModuleData = encodeAbiParameters(moduleParams,
+        [getAddress(sessionModuleAddress), isHex(sessionModuleData) ? sessionModuleData : toHex(sessionModuleData)],
+      );
+
+      const factoryArtifact = JSON.parse(await promises.readFile(`./artifacts-zk/src/AAFactory.sol/AAFactory.json`, "utf8"));
+      const proxyAccount = await writeContract(richWallet, {
+        address: factoryAddress,
+        abi: factoryArtifact.abi,
+        functionName: "deployProxy7579Account",
+        args: [
+          toHex(fixtures.viemStaticSalt),
+          accountImpl,
+          "viemSpendLimitAccount",
+          [encodedPasskeyModuleData, encodedSessionModuleData],
+          [],
+        ],
+      });
+      const proxyAccountReceipt = await waitForTransactionReceipt(richWallet, { hash: proxyAccount });
+      assert.isNotNull(proxyAccountReceipt.contractAddress, "should have a contract address");
+      const proxyAccountAddress = getAddress(proxyAccountReceipt.contractAddress!);
+
+      assert.isDefined(proxyAccountAddress, "no address set");
+      const fundAccountTransactionHash = await waitForTransactionReceipt(richWallet, {
+        hash: await richWallet.sendTransaction({
+          to: proxyAccountAddress,
+          value: parseEther("0.05"),
+        }),
+      });
+      assert.equal(fundAccountTransactionHash.status, "success", "should fund without errors");
+
+      const passkeyClient = createZksyncPasskeyClient({
+        address: proxyAccountAddress as Address,
+        chain: localClient,
+        contracts: {
+          validator: getAddress(passkeyModuleAddress),
+          session: getAddress(sessionModuleAddress),
+          accountFactory: factoryAddress,
+          accountImplementation: getAddress(accountImpl),
+        },
+        signHash: async () => ({
+          authenticatorData: viemResponse.authenticatorData,
+          clientDataJSON: viemResponse.clientData,
+          signature: viemResponse.b64SignedChallenge,
+        }),
+        transport: http(),
+      });
+
+      const sessionArtifact = JSON.parse(await promises.readFile("./artifacts-zk/src/validators/SessionPasskeySpendLimitModule.sol/SessionPasskeySpendLimitModule.json", "utf8"));
+
+      const tokenConfig = await fixtures.getSessionSpendLimitModuleData(fixtures.viemSessionKeyWallet.address);
+
+      const callData = encodeFunctionData({
+        abi: sessionArtifact.abi,
+        functionName: "setSessionKeys",
+        args: [
+          [tokenConfig],
+        ],
+      });
+
+      const transactionHash = await sendTransaction(passkeyClient, {
+        to: passkeyClient.contracts.session,
+        data: callData as Hash,
+      });
+
+      const receipt = await waitForTransactionReceipt(passkeyClient, { hash: transactionHash });
+      assert.equal(receipt.status, "success", "(passkey)addSessionKey transaction should be successful");
+
+      // repeat with different signer
+      const sessionKeyClient = createZksyncSessionClient({
+        address: proxyAccountAddress,
+        sessionKey: fixtures.viemSessionKeyWallet.privateKey as Hash,
+        contracts: {
+          session: getAddress(sessionModuleAddress),
+        },
+        chain: localClient,
+        transport: http(),
+      });
+
+      const sessionKeyTransactionHash = await sessionKeyClient.sendTransaction({
+        to: sessionKeyClient.contracts.session,
+        data: callData as Hash,
+      });
+
+      const sessionKeyReceipt = await waitForTransactionReceipt(sessionKeyClient, { hash: sessionKeyTransactionHash });
+      assert.equal(sessionKeyReceipt.status, "success", "(sessionkey) addSessionKey transaction should be successful");
     });
-    const proxyAccountReceipt = await waitForTransactionReceipt(richWallet, { hash: proxyAccount });
-    assert.isNotNull(proxyAccountReceipt.contractAddress, "should have a contract address");
-    const proxyAccountAddress = getAddress(proxyAccountReceipt.contractAddress!);
-
-    assert.isDefined(proxyAccountAddress, "no address set");
-    const fundAccountTransactionHash = await waitForTransactionReceipt(richWallet, {
-      hash: await richWallet.sendTransaction({
-        to: proxyAccountAddress,
-        value: parseEther("0.05"),
-      }),
-    });
-    assert.equal(fundAccountTransactionHash.status, "success", "should fund without errors");
-
-    const passkeyClient = createZksyncPasskeyClient({
-      address: proxyAccountAddress as Address,
-      chain: localClient,
-      contracts: {
-        validator: getAddress(passkeyModuleAddress),
-        session: getAddress(sessionModuleAddress),
-        accountFactory: factoryAddress,
-        accountImplementation: getAddress(accountImpl),
-      },
-      signHash: async () => ({
-        authenticatorData: viemResponse.authenticatorData,
-        clientDataJSON: viemResponse.clientData,
-        signature: viemResponse.b64SignedChallenge,
-      }),
-      transport: http(),
-    });
-
-    const sessionArtifact = JSON.parse(await promises.readFile("./artifacts-zk/src/validators/SessionPasskeySpendLimitModule.sol/SessionPasskeySpendLimitModule.json", "utf8"));
-
-    const tokenConfig = await fixtures.getSessionSpendLimitModuleData(fixtures.viemSessionKeyWallet.address);
-
-    const callData = encodeFunctionData({
-      abi: sessionArtifact.abi,
-      functionName: "setSessionKeys",
-      args: [
-        [tokenConfig],
-      ],
-    });
-
-    const transactionHash = await sendTransaction(passkeyClient, {
-      to: passkeyClient.contracts.session,
-      data: callData as Hash,
-    });
-
-    const receipt = await waitForTransactionReceipt(passkeyClient, { hash: transactionHash });
-    assert.equal(receipt.status, "success", "(passkey)addSessionKey transaction should be successful");
-
-    // repeat with different signer
-    const sessionKeyClient = createZksyncSessionClient({
-      address: proxyAccountAddress,
-      sessionKey: fixtures.viemSessionKeyWallet.privateKey as Hash,
-      contracts: {
-        session: getAddress(sessionModuleAddress),
-      },
-      chain: localClient,
-      transport: http(),
-    });
-
-    const sessionKeyTransactionHash = await sessionKeyClient.sendTransaction({
-      to: sessionKeyClient.contracts.session,
-      data: callData as Hash,
-    });
-
-    const sessionKeyReceipt = await waitForTransactionReceipt(sessionKeyClient, { hash: sessionKeyTransactionHash });
-    assert.equal(sessionKeyReceipt.status, "success", "(sessionkey) addSessionKey transaction should be successful");
   });
 
   // NOTE: If you just want to deploy contracts to your local node for testing,
