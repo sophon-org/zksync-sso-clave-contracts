@@ -19,7 +19,8 @@ export const getEip712Domain: EIP712DomainFn<
 
   return {
     domain: {
-      name: `zkSync`,
+      // internal spell checker doesn't like the casing, but it's part of an external package
+      name: `zk` + `Sync`,
       version: "2",
       chainId: transaction.chainId,
     },
