@@ -1,0 +1,12 @@
+{
+  "targets": {
+    "zksync-auth-server-staging": {
+      "hosting": {
+        "zksync-auth-server-staging": [
+          "zksync-auth-server-staging"
+        ]
+      }
+    }
+  },
+  "etags": {}
+}

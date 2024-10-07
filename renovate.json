@@ -32,6 +32,10 @@
     {
       "groupName": "Hardhat",
       "matchPackageNames": ["/hardhat/"]
+    },
+    {
+      "groupName": "Ethers",
+      "matchPackageNames": ["/ethers/"]
     }
   ],
   "lockFileMaintenance": {
