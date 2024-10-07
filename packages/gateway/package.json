@@ -19,7 +19,7 @@
     "viem": "^2.19.2",
     "vue": "latest",
     "web3-avatar-vue": "^1.0.4",
-    "zksync-account": "workspace:*"
+    "zksync-account": "file:../sdk/dist"
   },
   "overrides": {
     "vue": "latest"

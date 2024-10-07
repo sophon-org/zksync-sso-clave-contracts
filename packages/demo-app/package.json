@@ -22,7 +22,7 @@
     "nuxt": "^3.12.3",
     "viem": "^2.21.14",
     "vue": "^3.4.21",
-    "zksync-account": "workspace:*",
+    "zksync-account": "file:../sdk/dist",
     "zksync-ethers": "^6.12.1"
   },
   "devDependencies": {
