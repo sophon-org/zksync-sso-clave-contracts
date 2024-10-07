@@ -57,11 +57,6 @@ contract SessionPasskeySpendLimitModule is IERC7579Module, IModule, IModuleValid
     SpendLimit[] spendLimits;
   }
 
-  function handleValidation(bytes32 signedHash, bytes memory signature) external view returns (bool) {
-    // this only validates that the session key is linked to the account, not the spend limit
-    return isValidSignature(signedHash, signature) == EIP1271_SUCCESS_RETURN_VALUE;
-  }
-
   // expects SessionKey[]
   function addValidationKey(bytes memory installData) external returns (bool) {
     console.log("installing session-key spend-limit module");
@@ -169,10 +164,7 @@ contract SessionPasskeySpendLimitModule is IERC7579Module, IModule, IModuleValid
     return sessionsByAccount[smartAccount].length > 0;
   }
 
-  /*
-   * Currently doing 1271 validation, but might update the interface to match the zksync account validation
-   */
-  function isValidSignature(bytes32 _hash, bytes memory _signature) public view returns (bytes4 magic) {
+  function isValidSignature(bytes32 _hash, bytes memory _signature) external view returns (bytes4 magic) {
     magic = EIP1271_SUCCESS_RETURN_VALUE;
 
     if (_signature.length != 65) {
