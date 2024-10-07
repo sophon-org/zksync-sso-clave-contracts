@@ -54,7 +54,7 @@ export const deployAccount = async <
   const passkeyPublicKey = await getPublicKeyBytesFromPasskeySignature(args.credentialPublicKey);
   const encodedPasskeyParameters = encodePasskeyModuleParameters({
     passkeyPublicKey,
-    expectedOrigin: origin,
+    expectedOrigin: args.expectedOrigin,
   });
   const encodedPasskeyModuleData = encodeModuleData({
     address: args.contracts.passkey,
