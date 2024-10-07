@@ -56,6 +56,7 @@ export class WalletProvider extends EventEmitter implements ProviderInterface {
         }
         case "personal_sign":
         case "eth_accounts":
+        case "eth_estimateGas":
         case "eth_signTransaction":
         case "eth_sendTransaction":
         case "eth_signTypedData_v4":
