@@ -10,7 +10,7 @@ import { getPublicKeyBytesFromPasskeySignature } from "../../utils/passkey.js";
 /* it should come from factory, not passed manually each time */
 export type DeployAccountArgs = {
   credentialPublicKey: Uint8Array; // Public key of the previously registered
-  expectedOrigin: string; // Expected origin of the passkey
+  expectedOrigin?: string; // Expected origin of the passkey
   uniqueAccountId?: string; // Unique account ID, can be omitted if you don't need it
   contracts: {
     accountFactory: Address;
@@ -42,10 +42,19 @@ export const deployAccount = async <
     args.salt = crypto.getRandomValues(new Uint8Array(32));
   }
 
+  let origin: string | undefined = args.expectedOrigin;
+  if (!origin) {
+    try {
+      origin = window.location.origin;
+    } catch {
+      throw new Error("Can't identify expectedOrigin, please provide it manually");
+    }
+  }
+
   const passkeyPublicKey = await getPublicKeyBytesFromPasskeySignature(args.credentialPublicKey);
   const encodedPasskeyParameters = encodePasskeyModuleParameters({
     passkeyPublicKey,
-    expectedOrigin: args.expectedOrigin,
+    expectedOrigin: origin,
   });
   const encodedPasskeyModuleData = encodeModuleData({
     address: args.contracts.passkey,

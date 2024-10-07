@@ -324,7 +324,7 @@ describe("Spend limit validation", function () {
         address: proxyAccountAddress as Address,
         chain: localClient,
         contracts: {
-          validator: passkeyModuleAddress,
+          passkey: passkeyModuleAddress,
           session: sessionModuleAddress,
           accountFactory: factoryAddress,
           accountImplementation: accountImplementationAddress,
