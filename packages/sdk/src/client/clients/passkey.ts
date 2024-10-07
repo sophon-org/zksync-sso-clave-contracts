@@ -51,7 +51,7 @@ export function createZksyncPasskeyClient<
 
 export type PasskeyRequiredContracts = {
   session: Address; // Session, spend limit, etc.
-  validator: Address; // Validator for passkey signature
+  passkey: Address; // Validator for passkey signature
   accountFactory?: Address; // For account creation
   accountImplementation?: Address; // For account creation
 };

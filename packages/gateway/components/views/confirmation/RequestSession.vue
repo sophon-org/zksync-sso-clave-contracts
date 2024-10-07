@@ -167,15 +167,10 @@ const confirmConnection = async () => {
         ))
         : {},
     };
-    /* TODO: this shouldn't pass a single token */
-    const firstToken = {
-      address: Object.keys(sessionData.spendLimit)[0] as Address,
-      amount: Object.values(sessionData.spendLimit)[0],
-    };
-    const _session = await client.addSessionKey({
-      sessionPublicKey: privateKeyToAddress(sessionKey.value!),
-      token: firstToken.address,
-      expiresAt: new Date(sessionData.expiresAt),
+
+    const _session = await client.setSessionKey({
+      sessionKey: privateKeyToAddress(sessionKey.value!),
+      ...sessionData,
     });
     const response: ExtractReturnType<"eth_requestAccounts", GatewayRpcSchema> = {
       account: {

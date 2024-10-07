@@ -163,7 +163,7 @@ export function passkeyHashSignatureResponseFormat(
     signature: string;
   },
   contracts: {
-    validator: Address;
+    passkey: Address;
   },
 ) {
   const signature = unwrapEC2Signature(base64UrlToUint8Array(passkeyResponse.signature));
@@ -187,7 +187,7 @@ export function passkeyHashSignatureResponseFormat(
     ],
     [
       fatSignature,
-      contracts.validator,
+      contracts.passkey,
       [],
     ],
   );

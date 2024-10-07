@@ -32,15 +32,17 @@ development principles in mind.
    const sessionPublicKey = privateKeyToAccount(sessionKey.value).address;
 
    const { address } = await deployAccount(deployerClient, {
-   credentialPublicKey,
-   initialSessions: [
-       {
-       sessionPublicKey,
-       token: Token.address,
-       amount: BigInt(100),
-       },
-   ],
-   contracts,
+      credentialPublicKey,
+      initialSessions: [
+         {
+            sessionPublicKey,
+            expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24), // 1 day expiry
+            spendLimit: {
+               [Token.address]: "1000",
+            },
+         },
+      ],
+      contracts,
    });
    ```
 

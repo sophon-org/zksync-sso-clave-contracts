@@ -250,6 +250,122 @@ describe("Spend limit validation", function () {
     assert(proxyAccountContract != null, "No account proxy deployed");
   });
 
+  describe("using viem(1)", () => {
+    it("should deploy proxy account via factory, create a new session key with a passkey, then send funds with the initial session key", async () => {
+      const passkeyModule = await fixtures.getWebAuthnVerifierContract();
+      const sessionModule = await fixtures.getSessionSpendLimitContract();
+      const factoryContract = await fixtures.getAaFactory();
+      const factoryAddress = await factoryContract.getAddress() as Address;
+
+      const sessionModuleAddress = await sessionModule.getAddress() as Address;
+      const passkeyModuleAddress = await passkeyModule.getAddress() as Address;
+      const accountImplementationAddress = await fixtures.getAccountImplAddress() as Address;
+
+      // fix for .only deployment
+      const proxyFix = await fixtures.getProxyAccountContract();
+      assert(proxyFix != null, "should deploy proxy");
+
+      const localClient = {
+        ...zksyncInMemoryNode,
+        rpcUrls: {
+          default: {
+            http: [hre.network.config["url"]], // Override if not using the default port
+          },
+        },
+      };
+
+      const richWallet = createWalletClient({
+        account: privateKeyToAccount(fixtures.wallet.privateKey as Hash),
+        chain: localClient,
+        transport: http(),
+      }).extend(publicActions);
+
+      /* 1. Deploy smart account */
+      const rawSessionKeyData = fixtures.getSessionSpendLimitModuleData(fixtures.viemSessionKeyWallet.address as Address);
+      const sessionKeyData = {
+        sessionPublicKey: rawSessionKeyData.sessionKey,
+        expiresAt: new Date(parseInt((rawSessionKeyData.expiresAt * BigInt(1000)).toString())).toISOString(),
+        spendLimit: Object.fromEntries(rawSessionKeyData.spendLimits.map((limit) => [
+          limit.tokenAddress, limit.limit.toString(),
+        ])),
+      };
+
+      const proxyAccountDeployment = await deployAccount(richWallet as any, {
+        credentialPublicKey: viemResponse.passkeyBytes,
+        expectedOrigin: viemResponse.expectedOrigin,
+        uniqueAccountId: "viemSpendLimitAccount",
+        salt: fixtures.viemStaticSalt,
+        contracts: {
+          accountFactory: factoryAddress,
+          accountImplementation: accountImplementationAddress,
+          passkey: passkeyModuleAddress,
+          session: sessionModuleAddress,
+        },
+        initialSessions: [
+          {
+            sessionPublicKey: sessionKeyData.sessionPublicKey,
+            expiresAt: sessionKeyData.expiresAt,
+            spendLimit: sessionKeyData.spendLimit,
+          },
+        ],
+      });
+      const proxyAccountAddress = proxyAccountDeployment.address;
+      assert.isDefined(proxyAccountAddress, "no address set");
+
+      /* 1.1 Fund smart account with some ETH to pay for transaction fees */
+      const fundAccountTransactionHash = await waitForTransactionReceipt(richWallet, {
+        hash: await richWallet.sendTransaction({
+          to: proxyAccountAddress,
+          value: parseEther("0.05"),
+        }),
+      });
+      assert.equal(fundAccountTransactionHash.status, "success", "should fund without errors");
+
+      /* 2. Validate passkey signed transactions */
+      const passkeyClient = createZksyncPasskeyClient({
+        address: proxyAccountAddress as Address,
+        chain: localClient,
+        contracts: {
+          passkey: passkeyModuleAddress,
+          session: sessionModuleAddress,
+          accountFactory: factoryAddress,
+          accountImplementation: accountImplementationAddress,
+        },
+        signHash: async () => ({
+          authenticatorData: viemResponse.authenticatorData,
+          clientDataJSON: viemResponse.clientData,
+          signature: viemResponse.b64SignedChallenge,
+        }),
+        transport: http(),
+      });
+
+      await setSessionKey(passkeyClient as any, {
+        sessionKey: sessionKeyData.sessionPublicKey,
+        expiresAt: sessionKeyData.expiresAt,
+        spendLimit: sessionKeyData.spendLimit,
+        contracts: passkeyClient.contracts,
+      });
+
+      /* 3. Verify session key signed transactions */
+      const sessionKeyClient = createZksyncSessionClient({
+        address: proxyAccountAddress,
+        sessionKey: fixtures.viemSessionKeyWallet.privateKey as Hash,
+        contracts: {
+          session: sessionModuleAddress,
+        },
+        chain: localClient,
+        transport: http(),
+      });
+
+      const sessionKeySignedTransactionHash = await sessionKeyClient.sendTransaction({
+        to: privateKeyToAddress(generatePrivateKey()), // send any transaction to a random address
+        value: 1n,
+      });
+      const sessionKeyReceipt = await waitForTransactionReceipt(sessionKeyClient as any, { hash: sessionKeySignedTransactionHash });
+      assert.equal(sessionKeyReceipt.status, "success", "(sessionkey) transaction should be successful");
+    });
+  });
+
   describe("using ethers", () => {
     it("should deploy proxy account via factory", async () => {
       const aaFactoryContract = await fixtures.getAaFactory();
