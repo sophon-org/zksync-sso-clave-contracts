@@ -1,6 +1,6 @@
-import { type Account, type Address, type Chain, type Client, createClient, encodeAbiParameters, getAddress, type Prettify, type PublicActions, publicActions, type PublicRpcSchema, type RpcSchema, toHex, type Transport, type WalletActions, walletActions, type WalletClientConfig, type WalletRpcSchema } from "viem";
+import { type Account, type Address, type Chain, type Client, createClient, getAddress, type Prettify, type PublicActions, publicActions, type PublicRpcSchema, type RpcSchema, type Transport, type WalletActions, walletActions, type WalletClientConfig, type WalletRpcSchema } from "viem";
 
-import { base64UrlToUint8Array, unwrapEC2Signature } from "../../utils/passkey.js";
+import { passkeyHashSignatureResponseFormat } from "../../utils/passkey.js";
 import { requestPasskeyAuthentication } from "../actions/passkey.js";
 import { type ZksyncAccountPasskeyActions, zksyncAccountPasskeyActions } from "../decorators/passkey.js";
 import { toSmartAccount } from "../smart-account.js";
@@ -28,37 +28,8 @@ export function createZksyncPasskeyClient<
         challenge: hash,
         credentialPublicKey: parameters.credentialPublicKey,
       });
-      const authData = passkeySignature.passkeyAuthenticationResponse.response.authenticatorData;
-      const clientDataJson = passkeySignature.passkeyAuthenticationResponse.response.clientDataJSON;
-      const signature = unwrapEC2Signature(
-        base64UrlToUint8Array(passkeySignature.passkeyAuthenticationResponse.response.signature),
-      );
-      const fatSignature = encodeAbiParameters(
-        [
-          { type: "bytes" }, // authData
-          { type: "bytes" }, // clientDataJson
-          { type: "bytes32[2]" }, // signature (two elements)
-        ],
-        [
-          toHex(base64UrlToUint8Array(authData)),
-          toHex(base64UrlToUint8Array(clientDataJson)),
-          [toHex(signature.r), toHex(signature.s)],
-        ],
-      );
-      const fullFormattedSig = encodeAbiParameters(
-        [
-          { type: "bytes" }, // fat signature
-          { type: "address" }, // validator address
-          { type: "bytes[]" }, // validator data
-        ],
-        [
-          fatSignature,
-          parameters.contracts.validator,
-          [],
-        ],
-      );
 
-      return fullFormattedSig;
+      return passkeyHashSignatureResponseFormat(passkeySignature.passkeyAuthenticationResponse.response, parameters.contracts);
     },
   });
   const client = createClient<transport, chain, Account, rpcSchema>({
@@ -80,7 +51,7 @@ export function createZksyncPasskeyClient<
 
 export type PasskeyRequiredContracts = {
   session: Address; // Session, spend limit, etc.
-  validator: Address; // Validator for passkey signature
+  passkey: Address; // Validator for passkey signature
   accountFactory?: Address; // For account creation
   accountImplementation?: Address; // For account creation
 };

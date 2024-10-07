@@ -1,9 +1,9 @@
-/* Copied from pending PR - https://github.com/wevm/viem/pull/2598 */
-
 import type { Address } from "abitype";
-import { type CustomSource, type Hash, hashMessage, hashTypedData, type Hex, keccak256, type LocalAccount } from "viem";
+import { type CustomSource, type Hash, hashMessage, hashTypedData, type Hex, type LocalAccount } from "viem";
 import { toAccount } from "viem/accounts";
 import { serializeTransaction, type ZksyncTransactionSerializableEIP712 } from "viem/zksync";
+
+import { getEip712Domain } from "./utils/getEip712Domain.js";
 
 export type ToSmartAccountParameters = {
   /** Address of the deployed Account's Contract implementation. */
@@ -40,12 +40,16 @@ export function toSmartAccount(
       const signableTransaction = {
         ...transaction,
         from: this.address!,
+        type: "eip712",
       } as ZksyncTransactionSerializableEIP712;
+
+      const eip712DomainAndMessage = getEip712Domain(signableTransaction);
+      const digest = hashTypedData(eip712DomainAndMessage);
 
       return serializeTransaction({
         ...signableTransaction,
         customSignature: await sign({
-          hash: keccak256(serializeTransaction(signableTransaction)),
+          hash: digest,
         }),
       });
     },

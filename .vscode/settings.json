@@ -32,5 +32,6 @@
       "source.fixAll.eslint": "explicit"
     }
   },
+  "cSpell.words": ["viem"],
   "vue.server.hybridMode": "auto"
 }

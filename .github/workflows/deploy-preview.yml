@@ -31,6 +31,9 @@ jobs:
         run: pnpm install -r --frozen-lockfile
 
       - name: "Build gateway"
+        run: pnpm nx build sdk
+
+      - name: "Build gateway"
         run: pnpm nx build-static gateway
 
       - name: Deploy preview

@@ -58,18 +58,21 @@ contract ClaveAccount is
   /**
    * @notice Initializer function for the account contract
    * @dev Sets passkey and passkey validator within account storage
-   * @param initialR1Owner bytes calldata - The initial r1 owner of the account
-   * @param initialR1Validator address    - The initial r1 validator of the account
+   * @param initialValidators bytes[] calldata - Validator addresses and init data for validation modules
+   * @param initialModules bytes[] - Non-validator modules and init data for validation modules
    */
-  function initialize(
-    bytes calldata initialR1Owner,
-    address initialR1Validator,
-    address initialModule,
-    bytes calldata initData
-  ) external initializer {
-    _r1AddOwner(initialR1Owner);
-    _addModuleValidator(initialR1Validator);
-    _addNativeModule(initialModule, initData);
+  function initialize(bytes[] calldata initialValidators, bytes[] calldata initialModules) external initializer {
+    for (uint256 validatorIndex = 0; validatorIndex < initialValidators.length; validatorIndex++) {
+      (address validatorAddress, bytes memory validatorData) = abi.decode(
+        initialValidators[validatorIndex],
+        (address, bytes)
+      );
+      _addModuleValidator(validatorAddress, validatorData);
+    }
+    for (uint256 moduleIndex = 0; moduleIndex < initialModules.length; moduleIndex++) {
+      (address moduleAddress, bytes memory moduleData) = abi.decode(initialModules[moduleIndex], (address, bytes));
+      _addNativeModule(moduleAddress, moduleData);
+    }
   }
 
   // Receive function to allow ETHs

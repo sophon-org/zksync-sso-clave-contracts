@@ -64,7 +64,7 @@ abstract contract ModuleManager is IModuleManager, Auth {
     moduleList = _modulesLinkedList().list();
   }
 
-  function _addNativeModule(address moduleAddress, bytes calldata moduleData) internal {
+  function _addNativeModule(address moduleAddress, bytes memory moduleData) internal {
     if (!_supportsModule(moduleAddress)) {
       console.log("module", moduleAddress, "is not supported");
       // revert Errors.MODULE_ERC165_FAIL();

@@ -9,7 +9,7 @@ development principles in mind.
 1. Register a new passkey
 
    ```ts
-   import { registerNewPasskey } from "zksync-account/client/actions";
+   import { registerNewPasskey } from "zksync-account/client/passkey";
 
    // We first need to register a new passkey
    const { credentialPublicKey } = await registerNewPasskey({
@@ -25,22 +25,24 @@ development principles in mind.
 
    ```ts
    import { generatePrivateKey, privateKeyToAccount } from "viem";
-   import { deployAccount } from "zksync-account/client/actions";
+   import { deployAccount } from "zksync-account/client";
 
    const deployerClient = ...; // Any client for deploying the account, make sure it has enough balance to cover the deployment cost
    const sessionKey = generatePrivateKey();
    const sessionPublicKey = privateKeyToAccount(sessionKey.value).address;
 
    const { address } = await deployAccount(deployerClient, {
-   credentialPublicKey,
-   initialSpendLimit: [
-       {
-       sessionPublicKey,
-       token: Token.address,
-       amount: BigInt(100),
-       },
-   ],
-   contracts,
+      credentialPublicKey,
+      initialSessions: [
+         {
+            sessionPublicKey,
+            expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24), // 1 day expiry
+            spendLimit: {
+               [Token.address]: "1000",
+            },
+         },
+      ],
+      contracts,
    });
    ```
 
@@ -50,7 +52,7 @@ development principles in mind.
 
    ```ts
    import { zksync, http } from "viem";
-   import { createZksyncPasskeyClient } from "zksync-account/client";
+   import { createZksyncPasskeyClient } from "zksync-account/client/passkey";
 
    const passkeyClient = createZksyncPasskeyClient({
      address: deployedAccountAddress,

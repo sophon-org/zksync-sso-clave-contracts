@@ -38,7 +38,7 @@ jobs:
 
     # Build SDK
     - name: Build SDK
-      run: pnpm nx build:cjs sdk
+      run: pnpm nx build sdk
 
     # Build contracts and generate types
     - name: Build contracts
@@ -52,4 +52,4 @@ jobs:
 
     # Run e2e tests
     - name: Run e2e test
-      run: pnpm nx test contracts -- --typecheck
+      run: pnpm nx test contracts

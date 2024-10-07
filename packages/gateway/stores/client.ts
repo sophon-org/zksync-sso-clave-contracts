@@ -1,7 +1,7 @@
 import { createPublicClient, createWalletClient, http, publicActions, walletActions } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { zksync, zksyncInMemoryNode, zksyncSepoliaTestnet } from "viem/chains";
-import { createZksyncPasskeyClient, type PasskeyRequiredContracts } from "zksync-account/client";
+import { createZksyncPasskeyClient, type PasskeyRequiredContracts } from "zksync-account/client/passkey";
 
 export const supportedChains = [zksync, zksyncSepoliaTestnet, zksyncInMemoryNode];
 export type SupportedChainId = (typeof supportedChains)[number]["id"];
@@ -18,19 +18,19 @@ type ChainContracts = PasskeyRequiredContracts & {
 export const contractsByChain: Record<SupportedChainId, ChainContracts> = {
   [zksync.id]: {
     session: "0x",
-    validator: "0x",
+    passkey: "0x",
     accountFactory: "0x",
     accountImplementation: "0x",
   },
   [zksyncSepoliaTestnet.id]: {
     session: "0x",
-    validator: "0x",
+    passkey: "0x",
     accountFactory: "0x",
     accountImplementation: "0x",
   },
   [zksyncInMemoryNode.id]: {
     session: "0x848eB049C5a3A86E006131FA737F1c7d9431bc18",
-    validator: "0x8FB03ED4a9c9Dc185bc9d1dE39e0070E7fbbfCA4",
+    passkey: "0x8FB03ED4a9c9Dc185bc9d1dE39e0070E7fbbfCA4",
     accountFactory: "0x23b13d016E973C9915c6252271fF06cCA2098885",
     accountImplementation: "0x1A7b6cdEbEB7D0BC40604D523a4b9946CE42B985",
   },

@@ -6,9 +6,8 @@ import { ethers } from "ethers";
 import { readFileSync } from "fs";
 import { promises } from "fs";
 import * as hre from "hardhat";
+import { base64UrlToUint8Array, getPublicKeyBytesFromPasskeySignature, unwrapEC2Signature } from "zksync-account/utils";
 import { ContractFactory, Provider, utils, Wallet } from "zksync-ethers";
-
-import { getPublicKeyBytesFromPasskeySignature } from "./sdk/utils/passkey";
 
 // Load env file
 dotenv.config();
@@ -114,7 +113,7 @@ export function logWarning(message: string) {
 
 /**
  * Rich wallets can be used for testing purposes.
- * Available on zkSync In-memory node and Dockerized node.
+ * Available on ZKsync In-memory node and docker node.
  */
 export const LOCAL_RICH_WALLETS = [
   {
@@ -174,6 +173,11 @@ const convertObjArrayToUint8Array = (objArray: {
   }, new Uint8Array(objEntries.length));
 };
 
+// steps to get the data for this class
+// 1. build a transaction in a test (aaTx)
+// 2. use this sample signer to get the transaction hash of a realistic transaction
+// 3. take that transaction hash to another app, and sign it (as the challenge)
+// 4. bring that signed hash back here and have it returned as the signer
 export class RecordedResponse {
   constructor(filename: string) {
     // loading directly from the response that was written (verifyAuthenticationResponse)
@@ -183,12 +187,16 @@ export class RecordedResponse {
     this.clientData = responseData.response.response.clientDataJSON;
     this.b64SignedChallenge = responseData.response.response.signature;
     this.passkeyBytes = convertObjArrayToUint8Array(responseData.authenticator.credentialPublicKey);
+    this.expectedOrigin = responseData.expectedOrigin;
   }
 
-  // this is just the public key in xy format without the alg type
-  async getXyPublicKey() {
+  async getXyPublicKeys() {
     return await getPublicKeyBytesFromPasskeySignature(this.passkeyBytes);
   }
+
+  get authDataBuffer() { return base64UrlToUint8Array(this.authenticatorData); }
+  get clientDataBuffer() { return base64UrlToUint8Array(this.clientData); }
+  get rs() { return unwrapEC2Signature(base64UrlToUint8Array(this.b64SignedChallenge)); }
 
   // this is the encoded data explaining what authenticator was used (fido, web, etc)
   readonly authenticatorData: string;
@@ -198,4 +206,6 @@ export class RecordedResponse {
   readonly b64SignedChallenge: string;
   // This is a binary object formatted by @simplewebauthn that contains the alg type and public key
   readonly passkeyBytes: Uint8Array;
+  // the domain linked the passkey that needs to be validated
+  readonly expectedOrigin: string;
 }

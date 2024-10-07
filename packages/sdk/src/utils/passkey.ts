@@ -3,7 +3,7 @@ import { AsnParser } from "@peculiar/asn1-schema";
 import { bigintToBuf, bufToBigint } from "bigint-conversion";
 import { Buffer } from "buffer";
 import { decode } from "cbor-web";
-import { toHex } from "viem";
+import { type Address, encodeAbiParameters, toHex } from "viem";
 
 enum COSEKEYS {
   kty = 1, // Key Type
@@ -15,12 +15,12 @@ enum COSEKEYS {
   e = -2, // Exponent for RSA keys
 }
 
-export const getPublicKeyBytesFromPasskeySignature = async (publicPasskey: Uint8Array) => {
+export const getPublicKeyBytesFromPasskeySignature = async (publicPasskey: Uint8Array): Promise<[Buffer, Buffer]> => {
   const cosePublicKey = await decode(publicPasskey); // Decodes CBOR-encoded COSE key
   const x = cosePublicKey.get(COSEKEYS.x);
   const y = cosePublicKey.get(COSEKEYS.y);
 
-  return toHex(Buffer.concat([Buffer.from(x), Buffer.from(y)]));
+  return [Buffer.from(x), Buffer.from(y)];
 };
 
 /**
@@ -155,3 +155,42 @@ function toArrayBuffer(data: string, isUrl: boolean) {
 
   return arraybuffer;
 };
+
+export function passkeyHashSignatureResponseFormat(
+  passkeyResponse: {
+    authenticatorData: string;
+    clientDataJSON: string;
+    signature: string;
+  },
+  contracts: {
+    passkey: Address;
+  },
+) {
+  const signature = unwrapEC2Signature(base64UrlToUint8Array(passkeyResponse.signature));
+  const fatSignature = encodeAbiParameters(
+    [
+      { type: "bytes" }, // authData
+      { type: "bytes" }, // clientDataJson
+      { type: "bytes32[2]" }, // signature (two elements)
+    ],
+    [
+      toHex(base64UrlToUint8Array(passkeyResponse.authenticatorData)),
+      toHex(base64UrlToUint8Array(passkeyResponse.clientDataJSON)),
+      [toHex(signature.r), toHex(signature.s)],
+    ],
+  );
+  const fullFormattedSig = encodeAbiParameters(
+    [
+      { type: "bytes" }, // fat signature
+      { type: "address" }, // validator address
+      { type: "bytes[]" }, // validator data
+    ],
+    [
+      fatSignature,
+      contracts.passkey,
+      [],
+    ],
+  );
+
+  return fullFormattedSig;
+}

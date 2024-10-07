@@ -33,19 +33,6 @@ interface IR1Validator is IERC165 {
     bytes32[2] calldata rs,
     bytes32[2] calldata pubKey
   ) external view returns (bool valid);
-
-  /**
-   * @notice Parses client data json to match transactionHash to challenge and validates signature
-   * @param transactionHash bytes32       - message hash of the data that is signed by the key
-   * @param fatSignature bytes            - packed authData, clientData, and challenge signature points (r & s)
-   * @param pubKey bytes32[2]             - public key coordinates array for the x and y values
-   * @return valid bool                   - validation result
-   */
-  function webAuthVerify(
-    bytes32 transactionHash,
-    bytes calldata fatSignature,
-    bytes32[2] calldata pubKey
-  ) external view returns (bool valid);
 }
 
 /**
