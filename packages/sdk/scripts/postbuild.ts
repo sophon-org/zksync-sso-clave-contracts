@@ -1,9 +1,14 @@
-import { readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 // Define paths for the source and destination package.json files
 const srcPath = join(import.meta.dirname, "../", "src", "package.json");
 const distPath = join(import.meta.dirname, "../", "dist", "package.json");
+
+// Create dist folder if it doesn't exist
+if (!existsSync(join(import.meta.dirname, "../", "dist"))) {
+  mkdirSync(join(import.meta.dirname, "../", "dist"));
+}
 
 // Read the package.json file from src
 let packageJson = JSON.parse(readFileSync(srcPath, "utf-8"));

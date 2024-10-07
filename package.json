@@ -11,7 +11,7 @@
     "EIP7579"
   ],
   "scripts": {
-    "prepare": "husky",
+    "prepare": "husky && pnpm nx run-many -t prepare --all",
     "build": "pnpm nx run-many -t build --all",
     "lint": "pnpm run lint:eslint && pnpm run lint:markdown && pnpm run lint:spelling && pnpm run lint:prettier",
     "lint:fix": "pnpm eslint --fix --ignore-pattern 'packages/*' . && pnpm nx affected -t lint --fix && pnpm prettier --write . | grep -v 'unchanged' | xargs",
