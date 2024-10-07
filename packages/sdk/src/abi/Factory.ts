@@ -13,35 +13,38 @@ export const FactoryAbi = [
   {
     "inputs": [
       {
-        "internalType": "string",
-        "name": "",
-        "type": "string"
-      },
-      {
-        "internalType": "string",
-        "name": "",
-        "type": "string"
-      },
-      {
         "internalType": "address",
         "name": "",
         "type": "address"
+      },
+      {
+        "internalType": "string",
+        "name": "",
+        "type": "string"
       }
     ],
     "name": "accountMappings",
     "outputs": [
       {
         "internalType": "address",
-        "name": "accountLocation",
+        "name": "",
         "type": "address"
-      },
-      {
-        "internalType": "string",
-        "name": "publicPasskey",
-        "type": "string"
       }
     ],
     "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "bytes32",
+        "name": "uniqueAccountId",
+        "type": "bytes32"
+      }
+    ],
+    "name": "addNewUniqueId",
+    "outputs": [],
+    "stateMutability": "nonpayable",
     "type": "function"
   },
   {
@@ -57,24 +60,19 @@ export const FactoryAbi = [
         "type": "address"
       },
       {
-        "internalType": "bytes",
-        "name": "initialR1Owner",
-        "type": "bytes"
+        "internalType": "string",
+        "name": "uniqueAccountId",
+        "type": "string"
       },
       {
-        "internalType": "address",
-        "name": "initialR1Validator",
-        "type": "address"
+        "internalType": "bytes[]",
+        "name": "initialValidators",
+        "type": "bytes[]"
       },
       {
-        "internalType": "address",
-        "name": "initialModule",
-        "type": "address"
-      },
-      {
-        "internalType": "bytes",
-        "name": "initData",
-        "type": "bytes"
+        "internalType": "bytes[]",
+        "name": "initialModules",
+        "type": "bytes[]"
       }
     ],
     "name": "deployProxy7579Account",

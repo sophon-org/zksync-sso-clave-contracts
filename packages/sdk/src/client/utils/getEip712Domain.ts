@@ -15,12 +15,11 @@ export const getEip712Domain: EIP712DomainFn<
   const message = transactionToMessage(
     transaction as ZksyncTransactionSerializableEIP712,
   );
-  console.log("Viem tx", message);
 
   return {
     domain: {
-      // internal spell checker doesn't like the casing, but it's part of an external package
-      name: `zk` + `Sync`,
+      // cspell:ignore zkSync
+      name: `zkSync`,
       version: "2",
       chainId: transaction.chainId,
     },
