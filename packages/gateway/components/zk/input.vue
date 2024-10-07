@@ -6,8 +6,11 @@
         type="text"
         :class="twMerge(inputUI, ui.input, stateUI)"
         :disabled
-      />
-      <div v-if="postLabel" :class="twMerge(postLabelUI, ui.postLabel)">
+      >
+      <div
+        v-if="postLabel"
+        :class="twMerge(postLabelUI, ui.postLabel)"
+      >
         {{ postLabel }}
       </div>
     </div>
@@ -49,16 +52,16 @@ const {
   disabled?: boolean;
 }>();
 
-const baseInputUI =
-  "px-4 py-3 rounded-zk border border-neutral-300 inline-block";
+const baseInputUI
+  = "px-4 py-3 rounded-zk border border-neutral-300 inline-block";
 
 const inputUI = computed(() => {
   let baseClasses = twMerge(
     baseInputUI,
-    "focus:ring-primary-400 focus:outline-none focus:border-neutral-700 z-10 relative flex-auto disabled:border-neutral-200 dark:bg-neutral-900 dark:border-neutral-700 dark:disabled:border-neutral-800 dark:text-neutral-100"
+    "focus:ring-primary-400 focus:outline-none focus:border-neutral-700 z-10 relative flex-auto disabled:border-neutral-200 dark:bg-neutral-900 dark:border-neutral-700 dark:disabled:border-neutral-800 dark:text-neutral-100",
   );
 
-  if (!!postLabel) {
+  if (postLabel) {
     baseClasses = twMerge(baseClasses, "rounded-r-none z-10");
   }
 
@@ -67,7 +70,7 @@ const inputUI = computed(() => {
 
 const postLabelUI = twMerge(
   baseInputUI,
-  "text-neutral-600 bg-neutral-100 rounded-l-none rounded-r-zk border-l-none z-0 relative dark:bg-neutral-950 dark:border-neutral-700 dark:text-neutral-400"
+  "text-neutral-600 bg-neutral-100 rounded-l-none rounded-r-zk border-l-none z-0 relative dark:bg-neutral-950 dark:border-neutral-700 dark:text-neutral-400",
 );
 
 const stateUI = computed(() => {

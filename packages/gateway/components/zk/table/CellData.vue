@@ -1,10 +1,10 @@
 <template>
   <div :class="cellUI">
     <div class="text-neutral-950 dark:text-inherit">
-      <slot></slot>
+      <slot />
     </div>
     <div class="text-neutral-700 dark:text-neutral-400">
-      <slot name="sub"></slot>
+      <slot name="sub" />
     </div>
   </div>
 </template>

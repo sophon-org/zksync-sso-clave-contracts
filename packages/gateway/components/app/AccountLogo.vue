@@ -1,5 +1,9 @@
 <template>
-  <svg class="fill-current" viewBox="0 0 252 53" :height>
+  <svg
+    class="fill-current"
+    viewBox="0 0 252 53"
+    :height
+  >
     <clipPath id="A"><path d="M0 0h251.197v52.112H0z" /></clipPath>
     <g clip-path="url(#A)">
       <path

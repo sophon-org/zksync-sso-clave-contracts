@@ -118,14 +118,6 @@ export default {
       slideRightAndFade:
         "slideRightAndFade 400ms cubic-bezier(0.16, 1, 0.3, 1)",
     },
-    screens: {
-      xxs: "320px",
-      xs: "480px",
-      sm: "640px",
-      md: "720px",
-      lg: "1024px",
-      xl: "1280px",
-    },
   },
   plugins: [],
 };

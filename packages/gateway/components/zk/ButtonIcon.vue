@@ -1,18 +1,18 @@
 <template>
-  <zk-button
+  <Zkbutton
     :type
     :ui="buttonUI"
   >
-    <zk-icon
+    <ZkIcon
       :ui="iconUI"
       :icon
     />
-  </zk-button>
+  </ZkButton>
 </template>
 
 <script setup lang="ts">
 import { twMerge } from "tailwind-merge";
-import type { ButtonTypes, ButtonUI } from "./button.vue";
+import type { ButtonTypes, ButtonUI } from "./Button.vue";
 
 const {
   type = "ghost",

@@ -1,6 +1,6 @@
 <template>
   <div :class="bodyUI">
-    <slot></slot>
+    <slot />
   </div>
 </template>
 
@@ -14,7 +14,7 @@ const props = defineProps<{
 const bodyUI = computed(() => {
   return twMerge(
     "border border-neutral-200 rounded-zk bg-white dark:bg-neutral-900 dark:border-neutral-700",
-    props.ui
+    props.ui,
   );
 });
 </script>

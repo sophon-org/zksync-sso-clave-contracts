@@ -2,6 +2,7 @@ import type { ExtractParams, ExtractReturnType, GatewayRpcSchema, Method, RPCReq
 
 export const useRequestsStore = defineStore("requests", () => {
   const { appMeta } = useAppMeta();
+  const communicator = useCommunicator();
 
   const request = ref<RPCRequestMessage<Method> | undefined>();
   const hasRequests = computed(() => !!request.value);

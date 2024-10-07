@@ -1,11 +1,18 @@
 <template>
   <div :class="headerUI">
-    <h3 :class="titleUI">{{ title }}</h3>
-    <slot name="header-side"></slot>
+    <h3 :class="titleUI">
+      {{ title }}
+    </h3>
+    <slot name="header-side" />
   </div>
-  <div :class="bodyUI"><slot></slot></div>
-  <div v-if="$slots.footer" :class="footerUI">
-    <slot name="footer"></slot>
+  <div :class="bodyUI">
+    <slot />
+  </div>
+  <div
+    v-if="$slots.footer"
+    :class="footerUI"
+  >
+    <slot name="footer" />
   </div>
 </template>
 
@@ -26,12 +33,12 @@ const props = defineProps<{
 
 const headerUI = twMerge(
   "px-4 flex items-center bg-neutral-100 rounded-t-zk py-2 dark:bg-neutral-950",
-  props.ui?.header
+  props.ui?.header,
 );
 
 const titleUI = twMerge(
   "text-lg text-neutral-900 flex-auto dark:text-neutral-100",
-  props.ui?.title
+  props.ui?.title,
 );
 
 const bodyUI = computed(() => {
@@ -45,6 +52,6 @@ const bodyUI = computed(() => {
 
 const footerUI = twMerge(
   "bg-neutral-100 rounded-b-zk p-2 px-4 dark:bg-neutral-950",
-  props.ui?.footer
+  props.ui?.footer,
 );
 </script>

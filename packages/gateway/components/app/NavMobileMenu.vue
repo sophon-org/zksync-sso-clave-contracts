@@ -22,7 +22,7 @@
             </Dialog.Close>
           </Dialog.Title>
           <Dialog.Description class="mb-10 text-lg text-center">
-            <slot></slot>
+            <slot />
           </Dialog.Description>
 
           <div class="flex flex-col gap-2 justify-end">

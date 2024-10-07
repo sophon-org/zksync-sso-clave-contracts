@@ -1,11 +1,11 @@
 <template>
-  <zk-tooltip :label="copyLabel">
-    <zk-button-icon
+  <ZkTooltip :label="copyLabel">
+    <ZkButtonIcon
       icon="open_in_new"
-      @click="copyContent"
       :ui="{ button: { base: 'py-0' } }"
+      @click="copyContent"
     />
-  </zk-tooltip>
+  </ZkTooltip>
 </template>
 
 <script setup lang="ts">

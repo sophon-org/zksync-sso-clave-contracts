@@ -3,16 +3,16 @@
     <DropdownMenu.Root v-model:open="toggleState">
       <DropdownMenu.Trigger>
         <slot>
-          <zk-button>
-            <zk-icon icon="settings" />
+          <ZkButton>
+            <ZkIcon icon="settings" />
             <template #postfix>
-              <zk-icon
+              <ZkIcon
                 :icon="
                   toggleState ? 'keyboard_arrow_up' : 'keyboard_arrow_down'
                 "
               />
             </template>
-          </zk-button>
+          </ZkButton>
         </slot>
       </DropdownMenu.Trigger>
 
@@ -24,8 +24,8 @@
         >
           <DropdownMenu.Item
             v-for="item in menu"
-            @click="selectItem(item.value)"
             class="group relative flex items-center py-3 px-2 text-sm leading-none rounded-[3px] select-none outline-none data-[disabled]:text-mauve8 data-[disabled]:pointer-events-none data-[highlighted]:bg-neutral-100 data-[highlighted]:text-neutral-950 text-neutral-700 cursor-pointer"
+            @click="selectItem(item.value)"
           >
             {{ item.label }}
           </DropdownMenu.Item>

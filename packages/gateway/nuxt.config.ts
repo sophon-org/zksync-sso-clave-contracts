@@ -28,4 +28,20 @@ export default defineNuxtConfig({
       },
     },
   },
+  runtimeConfig: {
+    public: {
+      reownId: "489989b3cade8c4769610010f741bc8b",
+      chains: {
+        zkSyncInMemoryNode: {
+          id: 260,
+          name: "ZKsync InMemory Node",
+          network: "zksync-in-memory-node",
+          nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 },
+          rpcUrls: "http://localhost:8011",
+          testnet: true,
+
+        },
+      },
+    },
+  },
 });

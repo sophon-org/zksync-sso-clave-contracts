@@ -1,9 +1,12 @@
 <template>
   <ClientOnly>
-    <Tooltip.Provider :delayDuration="150" disableClosingTrigger>
+    <Tooltip.Provider
+      :delay-duration="150"
+      disable-closing-trigger
+    >
       <Tooltip.Root>
         <Tooltip.Trigger as-child>
-          <slot></slot>
+          <slot />
         </Tooltip.Trigger>
         <Tooltip.Portal>
           <Tooltip.Content

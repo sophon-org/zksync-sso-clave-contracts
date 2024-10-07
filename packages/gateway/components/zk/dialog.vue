@@ -2,7 +2,7 @@
   <client-only>
     <Dialog.Root>
       <Dialog.Trigger>
-        <zk-button>Dialog</zk-button>
+        <ZkButton>Dialog</ZkButton>
       </Dialog.Trigger>
       <Dialog.Portal>
         <Dialog.Overlay
@@ -17,21 +17,31 @@
               class="inline-flex appearance-none items-center justify-center focus:outline-none focus:ring-1 rounded-full"
               aria-label="Close"
             >
-              <zk-icon icon="close" />
+              <ZkIcon icon="close" />
             </Dialog.Close>
           </Dialog.Title>
           <Dialog.Description class="mb-10 text-lg text-center">
-            <slot></slot>
+            <slot />
           </Dialog.Description>
 
           <div class="flex flex-col gap-2 justify-end">
             <Dialog.Close as-child>
               <slot name="submit">
-                <zk-button type="primary" class="w-full"> Confirm </zk-button>
+                <ZkButton
+                  type="primary"
+                  class="w-full"
+                >
+                  Confirm
+                </ZkButton>
               </slot>
             </Dialog.Close>
             <Dialog.Close as-child>
-              <zk-button type="secondary" class="w-full"> Cancel </zk-button>
+              <ZkButton
+                type="secondary"
+                class="w-full"
+              >
+                Cancel
+              </ZkButton>
             </Dialog.Close>
           </div>
         </Dialog.Content>

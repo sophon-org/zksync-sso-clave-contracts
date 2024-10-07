@@ -1,6 +1,9 @@
 <template>
-  <NuxtLink v-bind="$props" :class="linkUI">
-    <slot></slot>
+  <NuxtLink
+    v-bind="$props"
+    :class="linkUI"
+  >
+    <slot />
   </NuxtLink>
 </template>
 
@@ -16,10 +19,10 @@ const { ui, type = "inline" } = defineProps<
 >();
 
 const linkUI = computed(() => {
-  let base =
-    "inline-block inline-flex items-center justify-center border border-transparent px-4 py-3 align-middle leading-3 focus:outline-none focus:ring-4 focus:ring-primary-400 focus:ring-opacity-50 dark:focus:ring-blue-800 dark:focus:ring-opacity-80";
+  let base
+    = "inline-block inline-flex items-center justify-center border border-transparent px-4 py-3 align-middle leading-3 focus:outline-none focus:ring-4 focus:ring-primary-400 focus:ring-opacity-50 dark:focus:ring-blue-800 dark:focus:ring-opacity-80";
 
-  if (!!type) {
+  if (type) {
     base = twMerge(base, types[type]);
   }
   return twMerge(base, types[type], ui);

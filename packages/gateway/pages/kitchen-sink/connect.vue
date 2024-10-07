@@ -27,11 +27,5 @@
 </template>
 
 <script lang="ts" setup>
-const { appMeta } = useAppMeta();
-const { isLoggedIn } = storeToRefs(useAccountStore());
-const communicator = useCommunicator();
-
-communicator.setOrigin(window.location.search);
-
-const { hasRequests, requestMethod } = storeToRefs(useRequestsStore());
+// 420x600
 </script>
