@@ -112,7 +112,7 @@ importers:
         version: 2.21.12(bufferutil@4.0.8)(typescript@5.6.2)(utf-8-validate@5.0.10)(zod@3.22.4)
       zksync-account:
         specifier: workspace:*
-        version: link:../sdk/src
+        version: link:../sdk
     devDependencies:
       '@ethersproject/contracts':
         specifier: 5.7.0
@@ -233,7 +233,7 @@ importers:
         version: 3.5.11(typescript@5.6.2)
       zksync-account:
         specifier: workspace:*
-        version: link:../sdk/src
+        version: link:../sdk
       zksync-ethers:
         specifier: ^6.12.1
         version: 6.13.0(ethers@6.13.2(bufferutil@4.0.8)(utf-8-validate@5.0.10))
@@ -288,15 +288,9 @@ importers:
         version: 1.0.4(typescript@5.6.2)
       zksync-account:
         specifier: workspace:*
-        version: link:../sdk/src
+        version: link:../sdk
 
   packages/sdk:
-    dependencies:
-      typescript:
-        specifier: 5.5.2
-        version: 5.5.2
-
-  packages/sdk/src:
     dependencies:
       '@peculiar/asn1-ecc':
         specifier: ^2.3.13
@@ -312,7 +306,7 @@ importers:
         version: 10.0.1
       '@wagmi/core':
         specifier: 2.x
-        version: 2.13.6(@tanstack/query-core@5.59.0)(react@18.3.1)(typescript@5.6.2)(viem@2.21.16(bufferutil@4.0.8)(typescript@5.6.2)(utf-8-validate@5.0.10)(zod@3.22.4))
+        version: 2.13.8(@tanstack/query-core@5.59.0)(react@18.3.1)(typescript@5.6.2)(viem@2.21.16(bufferutil@4.0.8)(typescript@5.6.2)(utf-8-validate@5.0.10)(zod@3.22.4))
       abitype:
         specifier: ^1.0.6
         version: 1.0.6(typescript@5.6.2)(zod@3.22.4)
@@ -4078,18 +4072,6 @@ packages:
       typescript: '>=5.0.4'
       viem: 2.x
     peerDependenciesMeta:
-      typescript:
-        optional: true
-
-  '@wagmi/core@2.13.6':
-    resolution: {integrity: sha512-5QkYd9dWntUJMH3EFQqPJRDBwc0+PVPmuMQF09wKXCFvTIdTLFnEI3itPIoMwO4ULtvsrftDzpT71lqpu1EJJQ==}
-    peerDependencies:
-      '@tanstack/query-core': '>=5.0.0'
-      typescript: '>=5.0.4'
-      viem: 2.x
-    peerDependenciesMeta:
-      '@tanstack/query-core':
-        optional: true
       typescript:
         optional: true
 
@@ -9507,11 +9489,6 @@ packages:
     engines: {node: '>=14.17'}
     hasBin: true
 
-  typescript@5.5.2:
-    resolution: {integrity: sha512-NcRtPEOsPFFWjobJEtfihkLCZCXZt/os3zf8nTxjVH3RvTSxjrCamJpbExGvYOF+tFHc3pA65qpdwPbzjohhew==}
-    engines: {node: '>=14.17'}
-    hasBin: true
-
   typescript@5.6.2:
     resolution: {integrity: sha512-NW8ByodCSNCwZeghjN3o+JX5OFH0Ojg6sadjEKY4huZ52TqbJTJnDo5+Tw98lSy63NZvi4n+ez5m2u5d4PkZyw==}
     engines: {node: '>=14.17'}
@@ -14456,7 +14433,7 @@ snapshots:
 
   '@scure/bip32@1.4.0':
     dependencies:
-      '@noble/curves': 1.4.0
+      '@noble/curves': 1.4.2
       '@noble/hashes': 1.4.0
       '@scure/base': 1.1.9
 
@@ -15614,20 +15591,6 @@ snapshots:
       - uWebSockets.js
       - utf-8-validate
       - zod
-
-  '@wagmi/core@2.13.6(@tanstack/query-core@5.59.0)(react@18.3.1)(typescript@5.6.2)(viem@2.21.16(bufferutil@4.0.8)(typescript@5.6.2)(utf-8-validate@5.0.10)(zod@3.22.4))':
-    dependencies:
-      eventemitter3: 5.0.1
-      mipd: 0.0.7(typescript@5.6.2)
-      viem: 2.21.16(bufferutil@4.0.8)(typescript@5.6.2)(utf-8-validate@5.0.10)(zod@3.22.4)
-      zustand: 4.4.1(react@18.3.1)
-    optionalDependencies:
-      '@tanstack/query-core': 5.59.0
-      typescript: 5.6.2
-    transitivePeerDependencies:
-      - '@types/react'
-      - immer
-      - react
 
   '@wagmi/core@2.13.8(@tanstack/query-core@5.59.0)(react@18.3.1)(typescript@5.6.2)(viem@2.21.12(bufferutil@4.0.8)(typescript@5.6.2)(utf-8-validate@5.0.10)(zod@3.22.4))':
     dependencies:
@@ -22642,8 +22605,6 @@ snapshots:
 
   typescript@5.4.5: {}
 
-  typescript@5.5.2: {}
-
   typescript@5.6.2: {}
 
   typical@4.0.0: {}
@@ -23259,8 +23220,8 @@ snapshots:
 
   webauthn-p256@0.0.5:
     dependencies:
-      '@noble/curves': 1.4.0
-      '@noble/hashes': 1.4.0
+      '@noble/curves': 1.4.2
+      '@noble/hashes': 1.5.0
 
   webextension-polyfill@0.10.0: {}
 

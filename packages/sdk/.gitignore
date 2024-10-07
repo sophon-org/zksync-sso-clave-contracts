@@ -1,6 +1,4 @@
-_cjs
-_esm
-_types
+dist
 
 node_modules
 tsconfig*.tsbuildinfo
