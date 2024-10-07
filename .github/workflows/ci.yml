@@ -40,7 +40,7 @@ jobs:
 
     # Build SDK
     - name: Build SDK
-      run: pnpm nx build:cjs sdk
+      run: pnpm nx build sdk
 
     # Build contracts and generate types
     - name: Build contracts
