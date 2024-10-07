@@ -11,6 +11,7 @@ import "hardhat/console.sol";
  * @author https://getclave.io
  */
 contract WebAuthValidator is PasskeyValidator, IModuleValidator {
+  bytes4 constant EIP1271_SUCCESS_RETURN_VALUE = 0x1626ba7e;
   struct AttestationPasskey {
     bytes32[2] passkey;
     string originDomain;
@@ -25,7 +26,7 @@ contract WebAuthValidator is PasskeyValidator, IModuleValidator {
     return true;
   }
 
-  function handleValidation(bytes32 signedHash, bytes memory signature) external view returns (bool) {
+  function isValidSignature(bytes32 signedHash, bytes memory signature) external view returns (bytes4) {
     AttestationPasskey[] memory validationKeys = accountAddressToKeys[msg.sender];
 
     for (uint256 validationKeyIndex = 0; validationKeyIndex < validationKeys.length; validationKeyIndex++) {
@@ -37,11 +38,11 @@ contract WebAuthValidator is PasskeyValidator, IModuleValidator {
       bool _success = webAuthVerify(signedHash, signature, attestationPasskey);
 
       if (_success) {
-        return true;
+        return EIP1271_SUCCESS_RETURN_VALUE;
       }
     }
 
-    return false;
+    return bytes4(0);
   }
 
   function webAuthVerify(

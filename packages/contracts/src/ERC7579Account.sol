@@ -20,6 +20,7 @@ import { HookManager } from "./managers/HookManager.sol";
 import { ExecutionHelper } from "./helpers/Execution.sol";
 
 import { ClaveAccount } from "./ClaveAccount.sol";
+import { SignatureDecoder } from "./libraries/SignatureDecoder.sol";
 import { PackedUserOperation } from "./interfaces/PackedUserOperation.sol";
 
 /**
@@ -43,7 +44,6 @@ contract ERC7579Account is IERC7579Account, HookManager, ModuleManager, Executio
   // Error thrown when account installs/unistalls module with mismatched input `moduleTypeId`
   error MismatchModuleTypeId(uint256 moduleTypeId);
 
-  bytes4 constant EIP1271_SUCCESS_RETURN_VALUE = 0x1626ba7e;
   address private _factory = address(0);
 
   /////////////////////////////////////////////////////
@@ -215,16 +215,11 @@ contract ERC7579Account is IERC7579Account, HookManager, ModuleManager, Executio
     bytes32 userOpHash,
     uint256 missingAccountFunds
   ) external payable virtual onlyEntryPoint returns (uint256 validSignature) {
-    address validator;
-    // @notice validator encoding in nonce is just an example!
-    // @notice this is not part of the standard!
-    // Account Vendors may choose any other way to implement validator selection
-    uint256 nonce = userOp.nonce;
-    assembly {
-      validator := shr(96, nonce)
-    }
+    // Extract the signature, validator address and hook data from the transaction.signature
+    (bytes memory signature, address validator, bytes[] memory hookData) = SignatureDecoder.decodeSignature(
+      userOp.signature
+    );
 
-    // bubble up the return value of the validator module
     validSignature = IUserOpValidator(validator).validateUserOp(userOp, userOpHash);
   }
 

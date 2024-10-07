@@ -17,6 +17,7 @@ import "hardhat/console.sol";
  * @author https://getclave.io
  */
 abstract contract ValidationHandler is OwnerManager, ValidatorManager {
+  bytes4 constant EIP1271_SUCCESS_RETURN_VALUE = 0x1626ba7e;
   function _handleValidation(
     address validator,
     bytes32 signedHash,
@@ -47,8 +48,7 @@ abstract contract ValidationHandler is OwnerManager, ValidatorManager {
         return true;
       }
     } else if (_isModuleValidator(validator)) {
-      console.log("_isModuleValidator");
-      return IModuleValidator(validator).handleValidation(signedHash, signature);
+      return IModuleValidator(validator).isValidSignature(signedHash, signature) == EIP1271_SUCCESS_RETURN_VALUE;
     }
 
     return false;

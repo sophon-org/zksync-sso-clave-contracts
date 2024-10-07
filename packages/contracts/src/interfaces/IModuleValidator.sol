@@ -6,7 +6,7 @@ pragma solidity ^0.8.24;
  * @dev Add signature to module or validate existing signatures for acccount
  */
 interface IModuleValidator {
-  function handleValidation(bytes32 signedHash, bytes memory signature) external view returns (bool);
+  function isValidSignature(bytes32 signedHash, bytes memory signature) external view returns (bytes4);
 
   function addValidationKey(bytes memory key) external returns (bool);
 }
