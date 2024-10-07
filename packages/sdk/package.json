@@ -8,7 +8,7 @@
     "build:types": "tsc --project ./tsconfig.build.json --module esnext --declarationDir ./dist/_types --emitDeclarationOnly --declaration --declarationMap",
     "script:postbuild": "tsc --project ./scripts/tsconfig.json && node ./scripts/postbuild.js && rm -rf ./scripts/postbuild.js",
     "clean": "rm -rf *.tsbuildinfo dist",
-    "prepare": "npm run script:postbuild",
+    "prepare": "mkdir dist && npm run script:postbuild",
     "typecheck": "tsc --noEmit",
     "publish:local": "pnpm nx publish:local sdk-package"
   },
