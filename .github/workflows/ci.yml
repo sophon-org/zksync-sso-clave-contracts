@@ -54,4 +54,4 @@ jobs:
 
     # Run e2e tests
     - name: Run e2e test
-      run: pnpm nx test contracts -- --typecheck
+      run: pnpm nx test contracts
