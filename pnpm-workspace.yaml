@@ -1,6 +1,3 @@
 packages:
-  - "packages/contracts"
-  - "packages/gateway"
-  - "packages/sdk"
-  - "packages/sdk/src"
-  - "packages/demo-app"
+  - "packages/*"
+  - "!**/test/**"
