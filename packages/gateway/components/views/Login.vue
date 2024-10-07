@@ -156,7 +156,7 @@ const { inProgress: registerInProgress, execute: createAccount } = useAsync(asyn
   const { address } = await deployAccount(deployerClient as any, {
     credentialPublicKey,
     /* TODO: Remove spend limit, right now deployment fails without initial data */
-    initialSpendLimit: [
+    initialSessions: [
       {
         sessionPublicKey,
         token: "0x111C3E89Ce80e62EE88318C2804920D4c96f92bb",

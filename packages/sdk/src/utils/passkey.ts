@@ -15,7 +15,7 @@ enum COSEKEYS {
   e = -2, // Exponent for RSA keys
 }
 
-export const getPublicKeyBytesFromPasskeySignature = async (publicPasskey: Uint8Array) => {
+export const getPublicKeyBytesFromPasskeySignature = async (publicPasskey: Uint8Array): Promise<[Buffer, Buffer]> => {
   const cosePublicKey = await decode(publicPasskey); // Decodes CBOR-encoded COSE key
   const x = cosePublicKey.get(COSEKEYS.x);
   const y = cosePublicKey.get(COSEKEYS.y);

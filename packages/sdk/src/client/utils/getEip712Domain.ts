@@ -15,10 +15,10 @@ export const getEip712Domain: EIP712DomainFn<
   const message = transactionToMessage(
     transaction as ZksyncTransactionSerializableEIP712,
   );
-  console.log("Viem tx", message);
 
   return {
     domain: {
+      // cspell:ignore zkSync
       name: `zkSync`,
       version: "2",
       chainId: transaction.chainId,

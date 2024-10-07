@@ -50,23 +50,19 @@ export const SessionPasskeySpendLimitModuleAbi = [
   {
     "inputs": [
       {
-        "internalType": "address",
-        "name": "publicKey",
-        "type": "address"
-      },
-      {
-        "internalType": "address",
-        "name": "token",
-        "type": "address"
-      },
-      {
-        "internalType": "uint256",
-        "name": "expiration",
-        "type": "uint256"
+        "internalType": "bytes",
+        "name": "installData",
+        "type": "bytes"
       }
     ],
-    "name": "addSessionKey",
-    "outputs": [],
+    "name": "addValidationKey",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
+      }
+    ],
     "stateMutability": "nonpayable",
     "type": "function"
   },
@@ -75,6 +71,115 @@ export const SessionPasskeySpendLimitModuleAbi = [
     "name": "disable",
     "outputs": [],
     "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "sessionPublicKey",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "token",
+        "type": "address"
+      }
+    ],
+    "name": "getRemainingSpendLimit",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "sessionPublicKey",
+        "type": "address"
+      }
+    ],
+    "name": "getSessionKeyData",
+    "outputs": [
+      {
+        "components": [
+          {
+            "internalType": "address",
+            "name": "sessionKey",
+            "type": "address"
+          },
+          {
+            "internalType": "uint256",
+            "name": "expiresAt",
+            "type": "uint256"
+          },
+          {
+            "components": [
+              {
+                "internalType": "address",
+                "name": "tokenAddress",
+                "type": "address"
+              },
+              {
+                "internalType": "uint256",
+                "name": "limit",
+                "type": "uint256"
+              }
+            ],
+            "internalType": "struct SessionPasskeySpendLimitModule.SpendLimit[]",
+            "name": "spendLimits",
+            "type": "tuple[]"
+          }
+        ],
+        "internalType": "struct SessionPasskeySpendLimitModule.SessionKey",
+        "name": "sessionKey",
+        "type": "tuple"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "getSessionKeys",
+    "outputs": [
+      {
+        "internalType": "address[]",
+        "name": "",
+        "type": "address[]"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "bytes32",
+        "name": "signedHash",
+        "type": "bytes32"
+      },
+      {
+        "internalType": "bytes",
+        "name": "signature",
+        "type": "bytes"
+      }
+    ],
+    "name": "handleValidation",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
     "type": "function"
   },
   {
@@ -237,11 +342,11 @@ export const SessionPasskeySpendLimitModuleAbi = [
     "inputs": [
       {
         "internalType": "address",
-        "name": "token",
+        "name": "sessionKey",
         "type": "address"
       }
     ],
-    "name": "removeSpendingLimit",
+    "name": "revokeSession",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
@@ -252,57 +357,40 @@ export const SessionPasskeySpendLimitModuleAbi = [
         "components": [
           {
             "internalType": "address",
-            "name": "token",
+            "name": "sessionKey",
             "type": "address"
           },
           {
-            "internalType": "bytes",
-            "name": "publicKey",
-            "type": "bytes"
+            "internalType": "uint256",
+            "name": "expiresAt",
+            "type": "uint256"
           },
           {
-            "internalType": "uint256",
-            "name": "limit",
-            "type": "uint256"
+            "components": [
+              {
+                "internalType": "address",
+                "name": "tokenAddress",
+                "type": "address"
+              },
+              {
+                "internalType": "uint256",
+                "name": "limit",
+                "type": "uint256"
+              }
+            ],
+            "internalType": "struct SessionPasskeySpendLimitModule.SpendLimit[]",
+            "name": "spendLimits",
+            "type": "tuple[]"
           }
         ],
-        "internalType": "struct SessionPasskeySpendLimitModule.TokenConfig[]",
-        "name": "configs",
+        "internalType": "struct SessionPasskeySpendLimitModule.SessionKey[]",
+        "name": "sessionKeys",
         "type": "tuple[]"
       }
     ],
-    "name": "setSpendingLimits",
+    "name": "setSessionKeys",
     "outputs": [],
     "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "account",
-        "type": "address"
-      },
-      {
-        "internalType": "address",
-        "name": "token",
-        "type": "address"
-      }
-    ],
-    "name": "spendingLimits",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "limit",
-        "type": "uint256"
-      },
-      {
-        "internalType": "bytes",
-        "name": "publicKey",
-        "type": "bytes"
-      }
-    ],
-    "stateMutability": "view",
     "type": "function"
   },
   {

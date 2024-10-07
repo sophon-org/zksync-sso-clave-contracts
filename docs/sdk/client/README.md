@@ -25,7 +25,7 @@ development principles in mind.
 
    ```ts
    import { generatePrivateKey, privateKeyToAccount } from "viem";
-   import { deployAccount } from "zksync-account/client/actions";
+   import { deployAccount } from "zksync-account/client";
 
    const deployerClient = ...; // Any client for deploying the account, make sure it has enough balance to cover the deployment cost
    const sessionKey = generatePrivateKey();
@@ -33,7 +33,7 @@ development principles in mind.
 
    const { address } = await deployAccount(deployerClient, {
    credentialPublicKey,
-   initialSpendLimit: [
+   initialSessions: [
        {
        sessionPublicKey,
        token: Token.address,

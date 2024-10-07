@@ -1,15 +1,15 @@
-import { promises } from "node:fs";
-
 import { assert, expect } from "chai";
 import { BytesLike, parseEther, randomBytes } from "ethers";
 import { AbiCoder, Contract, ethers, ZeroAddress } from "ethers";
 import * as hre from "hardhat";
 import { it } from "mocha";
-import { Address, bytesToHex, createWalletClient, encodeAbiParameters, encodeFunctionData, getAddress, Hash, http, isHex, parseAbiParameters, publicActions, toHex } from "viem";
-import { privateKeyToAccount } from "viem/accounts";
-import { sendTransaction, waitForTransactionReceipt, writeContract } from "viem/actions";
+import { Address, createWalletClient, getAddress, Hash, http, publicActions } from "viem";
+import { generatePrivateKey, privateKeyToAccount, privateKeyToAddress } from "viem/accounts";
+import { waitForTransactionReceipt } from "viem/actions";
 import { zksyncInMemoryNode } from "viem/chains";
-import { createZksyncSessionClient } from "zksync-account/client";
+import { createZksyncSessionClient, deployAccount } from "zksync-account/client";
+import { setSessionKey } from "zksync-account/client/actions";
+import { encodePasskeyModuleParameters, encodeSessionSpendLimitParameters } from "zksync-account/utils";
 import { Provider, SmartAccount, types, utils, Wallet } from "zksync-ethers";
 
 import { createZksyncPasskeyClient } from "./sdk/PasskeyClient";
@@ -17,13 +17,13 @@ import { create2, deployFactory, getProvider, getWallet, LOCAL_RICH_WALLETS, log
 
 // Token Config Interface definitions
 interface SpendLimit {
-  tokenAddress: string;
+  tokenAddress: Address;
   limit: bigint;
 }
 
 interface SessionKey {
   // the public address of the session
-  sessionKey: string;
+  sessionKey: Address;
   // block timestamp
   expiresAt: bigint;
   // if not de-duplicated, the last token address wins
@@ -134,7 +134,7 @@ export class ContractFixtures {
 
     const sessionModuleData = this.abiCoder.encode(
       ["address", "bytes"],
-      [sessionModuleAddress, await this.getEncodedSessionModuleData(initialSessionKeyWallet.address)]);
+      [sessionModuleAddress, this.getEncodedSessionModuleData(initialSessionKeyWallet.address as Address)]);
     const passkeyModuleData = this.abiCoder.encode(
       ["address", "bytes"],
       [passkeyModuleAddress, await this.getEncodedPasskeyModuleData(response)]);
@@ -191,9 +191,9 @@ export class ContractFixtures {
     ]));
   };
 
-  async getSessionSpendLimitModuleData(sessionKey: string): Promise<SessionKey> {
+  getSessionSpendLimitModuleData(sessionPublicKey: Address): SessionKey {
     return {
-      sessionKey: sessionKey,
+      sessionKey: sessionPublicKey,
       expiresAt: BigInt(1000000),
       spendLimits: [{
         tokenAddress: this.tokenForSpendLimit,
@@ -202,32 +202,24 @@ export class ContractFixtures {
     };
   }
 
-  async getEncodedSessionModuleData(sessionKey: string) {
-    const spendLimitTypes = [
-      "address tokenAddress",
-      "uint256 limit",
-    ];
+  getEncodedSessionModuleData(sessionPublicKey: Address) {
+    const sessionKeyData = this.getSessionSpendLimitModuleData(sessionPublicKey);
 
-    const sessionKeyTypes = [
-      "address sessionKey",
-      "uint256 expiresAt",
-      `tuple(${spendLimitTypes.join(",")})[] spendLimits`,
-    ];
-    return this.abiCoder.encode(
-      [`tuple(${sessionKeyTypes.join(",")})[]`], // Solidity equivalent: SessionKey[]
-      [[await this.getSessionSpendLimitModuleData(sessionKey)].map((config) => [
-        config.sessionKey,
-        config.expiresAt,
-        config.spendLimits,
-      ])],
-    );
+    return encodeSessionSpendLimitParameters([{
+      sessionKey: sessionKeyData.sessionKey,
+      expiresAt: new Date(parseInt((sessionKeyData.expiresAt * BigInt(1000)).toString())).toISOString(),
+      spendLimit: Object.fromEntries(sessionKeyData.spendLimits.map((limit) => [
+        limit.tokenAddress as Address, limit.limit.toString() as Hash,
+      ])),
+    }]);
   }
 
   // passkey has the public key + origin domain
   async getEncodedPasskeyModuleData(response: RecordedResponse) {
-    return this.abiCoder.encode(
-      ["bytes32[2]", "string"],
-      [await response.getXyPublicKeys(), response.expectedOrigin]);
+    return encodePasskeyModuleParameters({
+      passkeyPublicKey: await response.getXyPublicKeys(),
+      expectedOrigin: response.expectedOrigin,
+    });
   }
 }
 
@@ -278,7 +270,7 @@ describe("Spend limit validation", function () {
         [await passkeyModule.getAddress(), await fixtures.getEncodedPasskeyModuleData(ethersResponse)]);
       const sessionSpendModuleData = abiCoder.encode(
         ["address", "bytes"],
-        [await spendLimitModule.getAddress(), await fixtures.getEncodedSessionModuleData(sessionKeyWallet.address)]);
+        [await spendLimitModule.getAddress(), fixtures.getEncodedSessionModuleData(sessionKeyWallet.address as Address)]);
       const proxyAccount = await aaFactoryContract.deployProxy7579Account(
         randomBytes(32),
         await fixtures.getAccountImplAddress(),
@@ -322,7 +314,7 @@ describe("Spend limit validation", function () {
         [expensiveVerifierAddress, await fixtures.getEncodedPasskeyModuleData(ethersResponse)]);
       const sessionModuleData = abiCoder.encode(
         ["address", "bytes"],
-        [sessionModuleAddress, await fixtures.getEncodedSessionModuleData(sessionKeyWallet.address)]);
+        [sessionModuleAddress, fixtures.getEncodedSessionModuleData(sessionKeyWallet.address as Address)]);
       const proxyAccount = await aaFactoryContract.deployProxy7579Account(
         randomBytes(32),
         await fixtures.getAccountImplAddress(),
@@ -349,7 +341,7 @@ describe("Spend limit validation", function () {
 
       // we just need a stable wallet address, the fact that this is a rich wallet shouldn't matter
       const extraSessionKeyWallet: Wallet = getWallet(LOCAL_RICH_WALLETS[4].privateKey);
-      const tokenData = await fixtures.getSessionSpendLimitModuleData(extraSessionKeyWallet.address);
+      const tokenData = fixtures.getSessionSpendLimitModuleData(extraSessionKeyWallet.address as Address);
       const sessionModuleContract = await fixtures.getSessionSpendLimitContract();
       const callData = sessionModuleContract.interface.encodeFunctionData("setSessionKeys", [[tokenData]]);
       const aaTx = {
@@ -392,7 +384,7 @@ describe("Spend limit validation", function () {
 
       // we just need a stable wallet address, the fact that this is a rich wallet shouldn't matter
       const extraSessionKeyWallet: Wallet = getWallet("0x97006fa3cfc8f133ae17d8f0c9a815a8224246b0c667bf08b7a122f5be858c34");
-      const tokenData = await fixtures.getSessionSpendLimitModuleData(extraSessionKeyWallet.address);
+      const tokenData = fixtures.getSessionSpendLimitModuleData(extraSessionKeyWallet.address as Address);
 
       const sessionModuleContract = await fixtures.getSessionSpendLimitContract();
       const callData = sessionModuleContract.interface.encodeFunctionData("setSessionKeys", [[tokenData]]);
@@ -415,7 +407,7 @@ describe("Spend limit validation", function () {
 
       // now the part that fails for a different novel reason?
       const thirdSessionKeyWallet = Wallet.createRandom(getProvider());
-      const secondExtraSessionKeyData = await fixtures.getSessionSpendLimitModuleData(thirdSessionKeyWallet.address);
+      const secondExtraSessionKeyData = fixtures.getSessionSpendLimitModuleData(thirdSessionKeyWallet.address as Address);
       const thirdSessionKeyCallData = sessionModuleContract.interface.encodeFunctionData("setSessionKeys", [[secondExtraSessionKeyData]]);
       const sessionModuleAddress = await sessionModuleContract.getAddress();
       const transactionForSessionKey = {
@@ -457,7 +449,7 @@ describe("Spend limit validation", function () {
       const initialSessionKeyWallet = Wallet.createRandom(getProvider());
       const sessionModuleData = abiCoder.encode(
         ["address", "bytes"],
-        [sessionModuleAddress, await fixtures.getEncodedSessionModuleData(initialSessionKeyWallet.address)]);
+        [sessionModuleAddress, fixtures.getEncodedSessionModuleData(initialSessionKeyWallet.address as Address)]);
       const salt = new Uint8Array([
         200, 241, 161, 186, 101, 105, 70,
         240, 98, 64, 50, 124, 168, 200,
@@ -487,7 +479,7 @@ describe("Spend limit validation", function () {
       assert(accountBalance > BigInt(0), "account balance needs to be positive");
 
       const extraSessionKeyWallet = Wallet.createRandom(getProvider());
-      const tokenData = await fixtures.getSessionSpendLimitModuleData(extraSessionKeyWallet.address);
+      const tokenData = fixtures.getSessionSpendLimitModuleData(extraSessionKeyWallet.address as Address);
       const callData = sessionModuleContract.interface.encodeFunctionData("setSessionKeys", [[tokenData]]);
       const aaTx = {
         from: proxyAccountAddress,
@@ -571,15 +563,16 @@ describe("Spend limit validation", function () {
       const passkeyModule = await fixtures.getWebAuthnVerifierContract();
       const sessionModule = await fixtures.getSessionSpendLimitContract();
       const factoryContract = await fixtures.getAaFactory();
-      const factoryAddress = getAddress(await factoryContract.getAddress());
+      const factoryAddress = await factoryContract.getAddress() as Address;
 
-      const sessionModuleAddress = await sessionModule.getAddress();
-      const passkeyModuleAddress = await passkeyModule.getAddress();
-      const accountImpl = getAddress(await fixtures.getAccountImplAddress());
+      const sessionModuleAddress = await sessionModule.getAddress() as Address;
+      const passkeyModuleAddress = await passkeyModule.getAddress() as Address;
+      const accountImplementationAddress = await fixtures.getAccountImplAddress() as Address;
 
       // fix for .only deployment
       const proxyFix = await fixtures.getProxyAccountContract();
       assert(proxyFix != null, "should deploy proxy");
+
       const localClient = {
         ...zksyncInMemoryNode,
         rpcUrls: {
@@ -595,40 +588,39 @@ describe("Spend limit validation", function () {
         transport: http(),
       }).extend(publicActions);
 
-      const publicKeys: Buffer[] = await viemResponse.getXyPublicKeys();
-      const hexKeys = publicKeys.map((pk) => bytesToHex(pk));
-      const passkeyModuleData = encodeAbiParameters(
-        parseAbiParameters("bytes32[2], string"),
-        [[hexKeys[0], hexKeys[1]], viemResponse.expectedOrigin]);
+      /* 1. Deploy smart account */
+      const rawSessionKeyData = fixtures.getSessionSpendLimitModuleData(fixtures.viemSessionKeyWallet.address as Address);
+      const sessionKeyData = {
+        sessionPublicKey: rawSessionKeyData.sessionKey,
+        expiresAt: new Date(parseInt((rawSessionKeyData.expiresAt * BigInt(1000)).toString())).toISOString(),
+        spendLimit: Object.fromEntries(rawSessionKeyData.spendLimits.map((limit) => [
+          limit.tokenAddress, limit.limit.toString(),
+        ])),
+      };
 
-      const moduleParams = parseAbiParameters("address, bytes");
-      const encodedPasskeyModuleData = encodeAbiParameters(moduleParams,
-        [getAddress(passkeyModuleAddress), isHex(passkeyModuleData) ? passkeyModuleData : toHex(passkeyModuleData)],
-      );
-
-      const sessionModuleData = await fixtures.getEncodedSessionModuleData(fixtures.viemSessionKeyWallet.address);
-      const encodedSessionModuleData = encodeAbiParameters(moduleParams,
-        [getAddress(sessionModuleAddress), isHex(sessionModuleData) ? sessionModuleData : toHex(sessionModuleData)],
-      );
-
-      const factoryArtifact = JSON.parse(await promises.readFile(`./artifacts-zk/src/AAFactory.sol/AAFactory.json`, "utf8"));
-      const proxyAccount = await writeContract(richWallet, {
-        address: factoryAddress,
-        abi: factoryArtifact.abi,
-        functionName: "deployProxy7579Account",
-        args: [
-          toHex(fixtures.viemStaticSalt),
-          accountImpl,
-          "viemSpendLimitAccount",
-          [encodedPasskeyModuleData, encodedSessionModuleData],
-          [],
+      const proxyAccountDeployment = await deployAccount(richWallet as any, {
+        credentialPublicKey: viemResponse.passkeyBytes,
+        expectedOrigin: viemResponse.expectedOrigin,
+        uniqueAccountId: "viemSpendLimitAccount",
+        salt: fixtures.viemStaticSalt,
+        contracts: {
+          accountFactory: factoryAddress,
+          accountImplementation: accountImplementationAddress,
+          passkey: passkeyModuleAddress,
+          session: sessionModuleAddress,
+        },
+        initialSessions: [
+          {
+            sessionPublicKey: sessionKeyData.sessionPublicKey,
+            expiresAt: sessionKeyData.expiresAt,
+            spendLimit: sessionKeyData.spendLimit,
+          },
         ],
       });
-      const proxyAccountReceipt = await waitForTransactionReceipt(richWallet, { hash: proxyAccount });
-      assert.isNotNull(proxyAccountReceipt.contractAddress, "should have a contract address");
-      const proxyAccountAddress = getAddress(proxyAccountReceipt.contractAddress!);
-
+      const proxyAccountAddress = proxyAccountDeployment.address;
       assert.isDefined(proxyAccountAddress, "no address set");
+
+      /* 1.1 Fund smart account with some ETH to pay for transaction fees */
       const fundAccountTransactionHash = await waitForTransactionReceipt(richWallet, {
         hash: await richWallet.sendTransaction({
           to: proxyAccountAddress,
@@ -637,14 +629,15 @@ describe("Spend limit validation", function () {
       });
       assert.equal(fundAccountTransactionHash.status, "success", "should fund without errors");
 
+      /* 2. Validate passkey signed transactions */
       const passkeyClient = createZksyncPasskeyClient({
         address: proxyAccountAddress as Address,
         chain: localClient,
         contracts: {
-          validator: getAddress(passkeyModuleAddress),
-          session: getAddress(sessionModuleAddress),
+          validator: passkeyModuleAddress,
+          session: sessionModuleAddress,
           accountFactory: factoryAddress,
-          accountImplementation: getAddress(accountImpl),
+          accountImplementation: accountImplementationAddress,
         },
         signHash: async () => ({
           authenticatorData: viemResponse.authenticatorData,
@@ -654,44 +647,30 @@ describe("Spend limit validation", function () {
         transport: http(),
       });
 
-      const sessionArtifact = JSON.parse(await promises.readFile("./artifacts-zk/src/validators/SessionPasskeySpendLimitModule.sol/SessionPasskeySpendLimitModule.json", "utf8"));
-
-      const tokenConfig = await fixtures.getSessionSpendLimitModuleData(fixtures.viemSessionKeyWallet.address);
-
-      const callData = encodeFunctionData({
-        abi: sessionArtifact.abi,
-        functionName: "setSessionKeys",
-        args: [
-          [tokenConfig],
-        ],
+      await setSessionKey(passkeyClient as any, {
+        sessionKey: sessionKeyData.sessionPublicKey,
+        expiresAt: sessionKeyData.expiresAt,
+        spendLimit: sessionKeyData.spendLimit,
+        contracts: passkeyClient.contracts,
       });
 
-      const transactionHash = await sendTransaction(passkeyClient, {
-        to: passkeyClient.contracts.session,
-        data: callData as Hash,
-      });
-
-      const receipt = await waitForTransactionReceipt(passkeyClient, { hash: transactionHash });
-      assert.equal(receipt.status, "success", "(passkey)addSessionKey transaction should be successful");
-
-      // repeat with different signer
+      /* 3. Verify session key signed transactions */
       const sessionKeyClient = createZksyncSessionClient({
         address: proxyAccountAddress,
         sessionKey: fixtures.viemSessionKeyWallet.privateKey as Hash,
         contracts: {
-          session: getAddress(sessionModuleAddress),
+          session: sessionModuleAddress,
         },
         chain: localClient,
         transport: http(),
       });
 
-      const sessionKeyTransactionHash = await sessionKeyClient.sendTransaction({
-        to: sessionKeyClient.contracts.session,
-        data: callData as Hash,
+      const sessionKeySignedTransactionHash = await sessionKeyClient.sendTransaction({
+        to: privateKeyToAddress(generatePrivateKey()), // send any transaction to a random address
+        value: 1n,
       });
-
-      const sessionKeyReceipt = await waitForTransactionReceipt(sessionKeyClient, { hash: sessionKeyTransactionHash });
-      assert.equal(sessionKeyReceipt.status, "success", "(sessionkey) addSessionKey transaction should be successful");
+      const sessionKeyReceipt = await waitForTransactionReceipt(sessionKeyClient as any, { hash: sessionKeySignedTransactionHash });
+      assert.equal(sessionKeyReceipt.status, "success", "(sessionkey) transaction should be successful");
     });
   });
 
