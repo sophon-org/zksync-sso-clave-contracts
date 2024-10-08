@@ -224,14 +224,14 @@ contract ERC7579Account is IERC7579Account, HookManager, ModuleManager, Executio
     );
 
     // check if this is a userop validator or a modular signature validator
-    if (_isModuleValidator(validator)) {
-      if (IModuleValidator(validator).isValidSignature(userOpHash, signature) == EIP1271_SUCCESS_RETURN_VALUE) {
-        validSignature = 0;
-      }
+    if (
+      _isModuleValidator(validator) &&
+      IModuleValidator(validator).isValidSignature(userOpHash, signature) == EIP1271_SUCCESS_RETURN_VALUE
+    ) {
+      validSignature = 0;
     } else if (_isUserOpValidator(validator)) {
       validSignature = IUserOpValidator(validator).validateUserOp(userOp, userOpHash);
     }
-
   }
 
   /**
