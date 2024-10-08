@@ -3,10 +3,11 @@ import { BytesLike, parseEther, randomBytes } from "ethers";
 import { AbiCoder, Contract, ethers, ZeroAddress } from "ethers";
 import * as hre from "hardhat";
 import { it } from "mocha";
-import { Address, createWalletClient, getAddress, Hash, http, publicActions } from "viem";
+import { Address, createWalletClient, encodeAbiParameters, getAddress, Hash, http, publicActions, toHex } from "viem";
 import { generatePrivateKey, privateKeyToAccount, privateKeyToAddress } from "viem/accounts";
 import { waitForTransactionReceipt } from "viem/actions";
 import { zksyncInMemoryNode } from "viem/chains";
+import { SessionData } from "zksync-account";
 import { createZksyncSessionClient, deployAccount } from "zksync-account/client";
 import { setSessionKey } from "zksync-account/client/actions";
 import { encodePasskeyModuleParameters, encodeSessionSpendLimitParameters } from "zksync-account/utils";
@@ -145,7 +146,7 @@ export class ContractFixtures {
       uniqueAccountKey,
       [sessionModuleData, passkeyModuleData],
       [],
-      [],
+      [initialSessionKeyWallet.address],
     );
 
     const proxyAccountReceipt = await proxyAccount.wait();
@@ -204,6 +205,32 @@ export class ContractFixtures {
 
   getEncodedSessionModuleData(sessionPublicKey: Address) {
     const sessionKeyData = this.getSessionSpendLimitModuleData(sessionPublicKey);
+    const encodeSessionSpendLimitParameters = (sessions: SessionData[]) => {
+      const spendLimitTypes = [
+        { type: "address", name: "tokenAddress" },
+        { type: "uint256", name: "limit" },
+      ] as const;
+
+      const sessionKeyTypes = [
+        { type: "address", name: "sessionKey" },
+        { type: "uint256", name: "expiresAt" },
+        { type: "tuple[]", name: "spendLimits", components: spendLimitTypes },
+      ] as const;
+
+      return encodeAbiParameters(
+        [{ type: "tuple[]", components: sessionKeyTypes }],
+        [
+          sessions.map((sessionData) => ({
+            sessionKey: sessionData.sessionKey,
+            expiresAt: BigInt(Math.floor(new Date(sessionData.expiresAt).getTime() / 1000)),
+            spendLimits: Object.entries(sessionData.spendLimit).map(([tokenAddress, limit]) => ({
+              tokenAddress: tokenAddress as Address,
+              limit: BigInt(limit),
+            })),
+          })),
+        ],
+      );
+    };
 
     return encodeSessionSpendLimitParameters([{
       sessionKey: sessionKeyData.sessionKey,
@@ -216,6 +243,18 @@ export class ContractFixtures {
 
   // passkey has the public key + origin domain
   async getEncodedPasskeyModuleData(response: RecordedResponse) {
+    const encodePasskeyModuleParameters = (passkey: { passkeyPublicKey: [Buffer, Buffer]; expectedOrigin: string }) => {
+      return encodeAbiParameters(
+        [
+          { type: "bytes32[2]", name: "xyPublicKeys" },
+          { type: "string", name: "expectedOrigin" },
+        ],
+        [
+          [toHex(passkey.passkeyPublicKey[0]), toHex(passkey.passkeyPublicKey[1])],
+          passkey.expectedOrigin,
+        ],
+      );
+    };
     return encodePasskeyModuleParameters({
       passkeyPublicKey: await response.getXyPublicKeys(),
       expectedOrigin: response.expectedOrigin,

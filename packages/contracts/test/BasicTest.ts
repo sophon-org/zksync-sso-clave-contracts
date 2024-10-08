@@ -2,11 +2,11 @@ import { assert, expect } from "chai";
 import { parseEther, randomBytes } from "ethers";
 import { AbiCoder, ethers, ZeroAddress } from "ethers";
 import { it } from "mocha";
-import { SmartAccount, utils } from "zksync-ethers";
+import { SmartAccount, utils, Wallet } from "zksync-ethers";
 
 // import { ERC7579Account__factory } from "../typechain-types";
 import { ContractFixtures } from "./EndToEndSpendLimit";
-import { getProvider } from "./utils";
+import { getProvider, getWallet, RecordedResponse } from "./utils";
 
 describe.only("Basic tests", function () {
   const fixtures = new ContractFixtures();
@@ -56,9 +56,48 @@ describe.only("Basic tests", function () {
     // console.log("owners", owners);
 
     const smartAccount = new SmartAccount({
-      payloadSigner: async (hash) => fixtures.wallet.signingKey.sign(hash).serialized,
       address: proxyAccountAddress,
       secret: fixtures.wallet.privateKey,
+    }, provider);
+
+    const aaTx = {
+      type: 113,
+      from: proxyAccountAddress,
+      to: ZeroAddress,
+      value: 0, // parseEther("0.5"),
+      chainId: (await provider.getNetwork()).chainId,
+      nonce: await provider.getTransactionCount(proxyAccountAddress),
+      gasPrice: await provider.getGasPrice(),
+      customData: { gasPerPubdata: utils.DEFAULT_GAS_PER_PUBDATA_LIMIT },
+    };
+
+    aaTx["gasLimit"] = await provider.estimateGas(aaTx);
+
+    const signedTransaction = await smartAccount.signTransaction(aaTx);
+    assert(signedTransaction != null, "valid transaction to sign");
+
+    const tx = await provider.broadcastTransaction(signedTransaction);
+    await tx.wait();
+
+    console.log(ethers.formatEther(await provider.getBalance(proxyAccountAddress)));
+  });
+
+  it("should be able to use an owner key to perform a transfer", async () => {
+    const ownerKeyAccount = Wallet.createRandom();
+    const fundTx = await fixtures.wallet.sendTransaction({ value: parseEther("1.0"), to: ownerKeyAccount });
+    await fundTx.wait();
+
+    const ownerBalanceBefore = await getProvider().getBalance(ownerKeyAccount.address);
+    assert(ownerBalanceBefore > BigInt(0), "owner balance needs to start positive");
+
+    const ethersResponse = new RecordedResponse("test/signed-challenge.json");
+    const proxyAccountAddress = await fixtures.getFundedProxyAccount(randomBytes(32), ethersResponse, getWallet(ownerKeyAccount.privateKey));
+    const accountBalanceBefore = await getProvider().getBalance(proxyAccountAddress);
+    assert(accountBalanceBefore > BigInt(0), "account balance needs to start positive");
+
+    const smartAccount = new SmartAccount({
+      address: proxyAccountAddress,
+      secret: ownerKeyAccount.privateKey,
     }, provider);
 
     const aaTx = {

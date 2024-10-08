@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity ^0.8.24;
 
-import { ECDSA } from '@openzeppelin/contracts/utils/cryptography/ECDSA.sol';
+import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import { IAccount, ACCOUNT_VALIDATION_SUCCESS_MAGIC } from "@matterlabs/zksync-contracts/l2/system-contracts/interfaces/IAccount.sol";
 import { Transaction, TransactionHelper } from "@matterlabs/zksync-contracts/l2/system-contracts/libraries/TransactionHelper.sol";
 import { EfficientCall } from "@matterlabs/zksync-contracts/l2/system-contracts/libraries/EfficientCall.sol";
@@ -46,7 +46,7 @@ contract ClaveAccount is
   using TransactionHelper for Transaction;
   // Batch transaction helper contract
   // TODO: Address should probably be keccack256("BatchCaller"), but for now it is 0xbatch (0xba7c4)
-  address constant public BATCH_CALLER = address(0xba7c4);
+  address public constant BATCH_CALLER = address(0xba7c4);
 
   /**
    * @notice Constructor for the account implementation
@@ -62,7 +62,11 @@ contract ClaveAccount is
    * @param initialValidators bytes[] calldata - Validator addresses and init data for validation modules
    * @param initialModules bytes[] - Non-validator modules and init data for validation modules
    */
-  function initialize(bytes[] calldata initialValidators, bytes[] calldata initialModules, address[] calldata initialK1Owners) external initializer {
+  function initialize(
+    bytes[] calldata initialValidators,
+    bytes[] calldata initialModules,
+    address[] calldata initialK1Owners
+  ) external initializer {
     for (uint256 validatorIndex = 0; validatorIndex < initialValidators.length; validatorIndex++) {
       (address validatorAddress, bytes memory validatorData) = abi.decode(
         initialValidators[validatorIndex],
@@ -105,6 +109,7 @@ contract ClaveAccount is
     // should be checked explicitly to prevent user paying for fee for a
     // transaction that wouldn't be included on Ethereum.
     if (transaction.totalRequiredBalance() > address(this).balance) {
+      console.log("revert Errors.INSUFFICIENT_FUNDS()");
       revert Errors.INSUFFICIENT_FUNDS();
     }
 
@@ -204,10 +209,16 @@ contract ClaveAccount is
     bytes32 signedHash,
     Transaction calldata transaction
   ) internal returns (bytes4 magicValue) {
+    console.log("_validateTransaction");
     if (transaction.signature.length == 65) {
-       (address signer, ) = ECDSA.tryRecover(signedHash, transaction.signature);
-       console.log("recovered signer", signer);
-       return _k1IsOwner(signer) ? ACCOUNT_VALIDATION_SUCCESS_MAGIC : bytes4(0);
+      console.log("transaction.signature.length == 65");
+      (address signer, ) = ECDSA.tryRecover(signedHash, transaction.signature);
+      console.log("recovered signer", signer);
+      // gas estimation?
+      if (signer == address(0)) {
+        return bytes4(0);
+      }
+      return _k1IsOwner(signer) ? ACCOUNT_VALIDATION_SUCCESS_MAGIC : bytes4(0);
     }
 
     // Extract the signature, validator address and hook data from the transaction.signature
