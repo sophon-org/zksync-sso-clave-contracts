@@ -30,6 +30,9 @@
     "noMarkdown": ["!{projectRoot}/**/*.md"]
   },
   "targetDefaults": {
+    "build-static": {
+      "dependsOn": ["^build"]
+    },
     "build": {
       "inputs": ["noMarkdown", "^noMarkdown"],
       "dependsOn": ["^build"]
@@ -42,6 +45,17 @@
     },
     "publish:local": {
       "dependsOn": ["build", "test"]
+    },
+    "lint": {
+      "executor": "@nx/eslint:lint",
+      "options": {
+        "lintFilePatterns": [
+          "{projectRoot}/**/*.ts",
+          "{projectRoot}/**/*.tsx",
+          "!{projectRoot}/**/*.{spec,test}.ts",
+          "!{projectRoot}/**/*.{spec,test}.tsx"
+        ]
+      }
     }
   },
   "release": {

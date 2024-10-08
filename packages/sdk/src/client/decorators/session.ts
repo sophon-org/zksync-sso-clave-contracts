@@ -1,11 +1,10 @@
-import { type Account, type Address, type Chain, type Transport } from 'viem'
+import { type Account, type Address, type Chain, type Transport } from "viem";
 
-import type { ClientWithZksyncAccountSessionData } from '../clients/session.js';
-
-import { getTokenSpendLimit, type GetTokenSpendLimitReturnType } from '../actions/session.js';
+import { getRemainingTokenSpendLimit, type GetRemainingTokenSpendLimitReturnType } from "../actions/session.js";
+import type { ClientWithZksyncAccountSessionData } from "../clients/session.js";
 
 export type ZksyncAccountSessionActions = {
-  getTokenSpendLimit: (tokenAddress: Address) => Promise<GetTokenSpendLimitReturnType>;
+  getRemainingTokenSpendLimit: (tokenAddress: Address) => Promise<GetRemainingTokenSpendLimitReturnType>;
 };
 
 export function zksyncAccountSessionActions<
@@ -14,15 +13,13 @@ export function zksyncAccountSessionActions<
   account extends Account,
 >(client: ClientWithZksyncAccountSessionData<transport, chain, account>): ZksyncAccountSessionActions {
   return {
-    getTokenSpendLimit: async (tokenAddress: Address) => {
-      // if (!client.sessionKey) throw new Error("Session key not set");
-      return await getTokenSpendLimit(client, {
-        accountAddress: client.account.address,
+    getRemainingTokenSpendLimit: async (tokenAddress: Address) => {
+      if (!client.sessionKey) throw new Error("Session key not set");
+      return await getRemainingTokenSpendLimit(client, {
         tokenAddress,
-        // sessionKey: client.sessionKey,
+        sessionKey: client.sessionKey,
         contracts: client.contracts,
       });
     },
-  }
+  };
 }
-

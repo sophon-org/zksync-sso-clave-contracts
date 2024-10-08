@@ -1,7 +1,8 @@
 # Gateway SDK
 
-The client-gateway SDK provides you with an easy way to use ZK Accounts in your application.
-It's built on top of [client SDK](../client/README.md) and [@wagmi/core](https://wagmi.sh/core/getting-started).
+The client-gateway SDK provides you with an easy way to use ZK Accounts in your
+application. It's built on top of [client SDK](../client/README.md) and
+[@wagmi/core](https://wagmi.sh/core/getting-started).
 
 ## Basic usage
 

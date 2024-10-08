@@ -1,0 +1,45 @@
+name: Lint
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+
+    - name: Setup pnpm
+      uses: pnpm/action-setup@v4
+      with:
+        version: 9.11.0
+
+    - name: Use Node.js
+      uses: actions/setup-node@0a44ba7841725637a19e28fa30b79a866c81b0a6 # v4
+      with:
+        node-version: lts/Iron
+        cache: 'pnpm'
+
+    - name: Install dependencies
+      run: pnpm install -r --frozen-lockfile
+
+    - name: ESLint
+      run: pnpm run lint:eslint
+
+    - name: Markdownlint
+      run: pnpm run lint:markdown
+
+    - name: Prettier
+      run: pnpm run lint:prettier
+
+    - name: Spellcheck
+      run: pnpm run lint:spelling
+
+
+

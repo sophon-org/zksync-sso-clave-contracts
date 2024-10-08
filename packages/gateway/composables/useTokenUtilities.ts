@@ -1,4 +1,4 @@
-import { erc20Abi, type Address } from "viem";
+import { type Address, erc20Abi } from "viem";
 
 export const useTokenUtilities = (_chainId: MaybeRef<SupportedChainId>) => {
   const chainId = toRef(_chainId);
@@ -54,7 +54,6 @@ export const useTokenUtilities = (_chainId: MaybeRef<SupportedChainId>) => {
   };
   const fetchTokenInfo = async (tokenAddress: Address): Promise<Token> => {
     const token = (await fetchTokenFromBlockExplorerApi(tokenAddress).catch((err) => {
-      // eslint-disable-next-line no-console
       console.error(`Failed to fetch token info from block explorer API: ${err}`);
     })) || (await fetchTokenInfoFromRpc(tokenAddress));
     return token;

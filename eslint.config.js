@@ -5,7 +5,7 @@ import globals from "globals";
 import tseslint from "typescript-eslint";
 
 export default [
-  { ignores: ["**/node_modules/", "**/dist/", "**/temp/", "**/tmp/", "**/abi/"] },
+  { ignores: ["**/node_modules/", "**/dist/", "**/temp/", "**/tmp/", "**/abi/", "**/.nuxt/"] },
   { files: ["**/*.{js,mjs,cjs,ts}"] },
   stylistic.configs.customize({
     indent: 2,
@@ -18,6 +18,11 @@ export default [
   { languageOptions: { globals: { ...globals.browser, ...globals.node } } },
   pluginJs.configs.recommended,
   ...tseslint.configs.recommended,
+  {
+    rules: {
+      "@typescript-eslint/no-explicit-any": ["warn"],
+    },
+  },
   {
     plugins: {
       "simple-import-sort": simpleImportSort,

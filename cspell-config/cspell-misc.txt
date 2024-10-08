@@ -1,1 +1,9 @@
+alice
+COSEALG
+COSEKTY
+lintstagedrc
+nuxt
+Nuxt
+nuxtjs
 verdaccio
+vueuse

@@ -29,9 +29,9 @@ npx nx run-many --target=build --projects=zksync-account,smart-account-gateway
 
 ## View project commands
 
-This provides a UI to see what commands are available for a project.
-This is usually the scripts you'll see in the `package.json` but this will make
-it easier to see if NX is modifying a particular command based on a plugin.
+This provides a UI to see what commands are available for a project. This is
+usually the scripts you'll see in the `package.json` but this will make it
+easier to see if NX is modifying a particular command based on a plugin.
 
 To see the available commands for a project with NX:
 

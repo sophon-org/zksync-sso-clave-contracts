@@ -4,6 +4,8 @@
   "include": ["src"],
   "exclude": [],
   "compilerOptions": {
-    "baseUrl": "."
+    "baseUrl": ".",
+    "composite": true,
+    "module": "nodenext"
   }
 }

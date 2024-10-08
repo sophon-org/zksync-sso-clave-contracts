@@ -1,5 +1,5 @@
-import { standardErrorCodes } from './constants.js';
-import { getMessageFromCode } from './utils.js';
+import { standardErrorCodes } from "./constants.js";
+import { getMessageFromCode } from "./utils.js";
 
 export const standardErrors = {
   rpc: {
@@ -18,12 +18,12 @@ export const standardErrors = {
       getEthJsonRpcError(standardErrorCodes.rpc.internal, arg),
 
     server: <T>(opts: ServerErrorOptions<T>) => {
-      if (!opts || typeof opts !== 'object' || Array.isArray(opts)) {
-        throw new Error('Ethereum RPC Server errors must provide single object argument.');
+      if (!opts || typeof opts !== "object" || Array.isArray(opts)) {
+        throw new Error("Ethereum RPC Server errors must provide single object argument.");
       }
       const { code } = opts;
       if (!Number.isInteger(code) || code > -32005 || code < -32099) {
-        throw new Error('"code" must be an integer such that: -32099 <= code <= -32005');
+        throw new Error("\"code\" must be an integer such that: -32099 <= code <= -32005");
       }
       return getEthJsonRpcError(code, opts);
     },
@@ -73,14 +73,14 @@ export const standardErrors = {
     },
 
     custom: <T>(opts: CustomErrorArg<T>) => {
-      if (!opts || typeof opts !== 'object' || Array.isArray(opts)) {
-        throw new Error('Ethereum Provider custom errors must provide single object argument.');
+      if (!opts || typeof opts !== "object" || Array.isArray(opts)) {
+        throw new Error("Ethereum Provider custom errors must provide single object argument.");
       }
 
       const { code, message, data } = opts;
 
-      if (!message || typeof message !== 'string') {
-        throw new Error('"message" must be a nonempty string');
+      if (!message || typeof message !== "string") {
+        throw new Error("\"message\" must be a nonempty string");
       }
       return new EthereumProviderError(code, message, data);
     },
@@ -101,13 +101,13 @@ function getEthProviderError<T>(code: number, arg?: EthErrorsArg<T>): EthereumPr
 
 function parseOpts<T>(arg?: EthErrorsArg<T>): [string?, T?] {
   if (arg) {
-    if (typeof arg === 'string') {
+    if (typeof arg === "string") {
       return [arg];
-    } else if (typeof arg === 'object' && !Array.isArray(arg)) {
+    } else if (typeof arg === "object" && !Array.isArray(arg)) {
       const { message, data } = arg;
 
-      if (message && typeof message !== 'string') {
-        throw new Error('Must specify string message.');
+      if (message && typeof message !== "string") {
+        throw new Error("Must specify string message.");
       }
       return [message || undefined, data];
     }
@@ -135,10 +135,10 @@ class EthereumRpcError<T> extends Error {
 
   constructor(code: number, message: string, data?: T) {
     if (!Number.isInteger(code)) {
-      throw new Error('"code" must be an integer.');
+      throw new Error("\"code\" must be an integer.");
     }
-    if (!message || typeof message !== 'string') {
-      throw new Error('"message" must be a nonempty string.');
+    if (!message || typeof message !== "string") {
+      throw new Error("\"message\" must be a nonempty string.");
     }
 
     super(message);
@@ -156,7 +156,7 @@ class EthereumProviderError<T> extends EthereumRpcError<T> {
    */
   constructor(code: number, message: string, data?: T) {
     if (!isValidEthProviderCode(code)) {
-      throw new Error('"code" must be an integer such that: 1000 <= code <= 4999');
+      throw new Error("\"code\" must be an integer such that: 1000 <= code <= 4999");
     }
 
     super(code, message, data);

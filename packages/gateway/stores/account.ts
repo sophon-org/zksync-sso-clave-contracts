@@ -1,5 +1,5 @@
-import { useStorage, StorageSerializers } from "@vueuse/core";
-import { toBytes, type Address, type Hash } from "viem";
+import { StorageSerializers, useStorage } from "@vueuse/core";
+import { type Address, type Hash, toBytes } from "viem";
 
 type SmartAccount = {
   username: string;

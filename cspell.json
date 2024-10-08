@@ -5,12 +5,23 @@
     "*.config.*",
     "**/node_modules/**",
     "**/dist/**",
+    "**/_cjs/**",
+    "**/deployments-zk/**",
     "cspell-config/**",
+    "tsconfig.build.tsbuildinfo",
     "package.json",
     "package-lock.json",
     ".nx/**",
     ".husky/**",
-    "**/.nuxt/**"
+    "**/.nuxt/**",
+    "typechain-types",
+    "artifacts-zk",
+    "cache-zk",
+    "pnpm-lock.yaml",
+    "cspell.json",
+    "**/test/**",
+    "tmp",
+    "temp"
   ],
   "caseSensitive": true,
   "dictionaries": [
@@ -33,7 +44,8 @@
     "typescript",
     "dict-zksync",
     "dict-packages",
-    "dict-misc"
+    "dict-misc",
+    "dict-sol"
   ],
   "dictionaryDefinitions": [
     {
@@ -50,6 +62,11 @@
       "name": "dict-misc",
       "addWords": true,
       "path": "./cspell-config/cspell-misc.txt"
+    },
+    {
+      "name": "dict-sol",
+      "addWords": true,
+      "path": "./cspell-config/cspell-sol.txt"
     }
   ],
   "allowCompoundWords": true,

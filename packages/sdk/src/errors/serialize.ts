@@ -1,6 +1,6 @@
-import { LIB_VERSION } from '../version.js';
-import { standardErrorCodes } from './constants.js';
-import { serialize, type SerializedEthereumRpcError } from './utils.js';
+import { LIB_VERSION } from "../version.js";
+import { standardErrorCodes } from "./constants.js";
+import { serialize, type SerializedEthereumRpcError } from "./utils.js";
 
 type ErrorResponse = {
   method: unknown;
@@ -13,20 +13,20 @@ type ErrorResponse = {
  */
 export function serializeError(
   error: unknown,
-  requestOrMethod?: JSONRPCRequest | JSONRPCRequest[] | string
+  requestOrMethod?: JSONRPCRequest | JSONRPCRequest[] | string,
 ): SerializedError {
   const serialized = serialize(getErrorObject(error), {
     shouldIncludeStack: true,
   });
 
-  const docUrl = new URL('https://docs.zksync.io/zksync-account-sdk/docs/errors');
-  docUrl.searchParams.set('version', LIB_VERSION);
-  docUrl.searchParams.set('code', serialized.code.toString());
+  const docUrl = new URL("https://docs.zksync.io/zksync-account-sdk/docs/errors");
+  docUrl.searchParams.set("version", LIB_VERSION);
+  docUrl.searchParams.set("code", serialized.code.toString());
   const method = getMethod(serialized.data, requestOrMethod);
   if (method) {
-    docUrl.searchParams.set('method', method);
+    docUrl.searchParams.set("method", method);
   }
-  docUrl.searchParams.set('message', serialized.message);
+  docUrl.searchParams.set("message", serialized.message);
 
   return {
     ...serialized,
@@ -42,7 +42,7 @@ function isErrorResponse(response: unknown): response is ErrorResponse {
  * Converts an error to a serializable object.
  */
 function getErrorObject(error: unknown) {
-  if (typeof error === 'string') {
+  if (typeof error === "string") {
     return {
       message: error,
       code: standardErrorCodes.rpc.internal,
@@ -63,7 +63,7 @@ function getErrorObject(error: unknown) {
  */
 function getMethod(
   serializedData: unknown,
-  request?: JSONRPCRequest | JSONRPCRequest[] | string
+  request?: JSONRPCRequest | JSONRPCRequest[] | string,
 ): string | undefined {
   const methodInData = (serializedData as { method: string })?.method;
   if (methodInData) {
@@ -72,7 +72,7 @@ function getMethod(
 
   if (request === undefined) {
     return undefined;
-  } else if (typeof request === 'string') {
+  } else if (typeof request === "string") {
     return request;
   } else if (!Array.isArray(request)) {
     return request.method;

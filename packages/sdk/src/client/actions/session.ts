@@ -1,9 +1,11 @@
-import { encodeFunctionData, type Account, type Address, type Chain, type Client, type Hash, type Prettify, type TransactionReceipt, type Transport } from 'viem'
-import { readContract, waitForTransactionReceipt } from 'viem/actions';
-import { Provider, SmartAccount, utils as ethersUtils, type types as ethersTypes } from 'zksync-ethers';
+import { type Account, type Address, type Chain, type Client, encodeFunctionData, type Hash, type Prettify, type TransactionReceipt, type Transport } from "viem";
+import { publicKeyToAddress } from "viem/accounts";
+import { readContract, waitForTransactionReceipt } from "viem/actions";
+import { sendTransaction } from "viem/zksync";
 
-import { noThrow } from '../../utils/helpers.js';
-import { SessionPasskeySpendLimitModuleAbi } from '../../abi/SessionPasskeySpendLimitModule.js';
+import { SessionPasskeySpendLimitModuleAbi } from "../../abi/SessionPasskeySpendLimitModule.js";
+import type { SessionData } from "../../client-gateway/interface.js";
+import { noThrow } from "../../utils/helpers.js";
 
 /* DO NOT USE THIS. USE FUNCTION FROM PASSKEY ACTIONS INSTEAD */
 /* TODO: Remove */
@@ -26,7 +28,7 @@ export const requestSession = async <
     'passkeyRegistrationResponse' in args
       ? args.passkeyRegistrationResponse
       : (await requestPasskeySignature(args.passkeyRegistrationOptions)).passkeyRegistrationResponse;
-      
+
   const sessionKey = args.sessionKey || generatePrivateKey();
   const sessionKeyPublicAddress = publicKeyToAddress(sessionKey);
   const transactionHash = await createSessionWithPasskey(client, {
@@ -67,91 +69,64 @@ export const createSessionWithPasskey = async <
   return transactionHash;
 } */
 
-/* TODO: make contracts support fetching initial limit, left limit by session public address,
-  instead of by token address */
-export type GetTokenSpendLimitArgs = {
-  accountAddress: Address;
-  tokenAddress: Address;
-  contracts: { session: Address };
-} /* & ({ sessionKey: Hash } | { sessionKeyPublicAddress: Address }) */;
-export type GetTokenSpendLimitReturnType = {
-  limitLeft: bigint;
-  sessionPublicKey: Address;
-};
-export const getTokenSpendLimit = async <
+export type GetRemainingTokenSpendLimitArgs =
+ ({ sessionKey: Hash } | { sessionKeyPublicAddress: Address })
+ & {
+   tokenAddress: Address;
+   contracts: { session: Address };
+ };
+export type GetRemainingTokenSpendLimitReturnType = bigint;
+export const getRemainingTokenSpendLimit = async <
   transport extends Transport,
   chain extends Chain,
-  account extends Account
->(client: Client<transport, chain, account>, args: GetTokenSpendLimitArgs): Promise<Prettify<GetTokenSpendLimitReturnType>> => {
-  /* const sessionKeyPublicAddress = 'sessionKey' in args ? publicKeyToAddress(args.sessionKey) : args.sessionKeyPublicAddress; */
-  /* TODO: this isn't actually the right method to fetch how much spend limit is left!!! */
-  const [limitLeft, sessionPublicKey] = await readContract(client, {
+  account extends Account,
+>(client: Client<transport, chain, account>, args: GetRemainingTokenSpendLimitArgs): Promise<Prettify<GetRemainingTokenSpendLimitReturnType>> => {
+  const sessionKeyPublicAddress = "sessionKey" in args ? publicKeyToAddress(args.sessionKey) : args.sessionKeyPublicAddress;
+  const remainingTokenSpendLimit = await readContract(client, {
     address: args.contracts.session,
     abi: SessionPasskeySpendLimitModuleAbi,
-    functionName: "spendingLimits",
-    args: [args.accountAddress, args.tokenAddress],
+    functionName: "getRemainingSpendLimit",
+    args: [sessionKeyPublicAddress, args.tokenAddress],
   });
-  
-  return {
-    limitLeft,
-    sessionPublicKey,
-  };
-}
 
-export type AddSessionKeyArgs = {
-  accountAddress: Address;
-  sessionPublicKey: Address;
-  token: Address;
-  expiresAt: bigint | Date; // Time in seconds as bigint or Date
+  return remainingTokenSpendLimit;
+};
+
+export type SetSessionKeysArgs = {
+  sessions: SessionData[];
   contracts: {
     session: Address;
   };
   onTransactionSent?: (hash: Hash) => void;
 };
-export type AddSessionKeyReturnType = {
+export type SetSessionKeysReturnType = {
   transactionReceipt: TransactionReceipt;
 };
-export const addSessionKey = async <
+export const setSessionKeys = async <
   transport extends Transport,
   chain extends Chain,
-  account extends Account
->(client: Client<transport, chain, account>, args: Prettify<AddSessionKeyArgs>): Promise<Prettify<AddSessionKeyReturnType>> => {
-  const provider = new Provider(client.chain.rpcUrls.default.http[0]);
-  const passkeyClient = new SmartAccount({
-    payloadSigner: (hash: any) => {
-      return Promise.resolve(client.account.sign!({ hash: hash }));
-    },
-    address: args.accountAddress,
-    secret: null,
-  }, provider);
-
+  account extends Account,
+>(client: Client<transport, chain, account>, args: Prettify<SetSessionKeysArgs>): Promise<Prettify<SetSessionKeysReturnType>> => {
   const callData = encodeFunctionData({
     abi: SessionPasskeySpendLimitModuleAbi,
-    functionName: "addSessionKey",
+    functionName: "setSessionKeys",
     args: [
-      args.sessionPublicKey,
-      args.token,
-      typeof args.expiresAt === "bigint" ? args.expiresAt : BigInt(Math.floor(args.expiresAt.getTime() / 1000)),
+      args.sessions.map((sessionData) => ({
+        sessionKey: sessionData.sessionKey,
+        expiresAt: BigInt(Math.floor(new Date(sessionData.expiresAt).getTime() / 1000)),
+        spendLimits: Object.entries(sessionData.spendLimit).map(([tokenAddress, limit]) => ({
+          tokenAddress: tokenAddress as Address,
+          limit: BigInt(limit),
+        })),
+      })),
     ],
   });
 
-  const aaTx = {
-    type: 113,
-    from: args.accountAddress,
+  const transactionHash = await sendTransaction(client, {
     to: args.contracts.session,
     data: callData,
-    chainId: (await provider.getNetwork()).chainId,
-    nonce: await provider.getTransactionCount(args.accountAddress),
-    gasPrice: await provider.getGasPrice(),
-    customData: {
-      gasPerPubdata: ethersUtils.DEFAULT_GAS_PER_PUBDATA_LIMIT,
-    } as ethersTypes.Eip712Meta,
-  };
-  (aaTx as any)['gasLimit'] = await provider.estimateGas(aaTx);
-
-  const signedTransaction = await passkeyClient.signTransaction(aaTx);
-  const tx = await provider.broadcastTransaction(signedTransaction);
-  const transactionHash = tx.hash as Hash;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  } as any);
   if (args.onTransactionSent) {
     noThrow(() => args.onTransactionSent?.(transactionHash));
   }
@@ -162,4 +137,23 @@ export const addSessionKey = async <
   return {
     transactionReceipt,
   };
-}
+};
+
+export interface SetSessionKeyArgs extends SessionData {
+  contracts: {
+    session: Address;
+  };
+  onTransactionSent?: (hash: Hash) => void;
+};
+export type SetSessionKeyReturnType = SetSessionKeysReturnType;
+export const setSessionKey = async <
+  transport extends Transport,
+  chain extends Chain,
+  account extends Account,
+>(client: Client<transport, chain, account>, args: SetSessionKeyArgs): Promise<SetSessionKeyReturnType> => {
+  return setSessionKeys(client, {
+    sessions: [args],
+    contracts: args.contracts,
+    onTransactionSent: args.onTransactionSent,
+  });
+};

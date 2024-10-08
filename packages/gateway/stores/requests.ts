@@ -14,7 +14,7 @@ export const useRequestsStore = defineStore("requests", () => {
 
   communicator.onMessage<RPCRequestMessage<Method>>((message) => "content" in message)
     .then(async (message) => {
-      if (message.content.action.method === "eth_requestAccounts" && "metadata" in message.content.action) {
+      if (message.content.action.method === "eth_requestAccounts" && message.content.action.params && "metadata" in message.content.action.params) {
         const handshakeData = message.content.action.params as ExtractParams<"eth_requestAccounts", GatewayRpcSchema>;
         appMeta.value = handshakeData.metadata;
       }

@@ -1,14 +1,13 @@
-
-import { HardhatUserConfig } from "hardhat/config";
-
-import '@typechain/hardhat'
+import "@typechain/hardhat";
 import "@matterlabs/hardhat-zksync";
 import "@nomicfoundation/hardhat-chai-matchers";
+
+import { HardhatUserConfig } from "hardhat/config";
 
 const config: HardhatUserConfig = {
   paths: {
     sources: "src",
-    deployPaths: "scripts"
+    deployPaths: "scripts",
   },
   defaultNetwork: "inMemoryNode",
   networks: {
@@ -39,11 +38,11 @@ const config: HardhatUserConfig = {
     },
   },
   zksolc: {
-    version: "1.5.3",
+    version: "1.5.4",
     settings: {
       // https://era.zksync.io/docs/tools/hardhat/hardhat-zksync-solc.html#configuration
       // Native AA calls an internal system contract, so it needs extra permissions
-      enableEraVMExtensions: true
+      enableEraVMExtensions: true,
     },
   },
   solidity: {

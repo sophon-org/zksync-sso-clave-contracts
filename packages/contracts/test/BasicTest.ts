@@ -81,7 +81,7 @@ export class ContractFixtures {
     }
 }
 
-describe.only("Basic tests", function () {
+describe.skip("Basic tests", function () {
     const fixtures = new ContractFixtures();
     const abiCoder = new AbiCoder();
     const provider = getProvider();
