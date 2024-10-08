@@ -116,6 +116,10 @@ abstract contract ValidatorManager is IValidatorManager, Auth {
     return _moduleValidatorsLinkedList().exists(validator);
   }
 
+  function _isUserOpValidator(address validator) internal view returns (bool) {
+    return _userOpValidatorsLinkedList().exists(validator);
+  }
+
   function _k1IsValidator(address validator) internal view returns (bool) {
     return _k1ValidatorsLinkedList().exists(validator);
   }
@@ -134,6 +138,10 @@ abstract contract ValidatorManager is IValidatorManager, Auth {
 
   function _moduleValidatorsLinkedList() private view returns (mapping(address => address) storage moduleValidators) {
     moduleValidators = ClaveStorage.layout().moduleValidators;
+  }
+
+  function _userOpValidatorsLinkedList() private view returns (mapping(address => address) storage userOpValidators) {
+    userOpValidators = ClaveStorage.layout().userOpValidators;
   }
 
   function _k1ValidatorsLinkedList() private view returns (mapping(address => address) storage k1Validators) {

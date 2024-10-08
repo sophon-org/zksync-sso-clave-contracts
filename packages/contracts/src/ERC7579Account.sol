@@ -21,6 +21,7 @@ import { ExecutionHelper } from "./helpers/Execution.sol";
 
 import { ClaveAccount } from "./ClaveAccount.sol";
 import { SignatureDecoder } from "./libraries/SignatureDecoder.sol";
+import { IModuleValidator } from "./interfaces/IModuleValidator.sol";
 import { PackedUserOperation } from "./interfaces/PackedUserOperation.sol";
 
 /**
@@ -215,12 +216,22 @@ contract ERC7579Account is IERC7579Account, HookManager, ModuleManager, Executio
     bytes32 userOpHash,
     uint256 missingAccountFunds
   ) external payable virtual onlyEntryPoint returns (uint256 validSignature) {
+    // default to SIG_VALIDATION_FAILED
+    validSignature = 1;
     // Extract the signature, validator address and hook data from the transaction.signature
     (bytes memory signature, address validator, bytes[] memory hookData) = SignatureDecoder.decodeSignature(
       userOp.signature
     );
 
-    validSignature = IUserOpValidator(validator).validateUserOp(userOp, userOpHash);
+    // check if this is a userop validator or a modular signature validator
+    if (_isModuleValidator(validator)) {
+      if (IModuleValidator(validator).isValidSignature(userOpHash, signature) == EIP1271_SUCCESS_RETURN_VALUE) {
+        validSignature = 0;
+      }
+    } else if (_isUserOpValidator(validator)) {
+      validSignature = IUserOpValidator(validator).validateUserOp(userOp, userOpHash);
+    }
+
   }
 
   /**
