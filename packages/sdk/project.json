@@ -12,19 +12,29 @@
         "cwd": "packages/sdk",
         "command": "pnpm run build"
       },
-      "dependsOn": ["build:esm+types", "build:cjs"],
+      "dependsOn": ["build:esm+types", "build:cjs", "build:types"],
       "inputs": ["production"],
       "outputs": ["{projectRoot}/dist"]
     },
-    "build:esm+types": {
+    "build:esm": {
       "executor": "nx:run-commands",
       "cache": true,
       "options": {
         "cwd": "packages/sdk",
-        "command": "pnpm run build:esm+types"
+        "command": "pnpm run build:types"
       },
       "inputs": ["production"],
-      "outputs": ["{projectRoot}/dist/esm", "{projectRoot}/dist/types"]
+      "outputs": ["{projectRoot}/dist/_esm"]
+    },
+    "build:types": {
+      "executor": "nx:run-commands",
+      "cache": true,
+      "options": {
+        "cwd": "packages/sdk",
+        "command": "pnpm run build:types"
+      },
+      "inputs": ["production"],
+      "outputs": ["{projectRoot}/dist/_types"]
     },
     "build:cjs": {
       "executor": "nx:run-commands",
@@ -33,7 +43,7 @@
         "cwd": "packages/sdk",
         "command": "pnpm run build:cjs",
         "inputs": ["production"],
-        "outputs": ["{projectRoot}/dist/cjs"]
+        "outputs": ["{projectRoot}/dist/_cjs"]
       }
     },
     "clean": {
