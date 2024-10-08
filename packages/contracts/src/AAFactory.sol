@@ -27,10 +27,11 @@ contract AAFactory {
     function deployProxy7579Account(
         bytes32 salt,
         address accountImplementionLocation,
-        bytes calldata initialR1Owner,
-        address initialR1Validator,
-        address initialModule,
-        bytes calldata initData
+        address[] calldata k1Owners,
+        bytes[] calldata r1Owners,
+        address[] calldata validators,
+        address[] calldata modules,
+        bytes[] calldata initData
     ) external returns (address accountAddress) {
         (bool success, bytes memory returnData) = SystemContractsCaller
             .systemCallWithReturndata(
@@ -52,11 +53,11 @@ contract AAFactory {
         (accountAddress) = abi.decode(returnData, (address));
         console.log("accountAddress %s", accountAddress);
 
-        // add session-key/spend-limit module (similar code)
         IClaveAccount(accountAddress).initialize(
-            initialR1Owner,
-            initialR1Validator,
-            initialModule,
+            k1Owners,
+            r1Owners,
+            validators,
+            modules,
             initData
         );
     }

@@ -6,12 +6,12 @@ import { Deployer } from "@matterlabs/hardhat-zksync";
 import dotenv from "dotenv";
 import { ethers } from "ethers";
 
-import { IContractDeployer__factory } from "zksync-ethers/build/typechain";
-
 import "@matterlabs/hardhat-zksync-node/dist/type-extensions";
 import "@matterlabs/hardhat-zksync-verify/dist/src/type-extensions";
 import { promises } from "fs";
 import { getPublicKeyBytesFromPasskeySignature } from "./sdk/utils/passkey";
+
+import { AAFactory, AAFactory__factory } from "../typechain-types";
 
 // Load env file
 dotenv.config();
@@ -27,7 +27,7 @@ export const getProvider = () => {
   return provider;
 }
 
-export async function deployFactory(factoryName: string, wallet: Wallet, expectedAddress?: string): Promise<ethers.Contract> {
+export async function deployFactory(factoryName: string, wallet: Wallet, expectedAddress?: string): Promise<AAFactory> {
     const factoryArtifact = JSON.parse(await promises.readFile(`artifacts-zk/src/${factoryName}.sol/${factoryName}.json`, 'utf8'));
     const proxyAaArtifact = JSON.parse(await promises.readFile('artifacts-zk/src/AccountProxy.sol/AccountProxy.json', 'utf8'));
 
@@ -38,10 +38,10 @@ export async function deployFactory(factoryName: string, wallet: Wallet, expecte
     if (expectedAddress && factoryAddress != expectedAddress) {
         console.warn(`${factoryName}.sol address is not the expected default address (${expectedAddress}).`);
         console.warn(`Please update the default value in your tests or restart Era Test Node. Proceeding with expected default address...`);
-        return new ethers.Contract(expectedAddress, factoryArtifact.abi, wallet);
+        return AAFactory__factory.connect(expectedAddress, wallet);
     }
 
-    return new ethers.Contract(factoryAddress, factoryArtifact.abi, wallet);
+    return AAFactory__factory.connect(factoryAddress, wallet);
 }
 
 export const getWallet = (privateKey?: string) => {
@@ -81,9 +81,7 @@ export const verifyContract = async (data: {
 }
 
 export const create2 = async (contractName: string, wallet: Wallet, salt: ethers.BytesLike, args: any = undefined) => {
-  if (!salt['startsWith']) {
-    salt = ethers.hexlify(salt);
-  }
+  salt = ethers.hexlify(salt);
   const contractArtifact = await hre.artifacts.readArtifact(contractName)
   const deployer = new ContractFactory(contractArtifact.abi, contractArtifact.bytecode, wallet, 'create2')
   const bytecodeHash = utils.hashBytecode(contractArtifact.bytecode);
@@ -93,7 +91,7 @@ export const create2 = async (contractName: string, wallet: Wallet, salt: ethers
   if (accountCode != "0x") {
     return new ethers.Contract(standardCreate2Address, contractArtifact.abi, wallet);
   }
-  
+
   const deployingContract = await (args ? deployer.deploy(...args, { customData: { salt } }) : deployer.deploy({ customData: { salt } }))
   const deployedContract = await deployingContract.waitForDeployment();
   const deployedContractAddress = await deployedContract.getAddress();
@@ -156,8 +154,6 @@ export const deployContract = async (contractArtifactName: string, constructorAr
   await verifyEnoughBalance(wallet, deploymentFee);
 
   // Deploy the contract to zkSync to a stable address
-  const contractDeployer = IContractDeployer__factory.connect("0x0000000000000000000000000000000000008006", wallet);
-  // const contract = contractDeployer.create2(ethers.ZeroAddress, artifact.bytecode);
   const contract = await deployer.deploy(artifact, constructorArguments);
 
   const address = await contract.getAddress();
@@ -263,9 +259,9 @@ export class RecordedResponse {
     }
 
     // this is just the public key in xy format without the alg type
-    async getXyPublicKey() {
-      return await getPublicKeyBytesFromPasskeySignature(this.passkeyBytes);
-    } 
+    getXyPublicKey() {
+      return getPublicKeyBytesFromPasskeySignature(this.passkeyBytes);
+    }
 
     // this is the encoded data explaining what authenticator was used (fido, web, etc)
     readonly authenticatorData: string;

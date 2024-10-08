@@ -33,9 +33,10 @@ interface IClaveAccount is
     event FeePaid();
 
     function initialize(
-        bytes calldata initialR1Owner,
-        address initialR1Validator,
-        address initialModule,
-        bytes calldata initData
+        address[] calldata k1Owners,
+        bytes[] calldata r1Owners,
+        address[] calldata validators,
+        address[] calldata modules,
+        bytes[] calldata initData
     ) external;
 }

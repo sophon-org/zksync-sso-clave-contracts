@@ -5,7 +5,6 @@ import { decodePartialCBOR } from '@levischuck/tiny-cbor'
 import { fromArrayBuffer, toArrayBuffer } from "@hexagon/base64"
 import { AsnParser } from '@peculiar/asn1-schema';
 import { ECDSASigValue } from '@peculiar/asn1-ecc';
-import { ethers } from "ethers"
 import { getWallet, LOCAL_RICH_WALLETS, RecordedResponse } from "./utils";
 import * as hre from "hardhat";
 import { PasskeyValidator, PasskeyValidator__factory } from '../typechain-types';
@@ -126,15 +125,15 @@ export function fromBuffer(
 
 async function getPublicKey(publicPasskey: Uint8Array): Promise<[string, string]> {
     const cosePublicKey = decodeFirst<Map<number, any>>(publicPasskey);
-    console.log("decodeFirst", cosePublicKey)
-    const alg = cosePublicKey.get(COSEKEYS.alg) as COSEALG;
-    const crv = cosePublicKey.get(COSEKEYS.crv);
-    console.log("alg, crv", alg, crv)
+    // console.log("decodeFirst", cosePublicKey)
+    // const alg = cosePublicKey.get(COSEKEYS.alg) as COSEALG;
+    // const crv = cosePublicKey.get(COSEKEYS.crv);
+    // console.log("alg, crv", alg, crv)
     const x = cosePublicKey.get(COSEKEYS.x);
     const y = cosePublicKey.get(COSEKEYS.y);
-    console.log("raw x, y", x, y)
-    const kty = cosePublicKey.get(COSEKEYS.kty) as COSEKTY;
-    console.log("kty", kty)
+    // console.log("raw x, y", x, y)
+    // const kty = cosePublicKey.get(COSEKEYS.kty) as COSEKTY;
+    // console.log("kty", kty)
 
     return ["0x" + Buffer.from(x).toString('hex'), "0x" + Buffer.from(y).toString('hex')]
 }
@@ -213,19 +212,22 @@ async function rawVerify(
     const hashedData = await toHash(concat([authDataBuffer, clientDataHash]));
     const rs = unwrapEC2Signature(toBuffer(b64SignedChallange))
     const publicKeys = await getPublicKey(publicKeyEs256Bytes)
-    console.log("externalSignature", ethers.hexlify(hashedData))
-    console.log("rs", ethers.hexlify(rs[0]), ethers.hexlify(rs[1]))
-    console.log("pubkey xy", publicKeys)
+    // console.log("externalSignature", ethers.hexlify(hashedData))
+    // console.log("rs", ethers.hexlify(rs[0]), ethers.hexlify(rs[1]))
+    // console.log("pubkey xy", publicKeys)
     return await passkeyValidator.rawVerify(hashedData, rs, publicKeys)
 }
 
 describe("Passkey validation", function () {
     const wallet = getWallet(LOCAL_RICH_WALLETS[0].privateKey);
     const ethersResponse = new RecordedResponse("test/signed-challenge.json")
+    let passkeyValidator: PasskeyValidator;
+
+    before(async function () {
+        passkeyValidator = await deployValidator(wallet)
+    });
 
     it("should verify passkey", async function () {
-        const passkeyValidator = await deployValidator(wallet)
-
         // 37 bytes
         const authenticatorData = 'SZYN5YgOjGh0NBcPZHZgW4_krrmihjLHmVzzuoMdl2MFAAAABQ'
         const clientData = 'eyJ0eXBlIjoid2ViYXV0aG4uZ2V0IiwiY2hhbGxlbmdlIjoiZFhPM3ctdWdycS00SkdkZUJLNDFsZFk1V2lNd0ZORDkiLCJvcmlnaW4iOiJodHRwOi8vbG9jYWxob3N0OjUxNzMiLCJjcm9zc09yaWdpbiI6ZmFsc2UsIm90aGVyX2tleXNfY2FuX2JlX2FkZGVkX2hlcmUiOiJkbyBub3QgY29tcGFyZSBjbGllbnREYXRhSlNPTiBhZ2FpbnN0IGEgdGVtcGxhdGUuIFNlZSBodHRwczovL2dvby5nbC95YWJQZXgifQ'
@@ -249,9 +251,6 @@ describe("Passkey validation", function () {
     });
 
     it("should verify other test passkey data", async function () {
-
-        const passkeyValidator = await deployValidator(wallet)
-
         const verifyMessage = await rawVerify(
             passkeyValidator,
             ethersResponse.authenticatorData,
@@ -263,9 +262,6 @@ describe("Passkey validation", function () {
     });
 
     it("should fail when signature is bad", async function () {
-
-        const passkeyValidator = await deployValidator(wallet)
-
         const b64SignedChallenge = 'MEUCIQCYrSUCR_QUPAhvRNUVfYiJC2JlOKuqf4gx7i129n9QxgIgaY19A9vAAObuTQNs5_V9kZFizwRpUFpiRVW_dglpR2A'
         const verifyMessage = await rawVerify(
             passkeyValidator,

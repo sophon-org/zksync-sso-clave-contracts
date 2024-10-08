@@ -13,8 +13,8 @@ enum COSEKEYS {
   e = -2,   // Exponent for RSA keys
 }
 
-export const getPublicKeyBytesFromPasskeySignature = async (publicPasskey: Uint8Array) => {
-  const cosePublicKey = await decode(publicPasskey); // Decodes CBOR-encoded COSE key
+export const getPublicKeyBytesFromPasskeySignature = (publicPasskey: Uint8Array) => {
+  const cosePublicKey = decode(publicPasskey); // Decodes CBOR-encoded COSE key
   const x = cosePublicKey.get(COSEKEYS.x);
   const y = cosePublicKey.get(COSEKEYS.y);
 
@@ -23,7 +23,7 @@ export const getPublicKeyBytesFromPasskeySignature = async (publicPasskey: Uint8
 
 /**
  * Return 2 32byte words for the R & S for the EC2 signature, 0 l-trimmed
- * @param signature 
+ * @param signature
  * @returns r & s bytes sequentially
  */
 export function unwrapEC2Signature(signature: Uint8Array): { r: Uint8Array; s: Uint8Array } {
@@ -70,7 +70,7 @@ export function base64UrlToUint8Array(base64urlString: string, isUrl: boolean = 
 }
 
 function toArrayBuffer (data: string, isUrl: boolean) {
-	const 
+	const
 		// Regular base64 characters
 		chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/",
 
@@ -88,9 +88,9 @@ function toArrayBuffer (data: string, isUrl: boolean) {
 
 		// Use a lookup table to find the index.
 		lookup = genLookup(chars),
-		lookupUrl = genLookup(charsUrl); 
+		lookupUrl = genLookup(charsUrl);
 
-	const 
+	const
 			len = data.length;
 		let bufferLength = data.length * 0.75,
 			i,
@@ -107,7 +107,7 @@ function toArrayBuffer (data: string, isUrl: boolean) {
 			}
 		}
 
-		const 
+		const
 			arraybuffer = new ArrayBuffer(bufferLength),
 			bytes = new Uint8Array(arraybuffer),
 			target = isUrl ? lookupUrl : lookup;
