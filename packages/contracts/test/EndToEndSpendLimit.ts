@@ -12,10 +12,9 @@ import { setSessionKey } from "zksync-account/client/actions";
 import { encodePasskeyModuleParameters, encodeSessionSpendLimitParameters } from "zksync-account/utils";
 import { SmartAccount, types, utils, Wallet } from "zksync-ethers";
 
+import type { AAFactory, ERC7579Account, SessionPasskeySpendLimitModule, WebAuthValidator } from "../typechain-types";
 import { createZksyncPasskeyClient } from "./sdk/PasskeyClient";
 import { create2, deployFactory, getProvider, getWallet, LOCAL_RICH_WALLETS, logInfo, RecordedResponse } from "./utils";
-
-import type { AAFactory, WebAuthValidator, SessionPasskeySpendLimitModule, ERC7579Account } from "../typechain-types";
 
 // Token Config Interface definitions
 interface SpendLimit {
@@ -66,7 +65,7 @@ export class ContractFixtures {
   private _sessionSpendLimitModule: SessionPasskeySpendLimitModule;
   async getSessionSpendLimitContract() {
     if (!this._sessionSpendLimitModule) {
-      this._sessionSpendLimitModule = <any>await create2("SessionPasskeySpendLimitModule", this.wallet, this.ethersStaticSalt);
+      this._sessionSpendLimitModule = <any> await create2("SessionPasskeySpendLimitModule", this.wallet, this.ethersStaticSalt);
     }
     return this._sessionSpendLimitModule;
   }
@@ -75,7 +74,7 @@ export class ContractFixtures {
   // does passkey validation via modular interface
   async getWebAuthnVerifierContract() {
     if (!this._webauthnValidatorModule) {
-      this._webauthnValidatorModule = <any>await create2("WebAuthValidator", this.wallet, this.ethersStaticSalt);
+      this._webauthnValidatorModule = <any> await create2("WebAuthValidator", this.wallet, this.ethersStaticSalt);
     }
     return this._webauthnValidatorModule;
   }
@@ -93,7 +92,7 @@ export class ContractFixtures {
   // wraps the clave account
   async getAccountImplContract() {
     if (!this._accountImplContract) {
-      this._accountImplContract = <any>await create2("ERC7579Account", this.wallet, this.ethersStaticSalt);
+      this._accountImplContract = <any> await create2("ERC7579Account", this.wallet, this.ethersStaticSalt);
     }
     return this._accountImplContract;
   }
@@ -103,7 +102,7 @@ export class ContractFixtures {
   async getAccountImplAddress() {
     if (!this._accountImplAddress) {
       const accountImpl = await this.getAccountImplContract();
-      this._accountImplAddress = <Address>await accountImpl.getAddress();
+      this._accountImplAddress = <Address> await accountImpl.getAddress();
     }
     return this._accountImplAddress;
   }
@@ -439,7 +438,7 @@ describe("Spend limit validation", function () {
         "passkeyVerifierAccount",
         [passkeyModuleData],
         [sessionModuleData],
-        []
+        [],
       );
       const proxyAccountTxReceipt = await proxyAccount.wait();
 
@@ -583,7 +582,7 @@ describe("Spend limit validation", function () {
         "sessionKeyAddingAnotherSessionKey",
         [sessionModuleData],
         [],
-        []
+        [],
       );
 
       const proxyAccountReceipt = await proxyAccount.wait();
