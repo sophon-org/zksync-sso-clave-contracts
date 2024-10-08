@@ -1,87 +1,14 @@
-
-import { SmartAccount, types, utils, Wallet } from "zksync-ethers";
+import { SmartAccount, utils } from "zksync-ethers";
 import { parseEther, randomBytes } from 'ethers';
 import { AbiCoder, ethers, ZeroAddress } from "ethers";
 import { it } from "mocha";
-import { logInfo, getWallet, getProvider, create2, deployFactory, LOCAL_RICH_WALLETS } from "./utils";
+import { getProvider } from "./utils";
 import { assert, expect } from "chai";
-import * as hre from "hardhat";
 
-import type { PasskeyValidator, ERC7579Account, SessionPasskeySpendLimitModule, AAFactory } from "../typechain-types";
-import { AAFactory__factory, SessionPasskeySpendLimitModule__factory, ERC7579Account__factory } from "../typechain-types";
+import {  ERC7579Account__factory } from "../typechain-types";
+import { ContractFixtures } from "./EndToEndSpendLimit";
 
-export class ContractFixtures {
-    // NOTE: CHANGING THE READONLY VALUES WILL REQUIRE UPDATING THE STATIC SIGNATURE
-    readonly wallet: Wallet = getWallet(LOCAL_RICH_WALLETS[0].privateKey);
-    // Below Private Key was randomly generated for testing purposes
-    readonly sessionKeyWallet: Wallet = getWallet("0xf51513036f18ef46508ddb0fff7aa153260ff76721b2f53c33fc178152fb481e");
-    readonly ethersStaticSalt = new Uint8Array([
-        205, 241, 161, 186, 101, 105, 79,
-        248, 98, 64, 50, 124, 168, 204,
-        200, 71, 214, 169, 195, 118, 199,
-        62, 140, 111, 128, 47, 32, 21,
-        177, 177, 174, 166
-    ]);
-    readonly viemStaticSalt = new Uint8Array([
-        0, 0, 0, 0, 0, 0, 0,
-        248, 98, 64, 50, 124, 168, 204,
-        200, 71, 214, 169, 195, 118, 199,
-        62, 140, 111, 128, 47, 32, 21,
-        177, 177, 174, 166
-    ])
-    readonly tokenForSpendLimit = "0xAe045DE5638162fa134807Cb558E15A3F5A7F853";
-
-    private _aaFactory: AAFactory;
-    async getAaFactory() {
-        if (!this._aaFactory) {
-            this._aaFactory = await deployFactory("AAFactory", this.wallet);
-        }
-        return this._aaFactory;
-    }
-
-    private _passkeyModuleContract: SessionPasskeySpendLimitModule;
-    async getPasskeyModuleContract() {
-        if (!this._passkeyModuleContract) {
-            this._passkeyModuleContract = <any>await create2("SessionPasskeySpendLimitModule", this.wallet, this.ethersStaticSalt);
-        }
-        return this._passkeyModuleContract
-    }
-
-    private _expensiveVerifierContract: PasskeyValidator;
-    async getExpensiveVerifierContract() {
-        if (!this._expensiveVerifierContract) {
-            this._expensiveVerifierContract = <any>await create2("PasskeyValidator", this.wallet, this.ethersStaticSalt);
-        }
-        return this._expensiveVerifierContract
-    }
-    private _accountImplContract: ERC7579Account;
-    async getAccountImplContract() {
-        if (!this._accountImplContract) {
-            this._accountImplContract = <any>await create2("ERC7579Account", this.wallet, this.ethersStaticSalt);
-        }
-        return this._accountImplContract;
-    }
-
-    private _accountImplAddress: string;
-    async getAccountImplAddress() {
-        if (!this._accountImplAddress) {
-            const accountImpl = await this.getAccountImplContract();
-            this._accountImplAddress = await accountImpl.getAddress();
-        }
-        return this._accountImplAddress
-    }
-
-    private _proxyAccountContract: ERC7579Account;
-    async getProxyAccountContract() {
-        const claveAddress = await this.getAccountImplAddress();
-        if (!this._proxyAccountContract) {
-            this._proxyAccountContract = <any>await create2("AccountProxy", this.wallet, this.ethersStaticSalt, [claveAddress]);
-        }
-        return this._proxyAccountContract;
-    }
-}
-
-describe.skip("Basic tests", function () {
+describe.only("Basic tests", function () {
     const fixtures = new ContractFixtures();
     const abiCoder = new AbiCoder();
     const provider = getProvider();
@@ -104,11 +31,10 @@ describe.skip("Basic tests", function () {
         const proxyAccount = await aaFactoryContract.deployProxy7579Account(
             randomBytes(32),
             await fixtures.getAccountImplAddress(),
+            'id',
+            [],
+            [],
             [fixtures.wallet.address],
-            [],
-            [],
-            [],
-            []
         );
         const proxyAccountTxReceipt = await proxyAccount.wait();
 
@@ -123,15 +49,16 @@ describe.skip("Basic tests", function () {
         const fundTx = await fixtures.wallet.sendTransaction({ value: parseEther("1.0"), to: proxyAccountAddress });
         await fundTx.wait();
 
-        const account = ERC7579Account__factory.connect(proxyAccountAddress, provider);
-        console.log(await account.k1IsOwner(fixtures.wallet.address));
-        const owners = await account.k1ListOwners()
-        console.log("owners", owners);
+        // FIXME: why does this return BAD_DATA?
+        // const account = ERC7579Account__factory.connect(proxyAccountAddress, provider);
+        // console.log(await account.k1IsOwner(fixtures.wallet.address));
+        // const owners = await account.k1ListOwners()
+        // console.log("owners", owners);
 
         const smartAccount = new SmartAccount({
-            payloadSigner: async (hash) => { let sig = fixtures.wallet.signingKey.sign(hash).serialized; console.log(sig); return sig; },
+            payloadSigner: async (hash) => fixtures.wallet.signingKey.sign(hash).serialized,
             address: proxyAccountAddress,
-            secret: fixtures.sessionKeyWallet.privateKey
+            secret: fixtures.wallet.privateKey
         }, provider);
 
         const aaTx = {

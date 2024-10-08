@@ -77,7 +77,7 @@ export const verifyContract = async (data: {
   return verificationRequestId;
 };
 
-export const create2 = async (contractName: string, wallet: Wallet, salt: ethers.BytesLike, args?: ReadonlyArray<string>): Promise<any> => {
+export const create2 = async (contractName: string, wallet: Wallet, salt: ethers.BytesLike, args?: ReadonlyArray<string>) => {
   salt = ethers.hexlify(salt);
   const contractArtifact = await hre.artifacts.readArtifact(contractName);
   const deployer = new ContractFactory(contractArtifact.abi, contractArtifact.bytecode, wallet, "create2");

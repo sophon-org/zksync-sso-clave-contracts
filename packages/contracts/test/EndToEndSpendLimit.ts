@@ -66,7 +66,7 @@ export class ContractFixtures {
   private _sessionSpendLimitModule: SessionPasskeySpendLimitModule;
   async getSessionSpendLimitContract() {
     if (!this._sessionSpendLimitModule) {
-      this._sessionSpendLimitModule = await create2("SessionPasskeySpendLimitModule", this.wallet, this.ethersStaticSalt);
+      this._sessionSpendLimitModule = <any>await create2("SessionPasskeySpendLimitModule", this.wallet, this.ethersStaticSalt);
     }
     return this._sessionSpendLimitModule;
   }
@@ -75,12 +75,12 @@ export class ContractFixtures {
   // does passkey validation via modular interface
   async getWebAuthnVerifierContract() {
     if (!this._webauthnValidatorModule) {
-      this._webauthnValidatorModule = await create2("WebAuthValidator", this.wallet, this.ethersStaticSalt);
+      this._webauthnValidatorModule = <any>await create2("WebAuthValidator", this.wallet, this.ethersStaticSalt);
     }
     return this._webauthnValidatorModule;
   }
 
-  private _passkeyModuleAddress: string;
+  private _passkeyModuleAddress: Address;
   async getPasskeyModuleAddress() {
     if (!this._passkeyModuleAddress) {
       const passkeyModule = await this.getWebAuthnVerifierContract();
@@ -93,17 +93,17 @@ export class ContractFixtures {
   // wraps the clave account
   async getAccountImplContract() {
     if (!this._accountImplContract) {
-      this._accountImplContract = await create2("ERC7579Account", this.wallet, this.ethersStaticSalt);
+      this._accountImplContract = <any>await create2("ERC7579Account", this.wallet, this.ethersStaticSalt);
     }
     return this._accountImplContract;
   }
 
-  private _accountImplAddress: string;
+  private _accountImplAddress: Address;
   // deploys the base account for future proxy use
   async getAccountImplAddress() {
     if (!this._accountImplAddress) {
       const accountImpl = await this.getAccountImplContract();
-      this._accountImplAddress = await accountImpl.getAddress();
+      this._accountImplAddress = <Address>await accountImpl.getAddress();
     }
     return this._accountImplAddress;
   }
