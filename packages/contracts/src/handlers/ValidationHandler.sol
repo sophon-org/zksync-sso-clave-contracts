@@ -7,6 +7,7 @@ import { OwnerManager } from "../managers/OwnerManager.sol";
 import { ValidatorManager } from "../managers/ValidatorManager.sol";
 
 import { IK1Validator, IR1Validator } from "../interfaces/IValidator.sol";
+import { IModuleValidator } from "../interfaces/IModuleValidator.sol";
 
 import "hardhat/console.sol";
 
@@ -47,23 +48,7 @@ abstract contract ValidationHandler is OwnerManager, ValidatorManager {
       }
     } else if (_isModuleValidator(validator)) {
       console.log("_isModuleValidator");
-      // FIXME: This is implicitly assuming that modular validators use keys 2 32byte words
-      mapping(bytes => bytes) storage owners = OwnerManager._r1OwnersLinkedList();
-      bytes memory cursor = owners[BytesLinkedList.SENTINEL_BYTES];
-      while (cursor.length > BytesLinkedList.SENTINEL_LENGTH) {
-        bytes32[2] memory pubKey = abi.decode(cursor, (bytes32[2]));
-
-        // This hash didn't look valid (and for sure won't work until I fix create2 on the tests)
-        console.log("signed hash");
-        console.logBytes32(signedHash);
-        bool _success = IR1Validator(validator).webAuthVerify(signedHash, signature, pubKey);
-
-        if (_success) {
-          return true;
-        }
-
-        cursor = owners[cursor];
-      }
+      return IModuleValidator(validator).handleValidation(signedHash, signature);
     }
 
     return false;

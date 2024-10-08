@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity ^0.8.24;
 
-import {BOOTLOADER_FORMAL_ADDRESS} from "@matterlabs/zksync-contracts/l2/system-contracts/Constants.sol";
-import {Errors} from "../libraries/Errors.sol";
+import { BOOTLOADER_FORMAL_ADDRESS } from "@matterlabs/zksync-contracts/l2/system-contracts/Constants.sol";
+import { Errors } from "../libraries/Errors.sol";
 
 /**
  * @title BootloaderAuth
@@ -10,10 +10,10 @@ import {Errors} from "../libraries/Errors.sol";
  * @author https://getclave.io
  */
 abstract contract BootloaderAuth {
-    modifier onlyBootloader() {
-        if (msg.sender != BOOTLOADER_FORMAL_ADDRESS) {
-            revert Errors.NOT_FROM_BOOTLOADER();
-        }
-        _;
+  modifier onlyBootloader() {
+    if (msg.sender != BOOTLOADER_FORMAL_ADDRESS) {
+      revert Errors.NOT_FROM_BOOTLOADER();
     }
+    _;
+  }
 }

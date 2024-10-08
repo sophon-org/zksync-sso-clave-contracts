@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity ^0.8.24;
 
-import {Errors} from "../libraries/Errors.sol";
+import { Errors } from "../libraries/Errors.sol";
 
 /**
  * @title ModuleAuth
@@ -9,12 +9,12 @@ import {Errors} from "../libraries/Errors.sol";
  * @author https://getclave.io
  */
 abstract contract ModuleAuth {
-    function _isModule(address addr) internal view virtual returns (bool);
+  function _isModule(address addr) internal view virtual returns (bool);
 
-    modifier onlyModule() {
-        if (!_isModule(msg.sender)) {
-            revert Errors.NOT_FROM_MODULE();
-        }
-        _;
+  modifier onlyModule() {
+    if (!_isModule(msg.sender)) {
+      revert Errors.NOT_FROM_MODULE();
     }
+    _;
+  }
 }

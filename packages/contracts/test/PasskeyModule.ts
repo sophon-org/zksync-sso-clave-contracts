@@ -5,7 +5,6 @@ import { ECDSASigValue } from "@peculiar/asn1-ecc";
 import { AsnParser } from "@peculiar/asn1-schema";
 import { bigintToBuf, bufToBigint } from "bigint-conversion";
 import { assert } from "chai";
-import { ethers } from "ethers";
 import * as hre from "hardhat";
 import { Wallet } from "zksync-ethers";
 
@@ -221,9 +220,9 @@ async function rawVerify(
   const hashedData = await toHash(concat([authDataBuffer, clientDataHash]));
   const rs = unwrapEC2Signature(toBuffer(b64SignedChallange));
   const publicKeys = await getPublicKey(publicKeyEs256Bytes);
-  console.log("externalSignature", ethers.hexlify(hashedData));
+  /* console.log("externalSignature", ethers.hexlify(hashedData));
   console.log("rs", ethers.hexlify(rs[0]), ethers.hexlify(rs[1]));
-  console.log("pubkey xy", publicKeys);
+  console.log("pubkey xy", publicKeys); */
   return await passkeyValidator.rawVerify(hashedData, rs, publicKeys);
 }
 
