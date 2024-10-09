@@ -105,7 +105,7 @@ abstract contract ModuleManager is IModuleManager, Auth {
     emit AddModule(module);
   }
 
-  function _addExternalExecutorPermission(address module, bytes calldata data) internal virtual {
+  function _addExternalExecutorPermission(address module, bytes memory data) internal virtual {
     _externalExecutorModule().add(module);
 
     IERC7579Module(module).onInstall(data);
@@ -113,8 +113,9 @@ abstract contract ModuleManager is IModuleManager, Auth {
     emit AddModule(module);
   }
 
-  function _addFallbackModule(address module, bytes calldata data) internal virtual {
-    ClaveStorage.layout().fallbackContractBySelector[bytes4(data[0:4])] = module;
+  function _addFallbackModule(address module, bytes memory data) internal virtual {
+    // FIXME: Index range access is only supported for dynamic calldata arrays.
+    // ClaveStorage.layout().fallbackContractBySelector[bytes4(data[0:4])] = module;
 
     IERC7579Module(module).onInstall(data);
 
