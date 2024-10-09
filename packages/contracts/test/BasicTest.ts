@@ -1,18 +1,32 @@
 import { assert, expect } from "chai";
 import { parseEther, randomBytes } from "ethers";
-import { AbiCoder, ethers, ZeroAddress } from "ethers";
+import { ethers, ZeroAddress, Wallet } from "ethers";
 import { it } from "mocha";
-import { SmartAccount, utils, Wallet } from "zksync-ethers";
+import { SmartAccount, utils } from "zksync-ethers";
 
-// import { ERC7579Account__factory } from "../typechain-types";
+import { ERC7579Account__factory } from "../typechain-types";
+import { CallStruct } from "../typechain-types/src/batch/BatchCaller";
 import { ContractFixtures } from "./EndToEndSpendLimit";
-import { getProvider, getWallet, RecordedResponse } from "./utils";
+import { getProvider } from "./utils";
 
-describe.only("Basic tests", function () {
+describe("Basic tests", function () {
   const fixtures = new ContractFixtures();
-  const abiCoder = new AbiCoder();
   const provider = getProvider();
   let proxyAccountAddress: string;
+
+  async function aaTxTemplate() {
+    return {
+      type: 113,
+      from: proxyAccountAddress,
+      data: "0x",
+      value: 0,
+      chainId: (await provider.getNetwork()).chainId,
+      nonce: await provider.getTransactionCount(proxyAccountAddress),
+      gasPrice: await provider.getGasPrice(),
+      customData: { gasPerPubdata: utils.DEFAULT_GAS_PER_PUBDATA_LIMIT },
+      gasLimit: 0n,
+    }
+  }
 
   it("should deploy implemention", async () => {
     const accountImplContract = await fixtures.getAccountImplContract();
@@ -20,6 +34,8 @@ describe.only("Basic tests", function () {
   });
 
   it("should deploy proxy directly", async () => {
+    // deploy proxy so that its bytecode hash is registered,
+    // so we don't have to worry about passing it in factory deps
     const proxyAccountContract = await fixtures.getProxyAccountContract();
     assert(proxyAccountContract != null, "No account proxy deployed");
   });
@@ -28,7 +44,7 @@ describe.only("Basic tests", function () {
     const aaFactoryContract = await fixtures.getAaFactory();
     assert(aaFactoryContract != null, "No AA Factory deployed");
 
-    const proxyAccount = await aaFactoryContract.deployProxy7579Account(
+    const deployTx = await aaFactoryContract.deployProxy7579Account(
       randomBytes(32),
       await fixtures.getAccountImplAddress(),
       "id",
@@ -36,89 +52,91 @@ describe.only("Basic tests", function () {
       [],
       [fixtures.wallet.address],
     );
-    const proxyAccountTxReceipt = await proxyAccount.wait();
-
-    const newAddress = abiCoder.decode(["address"], proxyAccountTxReceipt!.logs[0].data);
-    proxyAccountAddress = newAddress[0];
+    const deployTxReceipt = await deployTx.wait();
+    proxyAccountAddress = deployTxReceipt!.contractAddress!;
 
     expect(proxyAccountAddress, "the proxy account location via logs").to.not.equal(ZeroAddress, "be a valid address");
-    expect(proxyAccountTxReceipt!.contractAddress, "the proxy account location via return").to.not.equal(ZeroAddress, "be a non-zero address");
+
+    const account = ERC7579Account__factory.connect(proxyAccountAddress, provider);
+    assert(await account.k1IsOwner(fixtures.wallet.address));
   });
 
   it("should execute a simple transfer of ETH", async () => {
-    const fundTx = await fixtures.wallet.sendTransaction({ value: parseEther("1.0"), to: proxyAccountAddress });
+    const fundTx = await fixtures.wallet.sendTransaction({ value: parseEther("0.2"), to: proxyAccountAddress });
     await fundTx.wait();
 
-    // FIXME: why does this return BAD_DATA?
-    // const account = ERC7579Account__factory.connect(proxyAccountAddress, provider);
-    // console.log(await account.k1IsOwner(fixtures.wallet.address));
-    // const owners = await account.k1ListOwners()
-    // console.log("owners", owners);
+    const balanceBefore = await provider.getBalance(proxyAccountAddress);
 
     const smartAccount = new SmartAccount({
       address: proxyAccountAddress,
       secret: fixtures.wallet.privateKey,
     }, provider);
 
-    const aaTx = {
-      type: 113,
-      from: proxyAccountAddress,
-      to: ZeroAddress,
-      value: 0, // parseEther("0.5"),
-      chainId: (await provider.getNetwork()).chainId,
-      nonce: await provider.getTransactionCount(proxyAccountAddress),
-      gasPrice: await provider.getGasPrice(),
-      customData: { gasPerPubdata: utils.DEFAULT_GAS_PER_PUBDATA_LIMIT },
-    };
+    const value = parseEther("0.01");
+    const target = Wallet.createRandom().address;
 
-    aaTx["gasLimit"] = await provider.estimateGas(aaTx);
+    const aaTx = {
+      ...await aaTxTemplate(),
+      to: target,
+      value,
+    };
+    aaTx.gasLimit = await provider.estimateGas(aaTx);
 
     const signedTransaction = await smartAccount.signTransaction(aaTx);
     assert(signedTransaction != null, "valid transaction to sign");
 
     const tx = await provider.broadcastTransaction(signedTransaction);
-    await tx.wait();
-
-    console.log(ethers.formatEther(await provider.getBalance(proxyAccountAddress)));
+    const receipt = await tx.wait();
+    const fee = receipt.gasUsed * aaTx.gasPrice;
+    expect(await provider.getBalance(proxyAccountAddress)).to.equal(balanceBefore - value - fee, "invalid final balance");
+    expect(await provider.getBalance(target)).to.equal(value, "invalid final balance");
   });
 
-  it("should be able to use an owner key to perform a transfer", async () => {
-    const ownerKeyAccount = Wallet.createRandom();
-    const fundTx = await fixtures.wallet.sendTransaction({ value: parseEther("1.0"), to: ownerKeyAccount });
-    await fundTx.wait();
-
-    const ownerBalanceBefore = await getProvider().getBalance(ownerKeyAccount.address);
-    assert(ownerBalanceBefore > BigInt(0), "owner balance needs to start positive");
-
-    const ethersResponse = new RecordedResponse("test/signed-challenge.json");
-    const proxyAccountAddress = await fixtures.getFundedProxyAccount(randomBytes(32), ethersResponse, getWallet(ownerKeyAccount.privateKey));
-    const accountBalanceBefore = await getProvider().getBalance(proxyAccountAddress);
-    assert(accountBalanceBefore > BigInt(0), "account balance needs to start positive");
-
+  it("should execute a multicall", async () => {
     const smartAccount = new SmartAccount({
       address: proxyAccountAddress,
-      secret: ownerKeyAccount.privateKey,
+      secret: fixtures.wallet.privateKey,
     }, provider);
 
-    const aaTx = {
-      type: 113,
-      from: proxyAccountAddress,
-      to: ZeroAddress,
-      value: 0, // parseEther("0.5"),
-      chainId: (await provider.getNetwork()).chainId,
-      nonce: await provider.getTransactionCount(proxyAccountAddress),
-      gasPrice: await provider.getGasPrice(),
-      customData: { gasPerPubdata: utils.DEFAULT_GAS_PER_PUBDATA_LIMIT },
-    };
+    const balanceBefore = await provider.getBalance(proxyAccountAddress);
+    const value = parseEther("0.01");
 
-    aaTx["gasLimit"] = await provider.estimateGas(aaTx);
+    const target1 = Wallet.createRandom().address;
+    const target2 = Wallet.createRandom().address;
+    const calls: CallStruct[] = [
+      {
+        target: target1,
+        value,
+        callData: '0x',
+        allowFailure: false,
+      },
+      {
+        target: target2,
+        value,
+        callData: '0x',
+        allowFailure: false,
+      },
+    ];
+
+    const account = ERC7579Account__factory.connect(proxyAccountAddress, provider);
+
+    const aaTx = {
+      ...await aaTxTemplate(),
+      to: await account.BATCH_CALLER(),
+      data: account.interface.encodeFunctionData("batchCall", [calls]),
+      // value: value * 2n,
+    };
+    aaTx.gasLimit = await provider.estimateGas(aaTx);
 
     const signedTransaction = await smartAccount.signTransaction(aaTx);
     assert(signedTransaction != null, "valid transaction to sign");
 
     const tx = await provider.broadcastTransaction(signedTransaction);
-    await tx.wait();
+    const receipt = await tx.wait();
+    const fee = receipt.gasUsed * aaTx.gasPrice;
 
-    console.log(ethers.formatEther(await provider.getBalance(proxyAccountAddress)));
-  });
+    expect(await provider.getBalance(proxyAccountAddress)).to.equal(balanceBefore - value * 2n - fee, "invalid final account balance");
+    expect(await provider.getBalance(target1)).to.equal(value, "invalid final target balance");
+    expect(await provider.getBalance(target2)).to.equal(value, "invalid final target balance");
+  })
 });

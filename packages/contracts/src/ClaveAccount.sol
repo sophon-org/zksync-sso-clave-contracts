@@ -263,7 +263,7 @@ contract ClaveAccount is
         }
       }
     } else if (to == BATCH_CALLER) {
-      bool success = EfficientCall.rawDelegateCall(gas, to, data);
+      bool success = EfficientCall.rawDelegateCall(gas, address(this), data);
       if (!success && !allowFailure) {
         EfficientCall.propagateRevert();
       }

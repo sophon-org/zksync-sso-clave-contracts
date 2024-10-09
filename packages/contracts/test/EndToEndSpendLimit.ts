@@ -139,14 +139,14 @@ export class ContractFixtures {
       [sessionModuleAddress, this.getEncodedSessionModuleData(initialSessionKeyWallet.address as Address)]);
     const passkeyModuleData = this.abiCoder.encode(
       ["address", "bytes"],
-      [passkeyModuleAddress, await this.getEncodedPasskeyModuleData(response)]);
+      [passkeyModuleAddress, this.getEncodedPasskeyModuleData(response)]);
     const proxyAccount = await factory.deployProxy7579Account(
       salt,
       accountImpl,
       uniqueAccountKey,
       [sessionModuleData, passkeyModuleData],
       [],
-      [initialSessionKeyWallet.address],
+      [],
     );
 
     const proxyAccountReceipt = await proxyAccount.wait();
@@ -242,7 +242,7 @@ export class ContractFixtures {
   }
 
   // passkey has the public key + origin domain
-  async getEncodedPasskeyModuleData(response: RecordedResponse) {
+  getEncodedPasskeyModuleData(response: RecordedResponse) {
     const encodePasskeyModuleParameters = (passkey: { passkeyPublicKey: [Buffer, Buffer]; expectedOrigin: string }) => {
       return encodeAbiParameters(
         [
@@ -256,7 +256,7 @@ export class ContractFixtures {
       );
     };
     return encodePasskeyModuleParameters({
-      passkeyPublicKey: await response.getXyPublicKeys(),
+      passkeyPublicKey: response.getXyPublicKeys(),
       expectedOrigin: response.expectedOrigin,
     });
   }
