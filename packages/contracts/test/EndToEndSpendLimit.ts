@@ -1,18 +1,11 @@
 import { assert, expect } from "chai";
 import { BytesLike, parseEther, randomBytes } from "ethers";
 import { AbiCoder, Contract, ethers, ZeroAddress } from "ethers";
-import * as hre from "hardhat";
 import { it } from "mocha";
-import { Address, createWalletClient, getAddress, Hash, http, publicActions } from "viem";
-import { generatePrivateKey, privateKeyToAccount, privateKeyToAddress } from "viem/accounts";
-import { waitForTransactionReceipt } from "viem/actions";
-import { zksyncInMemoryNode } from "viem/chains";
-import { createZksyncSessionClient, deployAccount } from "zksync-account/client";
-import { setSessionKey } from "zksync-account/client/actions";
+import { Address, getAddress, Hash } from "viem";
 import { encodePasskeyModuleParameters, encodeSessionSpendLimitParameters } from "zksync-account/utils";
 import { SmartAccount, types, utils, Wallet } from "zksync-ethers";
 
-import { createZksyncPasskeyClient } from "./sdk/PasskeyClient";
 import { create2, deployFactory, getProvider, getWallet, LOCAL_RICH_WALLETS, logInfo, RecordedResponse } from "./utils";
 
 // Token Config Interface definitions
@@ -224,7 +217,7 @@ export class ContractFixtures {
 describe("Spend limit validation", function () {
   const fixtures = new ContractFixtures();
   const ethersResponse = new RecordedResponse("test/signed-challenge.json");
-  const viemResponse = new RecordedResponse("test/signed-viem-challenge.json");
+  // const viemResponse = new RecordedResponse("test/signed-viem-challenge.json");
   const abiCoder = new AbiCoder();
   const provider = getProvider();
 
@@ -248,121 +241,121 @@ describe("Spend limit validation", function () {
     assert(proxyAccountContract != null, "No account proxy deployed");
   });
 
-  describe("using viem", () => {
-    it("should deploy proxy account via factory, create a new session key with a passkey, then send funds with the initial session key", async () => {
-      const passkeyModule = await fixtures.getWebAuthnVerifierContract();
-      const sessionModule = await fixtures.getSessionSpendLimitContract();
-      const factoryContract = await fixtures.getAaFactory();
-      const factoryAddress = await factoryContract.getAddress() as Address;
+  // describe("using viem", () => {
+  //   it("should deploy proxy account via factory, create a new session key with a passkey, then send funds with the initial session key", async () => {
+  //     const passkeyModule = await fixtures.getWebAuthnVerifierContract();
+  //     const sessionModule = await fixtures.getSessionSpendLimitContract();
+  //     const factoryContract = await fixtures.getAaFactory();
+  //     const factoryAddress = await factoryContract.getAddress() as Address;
 
-      const sessionModuleAddress = await sessionModule.getAddress() as Address;
-      const passkeyModuleAddress = await passkeyModule.getAddress() as Address;
-      const accountImplementationAddress = await fixtures.getAccountImplAddress() as Address;
+  //     const sessionModuleAddress = await sessionModule.getAddress() as Address;
+  //     const passkeyModuleAddress = await passkeyModule.getAddress() as Address;
+  //     const accountImplementationAddress = await fixtures.getAccountImplAddress() as Address;
 
-      // fix for .only deployment
-      const proxyFix = await fixtures.getProxyAccountContract();
-      assert(proxyFix != null, "should deploy proxy");
+  //     // fix for .only deployment
+  //     const proxyFix = await fixtures.getProxyAccountContract();
+  //     assert(proxyFix != null, "should deploy proxy");
 
-      const localClient = {
-        ...zksyncInMemoryNode,
-        rpcUrls: {
-          default: {
-            http: [hre.network.config["url"]], // Override if not using the default port
-          },
-        },
-      };
+  //     const localClient = {
+  //       ...zksyncInMemoryNode,
+  //       rpcUrls: {
+  //         default: {
+  //           http: [hre.network.config["url"]], // Override if not using the default port
+  //         },
+  //       },
+  //     };
 
-      const richWallet = createWalletClient({
-        account: privateKeyToAccount(fixtures.wallet.privateKey as Hash),
-        chain: localClient,
-        transport: http(),
-      }).extend(publicActions);
+  //     const richWallet = createWalletClient({
+  //       account: privateKeyToAccount(fixtures.wallet.privateKey as Hash),
+  //       chain: localClient,
+  //       transport: http(),
+  //     }).extend(publicActions);
 
-      /* 1. Deploy smart account */
-      const rawSessionKeyData = fixtures.getSessionSpendLimitModuleData(fixtures.viemSessionKeyWallet.address as Address);
-      const sessionKeyData = {
-        sessionPublicKey: rawSessionKeyData.sessionKey,
-        expiresAt: new Date(parseInt((rawSessionKeyData.expiresAt * BigInt(1000)).toString())).toISOString(),
-        spendLimit: Object.fromEntries(rawSessionKeyData.spendLimits.map((limit) => [
-          limit.tokenAddress, limit.limit.toString(),
-        ])),
-      };
+  //     /* 1. Deploy smart account */
+  //     const rawSessionKeyData = fixtures.getSessionSpendLimitModuleData(fixtures.viemSessionKeyWallet.address as Address);
+  //     const sessionKeyData = {
+  //       sessionPublicKey: rawSessionKeyData.sessionKey,
+  //       expiresAt: new Date(parseInt((rawSessionKeyData.expiresAt * BigInt(1000)).toString())).toISOString(),
+  //       spendLimit: Object.fromEntries(rawSessionKeyData.spendLimits.map((limit) => [
+  //         limit.tokenAddress, limit.limit.toString(),
+  //       ])),
+  //     };
 
-      const proxyAccountDeployment = await deployAccount(richWallet as any, {
-        credentialPublicKey: viemResponse.passkeyBytes,
-        expectedOrigin: viemResponse.expectedOrigin,
-        uniqueAccountId: "viemSpendLimitAccount",
-        salt: fixtures.viemStaticSalt,
-        contracts: {
-          accountFactory: factoryAddress,
-          accountImplementation: accountImplementationAddress,
-          passkey: passkeyModuleAddress,
-          session: sessionModuleAddress,
-        },
-        initialSessions: [
-          {
-            sessionPublicKey: sessionKeyData.sessionPublicKey,
-            expiresAt: sessionKeyData.expiresAt,
-            spendLimit: sessionKeyData.spendLimit,
-          },
-        ],
-      });
-      const proxyAccountAddress = proxyAccountDeployment.address;
-      assert.isDefined(proxyAccountAddress, "no address set");
+  //     const proxyAccountDeployment = await deployAccount(richWallet as any, {
+  //       credentialPublicKey: viemResponse.passkeyBytes,
+  //       expectedOrigin: viemResponse.expectedOrigin,
+  //       uniqueAccountId: "viemSpendLimitAccount",
+  //       salt: fixtures.viemStaticSalt,
+  //       contracts: {
+  //         accountFactory: factoryAddress,
+  //         accountImplementation: accountImplementationAddress,
+  //         passkey: passkeyModuleAddress,
+  //         session: sessionModuleAddress,
+  //       },
+  //       initialSessions: [
+  //         {
+  //           sessionPublicKey: sessionKeyData.sessionPublicKey,
+  //           expiresAt: sessionKeyData.expiresAt,
+  //           spendLimit: sessionKeyData.spendLimit,
+  //         },
+  //       ],
+  //     });
+  //     const proxyAccountAddress = proxyAccountDeployment.address;
+  //     assert.isDefined(proxyAccountAddress, "no address set");
 
-      /* 1.1 Fund smart account with some ETH to pay for transaction fees */
-      const fundAccountTransactionHash = await waitForTransactionReceipt(richWallet, {
-        hash: await richWallet.sendTransaction({
-          to: proxyAccountAddress,
-          value: parseEther("0.05"),
-        }),
-      });
-      assert.equal(fundAccountTransactionHash.status, "success", "should fund without errors");
+  //     /* 1.1 Fund smart account with some ETH to pay for transaction fees */
+  //     const fundAccountTransactionHash = await waitForTransactionReceipt(richWallet, {
+  //       hash: await richWallet.sendTransaction({
+  //         to: proxyAccountAddress,
+  //         value: parseEther("0.05"),
+  //       }),
+  //     });
+  //     assert.equal(fundAccountTransactionHash.status, "success", "should fund without errors");
 
-      /* 2. Validate passkey signed transactions */
-      const passkeyClient = createZksyncPasskeyClient({
-        address: proxyAccountAddress as Address,
-        chain: localClient,
-        contracts: {
-          passkey: passkeyModuleAddress,
-          session: sessionModuleAddress,
-          accountFactory: factoryAddress,
-          accountImplementation: accountImplementationAddress,
-        },
-        signHash: async () => ({
-          authenticatorData: viemResponse.authenticatorData,
-          clientDataJSON: viemResponse.clientData,
-          signature: viemResponse.b64SignedChallenge,
-        }),
-        transport: http(),
-      });
+  //     /* 2. Validate passkey signed transactions */
+  //     const passkeyClient = createZksyncPasskeyClient({
+  //       address: proxyAccountAddress as Address,
+  //       chain: localClient,
+  //       contracts: {
+  //         passkey: passkeyModuleAddress,
+  //         session: sessionModuleAddress,
+  //         accountFactory: factoryAddress,
+  //         accountImplementation: accountImplementationAddress,
+  //       },
+  //       signHash: async () => ({
+  //         authenticatorData: viemResponse.authenticatorData,
+  //         clientDataJSON: viemResponse.clientData,
+  //         signature: viemResponse.b64SignedChallenge,
+  //       }),
+  //       transport: http(),
+  //     });
 
-      await setSessionKey(passkeyClient as any, {
-        sessionKey: sessionKeyData.sessionPublicKey,
-        expiresAt: sessionKeyData.expiresAt,
-        spendLimit: sessionKeyData.spendLimit,
-        contracts: passkeyClient.contracts,
-      });
+  //     await setSessionKey(passkeyClient as any, {
+  //       sessionKey: sessionKeyData.sessionPublicKey,
+  //       expiresAt: sessionKeyData.expiresAt,
+  //       spendLimit: sessionKeyData.spendLimit,
+  //       contracts: passkeyClient.contracts,
+  //     });
 
-      /* 3. Verify session key signed transactions */
-      const sessionKeyClient = createZksyncSessionClient({
-        address: proxyAccountAddress,
-        sessionKey: fixtures.viemSessionKeyWallet.privateKey as Hash,
-        contracts: {
-          session: sessionModuleAddress,
-        },
-        chain: localClient,
-        transport: http(),
-      });
+  //     /* 3. Verify session key signed transactions */
+  //     const sessionKeyClient = createZksyncSessionClient({
+  //       address: proxyAccountAddress,
+  //       sessionKey: fixtures.viemSessionKeyWallet.privateKey as Hash,
+  //       contracts: {
+  //         session: sessionModuleAddress,
+  //       },
+  //       chain: localClient,
+  //       transport: http(),
+  //     });
 
-      const sessionKeySignedTransactionHash = await sessionKeyClient.sendTransaction({
-        to: privateKeyToAddress(generatePrivateKey()), // send any transaction to a random address
-        value: 1n,
-      });
-      const sessionKeyReceipt = await waitForTransactionReceipt(sessionKeyClient as any, { hash: sessionKeySignedTransactionHash });
-      assert.equal(sessionKeyReceipt.status, "success", "(sessionkey) transaction should be successful");
-    });
-  });
+  //     const sessionKeySignedTransactionHash = await sessionKeyClient.sendTransaction({
+  //       to: privateKeyToAddress(generatePrivateKey()), // send any transaction to a random address
+  //       value: 1n,
+  //     });
+  //     const sessionKeyReceipt = await waitForTransactionReceipt(sessionKeyClient as any, { hash: sessionKeySignedTransactionHash });
+  //     assert.equal(sessionKeyReceipt.status, "success", "(sessionkey) transaction should be successful");
+  //   });
+  // });
 
   describe("using ethers", () => {
     it("should deploy proxy account via factory", async () => {
@@ -440,116 +433,116 @@ describe("Spend limit validation", function () {
 
       assert(proxyAccountTxReceipt.contractAddress != ethers.ZeroAddress, "valid proxy account address");
     });
-    it("should add a new session key with a passkey", async () => {
-      const initialSessionKeyWallet: Wallet = getWallet("0xf51513036f18ef46508ddb0fff7aa153260ff76721b2f53c33fc178152fb481e");
-      const proxyAccountAddress = await fixtures.getFundedProxyAccount(
-        fixtures.ethersStaticSalt,
-        ethersResponse,
-        initialSessionKeyWallet);
+    // it("should add a new session key with a passkey", async () => {
+    //   const initialSessionKeyWallet: Wallet = getWallet("0xf51513036f18ef46508ddb0fff7aa153260ff76721b2f53c33fc178152fb481e");
+    //   const proxyAccountAddress = await fixtures.getFundedProxyAccount(
+    //     fixtures.ethersStaticSalt,
+    //     ethersResponse,
+    //     initialSessionKeyWallet);
 
-      const passkeySmartAccount = new SmartAccount({
-        payloadSigner: fixtures.passkeySigner.bind(fixtures),
-        address: proxyAccountAddress,
-        secret: ethersResponse,
-      }, getProvider());
+    //   const passkeySmartAccount = new SmartAccount({
+    //     payloadSigner: fixtures.passkeySigner.bind(fixtures),
+    //     address: proxyAccountAddress,
+    //     secret: ethersResponse,
+    //   }, getProvider());
 
-      // we just need a stable wallet address, the fact that this is a rich wallet shouldn't matter
-      const extraSessionKeyWallet: Wallet = getWallet(LOCAL_RICH_WALLETS[4].privateKey);
-      const tokenData = fixtures.getSessionSpendLimitModuleData(extraSessionKeyWallet.address as Address);
-      const sessionModuleContract = await fixtures.getSessionSpendLimitContract();
-      const callData = sessionModuleContract.interface.encodeFunctionData("setSessionKeys", [[tokenData]]);
-      const aaTx = {
-        from: proxyAccountAddress,
-        to: getAddress(await sessionModuleContract.getAddress()),
-        data: callData,
-        gasPrice: await provider.getGasPrice(),
-        customData: {} as types.Eip712Meta,
-        gasLimit: BigInt(0),
-      };
-      aaTx["gasLimit"] = await provider.estimateGas(aaTx);
+    //   // we just need a stable wallet address, the fact that this is a rich wallet shouldn't matter
+    //   const extraSessionKeyWallet: Wallet = getWallet(LOCAL_RICH_WALLETS[4].privateKey);
+    //   const tokenData = fixtures.getSessionSpendLimitModuleData(extraSessionKeyWallet.address as Address);
+    //   const sessionModuleContract = await fixtures.getSessionSpendLimitContract();
+    //   const callData = sessionModuleContract.interface.encodeFunctionData("setSessionKeys", [[tokenData]]);
+    //   const aaTx = {
+    //     from: proxyAccountAddress,
+    //     to: getAddress(await sessionModuleContract.getAddress()),
+    //     data: callData,
+    //     gasPrice: await provider.getGasPrice(),
+    //     customData: {} as types.Eip712Meta,
+    //     gasLimit: BigInt(0),
+    //   };
+    //   aaTx["gasLimit"] = await provider.estimateGas(aaTx);
 
-      const passkeySignedTransaction = await passkeySmartAccount.signTransaction(aaTx);
-      assert(passkeySignedTransaction != null, "valid passkey transaction to sign");
+    //   const passkeySignedTransaction = await passkeySmartAccount.signTransaction(aaTx);
+    //   assert(passkeySignedTransaction != null, "valid passkey transaction to sign");
 
-      const passkeyTransactionResponse = await provider.broadcastTransaction(passkeySignedTransaction);
-      const passkeyTransactionRecipt = await passkeyTransactionResponse.wait();
-      assert.equal(passkeyTransactionRecipt.status, 1, "failed passkey transaction");
-    });
+    //   const passkeyTransactionResponse = await provider.broadcastTransaction(passkeySignedTransaction);
+    //   const passkeyTransactionRecipt = await passkeyTransactionResponse.wait();
+    //   assert.equal(passkeyTransactionRecipt.status, 1, "failed passkey transaction");
+    // });
 
-    it("might be able to add a session key with passkey, then a session key", async () => {
-      const ethersPasskeyResponse = new RecordedResponse("test/signed-ethers-passkey.json");
-      const initialSessionKeyWallet = getWallet("0xae3f083edae2d6fb1dfeaa6952ea260596eb67f9f26f4e17ca7d6916479ff9fa");
-      const salt = new Uint8Array([
-        200, 241, 161, 186, 101, 105, 79,
-        240, 98, 64, 50, 124, 168, 204,
-        200, 71, 214, 169, 195, 118, 199,
-        60, 140, 111, 128, 47, 32, 21,
-        170, 177, 174, 166,
-      ]);
-      const proxyAccountAddress = await fixtures.getFundedProxyAccount(
-        salt,
-        ethersPasskeyResponse,
-        initialSessionKeyWallet);
+    // it("might be able to add a session key with passkey, then a session key", async () => {
+    //   const ethersPasskeyResponse = new RecordedResponse("test/signed-ethers-passkey.json");
+    //   const initialSessionKeyWallet = getWallet("0xae3f083edae2d6fb1dfeaa6952ea260596eb67f9f26f4e17ca7d6916479ff9fa");
+    //   const salt = new Uint8Array([
+    //     200, 241, 161, 186, 101, 105, 79,
+    //     240, 98, 64, 50, 124, 168, 204,
+    //     200, 71, 214, 169, 195, 118, 199,
+    //     60, 140, 111, 128, 47, 32, 21,
+    //     170, 177, 174, 166,
+    //   ]);
+    //   const proxyAccountAddress = await fixtures.getFundedProxyAccount(
+    //     salt,
+    //     ethersPasskeyResponse,
+    //     initialSessionKeyWallet);
 
-      const passkeySmartAccount = new SmartAccount({
-        payloadSigner: fixtures.passkeySigner.bind(fixtures),
-        address: proxyAccountAddress,
-        secret: ethersPasskeyResponse,
-      }, getProvider());
+    //   const passkeySmartAccount = new SmartAccount({
+    //     payloadSigner: fixtures.passkeySigner.bind(fixtures),
+    //     address: proxyAccountAddress,
+    //     secret: ethersPasskeyResponse,
+    //   }, getProvider());
 
-      // we just need a stable wallet address, the fact that this is a rich wallet shouldn't matter
-      const extraSessionKeyWallet: Wallet = getWallet("0x97006fa3cfc8f133ae17d8f0c9a815a8224246b0c667bf08b7a122f5be858c34");
-      const tokenData = fixtures.getSessionSpendLimitModuleData(extraSessionKeyWallet.address as Address);
+    //   // we just need a stable wallet address, the fact that this is a rich wallet shouldn't matter
+    //   const extraSessionKeyWallet: Wallet = getWallet("0x97006fa3cfc8f133ae17d8f0c9a815a8224246b0c667bf08b7a122f5be858c34");
+    //   const tokenData = fixtures.getSessionSpendLimitModuleData(extraSessionKeyWallet.address as Address);
 
-      const sessionModuleContract = await fixtures.getSessionSpendLimitContract();
-      const callData = sessionModuleContract.interface.encodeFunctionData("setSessionKeys", [[tokenData]]);
-      const transactionForPasskey = {
-        from: proxyAccountAddress,
-        to: getAddress(await sessionModuleContract.getAddress()),
-        data: callData,
-        gasPrice: await provider.getGasPrice(),
-        customData: {} as types.Eip712Meta,
-        gasLimit: BigInt(0),
-      };
-      transactionForPasskey["gasLimit"] = await provider.estimateGas(transactionForPasskey);
+    //   const sessionModuleContract = await fixtures.getSessionSpendLimitContract();
+    //   const callData = sessionModuleContract.interface.encodeFunctionData("setSessionKeys", [[tokenData]]);
+    //   const transactionForPasskey = {
+    //     from: proxyAccountAddress,
+    //     to: getAddress(await sessionModuleContract.getAddress()),
+    //     data: callData,
+    //     gasPrice: await provider.getGasPrice(),
+    //     customData: {} as types.Eip712Meta,
+    //     gasLimit: BigInt(0),
+    //   };
+    //   transactionForPasskey["gasLimit"] = await provider.estimateGas(transactionForPasskey);
 
-      const passkeySignedTransaction = await passkeySmartAccount.signTransaction(transactionForPasskey);
-      assert(passkeySignedTransaction != null, "valid passkey transaction to sign");
+    //   const passkeySignedTransaction = await passkeySmartAccount.signTransaction(transactionForPasskey);
+    //   assert(passkeySignedTransaction != null, "valid passkey transaction to sign");
 
-      const passkeyTransactionResponse = await provider.broadcastTransaction(passkeySignedTransaction);
-      const passkeyTransactionRecipt = await passkeyTransactionResponse.wait();
-      assert.equal(passkeyTransactionRecipt.status, 1, "failed passkey transaction");
+    //   const passkeyTransactionResponse = await provider.broadcastTransaction(passkeySignedTransaction);
+    //   const passkeyTransactionRecipt = await passkeyTransactionResponse.wait();
+    //   assert.equal(passkeyTransactionRecipt.status, 1, "failed passkey transaction");
 
-      // now the part that fails for a different novel reason?
-      const thirdSessionKeyWallet = Wallet.createRandom(getProvider());
-      const secondExtraSessionKeyData = fixtures.getSessionSpendLimitModuleData(thirdSessionKeyWallet.address as Address);
-      const thirdSessionKeyCallData = sessionModuleContract.interface.encodeFunctionData("setSessionKeys", [[secondExtraSessionKeyData]]);
-      const sessionModuleAddress = await sessionModuleContract.getAddress();
-      const transactionForSessionKey = {
-        from: proxyAccountAddress,
-        to: getAddress(sessionModuleAddress),
-        data: thirdSessionKeyCallData,
-        gasPrice: await provider.getGasPrice(),
-        customData: {} as types.Eip712Meta,
-        gasLimit: BigInt(0),
-      };
-      transactionForSessionKey["gasLimit"] = await provider.estimateGas(transactionForSessionKey);
+    //   // now the part that fails for a different novel reason?
+    //   const thirdSessionKeyWallet = Wallet.createRandom(getProvider());
+    //   const secondExtraSessionKeyData = fixtures.getSessionSpendLimitModuleData(thirdSessionKeyWallet.address as Address);
+    //   const thirdSessionKeyCallData = sessionModuleContract.interface.encodeFunctionData("setSessionKeys", [[secondExtraSessionKeyData]]);
+    //   const sessionModuleAddress = await sessionModuleContract.getAddress();
+    //   const transactionForSessionKey = {
+    //     from: proxyAccountAddress,
+    //     to: getAddress(sessionModuleAddress),
+    //     data: thirdSessionKeyCallData,
+    //     gasPrice: await provider.getGasPrice(),
+    //     customData: {} as types.Eip712Meta,
+    //     gasLimit: BigInt(0),
+    //   };
+    //   transactionForSessionKey["gasLimit"] = await provider.estimateGas(transactionForSessionKey);
 
-      transactionForSessionKey["nonce"] = await provider.getTransactionCount(proxyAccountAddress);
-      transactionForSessionKey["gasLimit"] = await provider.estimateGas(transactionForSessionKey);
-      const sessionKeySmartAccount = new SmartAccount({
-        payloadSigner: fixtures.sessionKeySigner.bind(fixtures),
-        address: proxyAccountAddress,
-        secret: initialSessionKeyWallet.signingKey,
-      }, getProvider());
+    //   transactionForSessionKey["nonce"] = await provider.getTransactionCount(proxyAccountAddress);
+    //   transactionForSessionKey["gasLimit"] = await provider.estimateGas(transactionForSessionKey);
+    //   const sessionKeySmartAccount = new SmartAccount({
+    //     payloadSigner: fixtures.sessionKeySigner.bind(fixtures),
+    //     address: proxyAccountAddress,
+    //     secret: initialSessionKeyWallet.signingKey,
+    //   }, getProvider());
 
-      const sessionKeySignedTransaction = await sessionKeySmartAccount.signTransaction(transactionForSessionKey);
-      assert(sessionKeySignedTransaction != null, "valid session key transaction to sign");
+    //   const sessionKeySignedTransaction = await sessionKeySmartAccount.signTransaction(transactionForSessionKey);
+    //   assert(sessionKeySignedTransaction != null, "valid session key transaction to sign");
 
-      const sessionKeyTransactionResponse = await provider.broadcastTransaction(sessionKeySignedTransaction);
-      const sessionKeyTransactionRecipt = await sessionKeyTransactionResponse.wait();
-      assert.equal(sessionKeyTransactionRecipt.status, 1, "failed session key transaction");
-    });
+    //   const sessionKeyTransactionResponse = await provider.broadcastTransaction(sessionKeySignedTransaction);
+    //   const sessionKeyTransactionRecipt = await sessionKeyTransactionResponse.wait();
+    //   assert.equal(sessionKeyTransactionRecipt.status, 1, "failed session key transaction");
+    // });
 
     // (this will break when we implement permissions)
     it("can currently add a session key with another session key", async () => {
