@@ -692,10 +692,12 @@ describe("Spend limit validation", function () {
     const sessionModuleContract = await fixtures.getSessionSpendLimitContract();
     const erc7579Contract = await fixtures.getAccountImplContract();
     const factoryContract = await fixtures.getAaFactory();
+    const proxyContract = await fixtures.getProxyAccountContract();
 
     logInfo(`Session Address                : ${await sessionModuleContract.getAddress()}`);
     logInfo(`Passkey Address                : ${await verifierContract.getAddress()}`);
     logInfo(`Account Factory Address        : ${await factoryContract.getAddress()}`);
     logInfo(`Account Implementation Address : ${await erc7579Contract.getAddress()}`);
+    logInfo(`Proxy Account Address          : ${await proxyContract.getAddress()}`);
   });
 });
