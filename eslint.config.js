@@ -5,7 +5,7 @@ import globals from "globals";
 import tseslint from "typescript-eslint";
 
 export default [
-  { ignores: ["**/node_modules/", "**/dist/", "**/temp/", "**/tmp/", "**/.nuxt/", "**/.output/"] },
+  { ignores: ["**/node_modules/", "**/dist/", "**/temp/", "**/tmp/", "**/.nuxt/", "**/.output/", "**/artifacts-zk/", "**/deployments-zk/", "**/cache-zk/", "**/typechain-types/"] },
   { files: ["**/*.{js,mjs,cjs,ts}"] },
   stylistic.configs.customize({
     indent: 2,
