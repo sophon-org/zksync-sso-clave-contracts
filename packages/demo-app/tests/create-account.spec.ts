@@ -7,7 +7,7 @@ async function waitForServicesToLoad(page: Page): Promise<void> {
   // Wait for demo-app to finish loading
   await page.goto("/");
   let demoHeader = page.getByText("ZKsync SSO Demo");
-  while (!demoHeader.isVisible() && retryCount < maxRetryAttempts) {
+  while (!(await demoHeader.isVisible()) && retryCount < maxRetryAttempts) {
     await page.waitForTimeout(1000);
     demoHeader = page.getByText("ZKsync SSO Demo");
     retryCount++;
@@ -20,7 +20,7 @@ async function waitForServicesToLoad(page: Page): Promise<void> {
   retryCount = 0;
   await page.goto("http://localhost:3002");
   let authServerHeader = page.getByText("Index page");
-  while (!authServerHeader.isVisible() && retryCount < maxRetryAttempts) {
+  while (!(await authServerHeader.isVisible()) && retryCount < maxRetryAttempts) {
     await page.waitForTimeout(1000);
     authServerHeader = page.getByText("Index page");
     retryCount++;
