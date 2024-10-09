@@ -21,7 +21,11 @@
     "cspell.json",
     "**/test/**",
     "tmp",
-    "temp"
+    "temp",
+    "**/test-results/**",
+    "**/playwright-report/**",
+    "**/blob-report/**",
+    "**/playwright/.cache/**"
   ],
   "caseSensitive": true,
   "dictionaries": [
