@@ -9,7 +9,7 @@ test("Create account, session key, and send ETH", async ({ page }) => {
   await page.getByRole("button", { name: "ZKsync Account" }).click();
 
   // Ensure popup is displayed
-  await page.waitForTimeout(200);
+  await page.waitForTimeout(2000);
   const popup = (await (await page.context()).pages())[1];
   await expect(popup.getByText("Create account")).toBeVisible();
 
