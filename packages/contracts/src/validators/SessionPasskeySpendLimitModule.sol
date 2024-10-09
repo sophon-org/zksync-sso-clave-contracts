@@ -270,12 +270,12 @@ contract SessionPasskeySpendLimitModule is IERC7579Module, IModule, IModuleValid
   }
 
   /*
-   * Does validation and hooks transaction depending on the key
+   * Does validation and transaction hook (to validate the key, then check the spend limit)
    * @param typeID The type ID to check
    * @return true if the module is of the given type, false otherwise
    */
-  function isModuleType(uint256 typeID) external pure override returns (bool) {
-    return typeID == MODULE_TYPE_VALIDATOR;
+  function isModuleType(uint256 typeID) external pure override(IModule, IERC7579Module) returns (bool) {
+    return (typeID == MODULE_TYPE_VALIDATOR || typeID == MODULE_TYPE_HOOK);
   }
 
   /*

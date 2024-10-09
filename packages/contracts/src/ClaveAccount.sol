@@ -23,7 +23,9 @@ import { ModeCode } from "./libraries/ERC7579Mode.sol";
 import { ERC1271Handler } from "./handlers/ERC1271Handler.sol";
 import { BatchCaller } from "./batch/BatchCaller.sol";
 
+import { MODULE_TYPE_VALIDATOR, MODULE_TYPE_EXECUTOR, MODULE_TYPE_FALLBACK, MODULE_TYPE_HOOK } from "./interfaces/IERC7579Module.sol";
 import { IClaveAccount } from "./interfaces/IClaveAccount.sol";
+import { IModule } from "./interfaces/IModule.sol";
 
 import "hardhat/console.sol";
 
@@ -59,24 +61,36 @@ contract ClaveAccount is
   /**
    * @notice Initializer function for the account contract
    * @dev Sets passkey and passkey validator within account storage
-   * @param initialValidators bytes[] calldata - Validator addresses and init data for validation modules
-   * @param initialModules bytes[] - Non-validator modules and init data for validation modules
+   * @param initialTypedModules bytes[] - Modules that declare a type and init data
+   * @param initalK1Owners[] - public keys of the initial owners
    */
-  function initialize(
-    bytes[] calldata initialValidators,
-    bytes[] calldata initialModules,
-    address[] calldata initialK1Owners
-  ) external initializer {
-    for (uint256 validatorIndex = 0; validatorIndex < initialValidators.length; validatorIndex++) {
-      (address validatorAddress, bytes memory validatorData) = abi.decode(
-        initialValidators[validatorIndex],
-        (address, bytes)
-      );
-      _addModuleValidator(validatorAddress, validatorData);
-    }
-    for (uint256 moduleIndex = 0; moduleIndex < initialModules.length; moduleIndex++) {
-      (address moduleAddress, bytes memory moduleData) = abi.decode(initialModules[moduleIndex], (address, bytes));
-      _addNativeModule(moduleAddress, moduleData);
+  function initialize(bytes[] calldata initialTypedModules, address[] calldata initialK1Owners) external initializer {
+    for (uint256 moduleIndex = 0; moduleIndex < initialTypedModules.length; moduleIndex++) {
+      (address moduleAddress, bytes memory moduleData) = abi.decode(initialTypedModules[moduleIndex], (address, bytes));
+      if (IModule(moduleAddress).isInitialized(address(this))) {
+        continue;
+      }
+
+      // NB: this validation is the only part that's not part of the module manager because clave splits validation
+      // from other module types, so this remains at the top level account
+      if (IModule(moduleAddress).isModuleType(MODULE_TYPE_VALIDATOR)) {
+        _addModuleValidator(moduleAddress, moduleData);
+      }
+
+      // this is the callback type module that grants permissions to another contract
+      if (IModule(moduleAddress).isModuleType(MODULE_TYPE_EXECUTOR)) {
+        _addExternalExecutorPermission(moduleAddress, moduleData);
+      }
+
+      if (IModule(moduleAddress).isModuleType(MODULE_TYPE_FALLBACK)) {
+        _addFallbackModule(moduleAddress, moduleData);
+      }
+
+      // these are execution hooks, not validation hooks
+      if (IModule(moduleAddress).isModuleType(MODULE_TYPE_HOOK)) {
+        // TODO: add native hook interface
+        _addNativeModule(moduleAddress, moduleData);
+      }
     }
     for (uint256 ownerIndex = 0; ownerIndex < initialK1Owners.length; ownerIndex++) {
       _k1AddOwner(initialK1Owners[ownerIndex]);
@@ -135,32 +149,6 @@ contract ClaveAccount is
     bytes32,
     Transaction calldata transaction
   ) external payable override onlyBootloader {
-    _executeTransaction(transaction);
-  }
-
-  /**
-   * @notice This function allows an EOA to start a transaction for the account.
-   * @dev There is no point in providing possible signed hash in the `executeTransactionFromOutside` method,
-   * since it typically should not be trusted.
-   * @param transaction Transaction calldata - The transaction itself
-   */
-  function executeTransactionFromOutside(Transaction calldata transaction) external payable override {
-    // Check if msg.sender is authorized
-    if (!_k1IsOwner(msg.sender)) {
-      revert Errors.UNAUTHORIZED_OUTSIDE_TRANSACTION();
-    }
-
-    // Extract hook data from transaction.signature
-    bytes[] memory hookData = SignatureDecoder.decodeSignatureOnlyHookData(transaction.signature);
-
-    // Get the hash of the transaction
-    bytes32 signedHash = transaction.encodeHash();
-
-    // Run the validation hooks
-    if (!runValidationHooks(signedHash, transaction, hookData)) {
-      revert Errors.VALIDATION_HOOK_FAILED();
-    }
-
     _executeTransaction(transaction);
   }
 
