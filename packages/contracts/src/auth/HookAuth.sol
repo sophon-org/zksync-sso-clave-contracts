@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity ^0.8.24;
 
-import {Errors} from "../libraries/Errors.sol";
+import { Errors } from "../libraries/Errors.sol";
 
 /**
  * @title HookAuth
@@ -9,12 +9,12 @@ import {Errors} from "../libraries/Errors.sol";
  * @author https://getclave.io
  */
 abstract contract HookAuth {
-    function _isHook(address addr) internal view virtual returns (bool);
+  function _isHook(address addr) internal view virtual returns (bool);
 
-    modifier onlyHook() {
-        if (!_isHook(msg.sender)) {
-            revert Errors.NOT_FROM_HOOK();
-        }
-        _;
+  modifier onlyHook() {
+    if (!_isHook(msg.sender)) {
+      revert Errors.NOT_FROM_HOOK();
     }
+    _;
+  }
 }

@@ -1,79 +1,33 @@
-# Nuxt 3 Minimal Starter
+# Demo App
 
-Look at the
-[Nuxt 3 documentation](https://nuxt.com/docs/getting-started/introduction) to
-learn more.
+This app demonstrates a basic use of the ZKsync SSO SDK and provides e2e test
+coverage for the SDK.
+
+## Requirements
+
+You will need [Era In Memory Node](https://github.com/matter-labs/era-test-node)
+for deploying contracts locally.
+
+In a terminal, start up the Era In Memory Node with the command `era_test_node`.
 
 ## Setup
 
-Make sure to install the dependencies:
+Run the following commands from the root of the monorepo.
 
 ```bash
-# npm
-npm install
-
-# pnpm
 pnpm install
-
-# yarn
-yarn install
-
-# bun
-bun install
 ```
 
-## Development Server
-
-Start the development server on `http://localhost:3000`:
+Deploy contracts from the `contracts` workspace.
 
 ```bash
-# npm
-npm run dev
-
-# pnpm
-pnpm run dev
-
-# yarn
-yarn dev
-
-# bun
-bun run dev
+pnpm nx deploy contracts
 ```
 
-## Production
-
-Build the application for production:
+Run both `gateway` and `demo-app` using NX.
 
 ```bash
-# npm
-npm run build
-
-# pnpm
-pnpm run build
-
-# yarn
-yarn build
-
-# bun
-bun run build
+pnpm nx run-many -t serve -p gateway demo-app
 ```
 
-Locally preview production build:
-
-```bash
-# npm
-npm run preview
-
-# pnpm
-pnpm run preview
-
-# yarn
-yarn preview
-
-# bun
-bun run preview
-```
-
-Check out the
-[deployment documentation](https://nuxt.com/docs/getting-started/deployment) for
-more information.
+The output will list the localhost addresses for both running applications.

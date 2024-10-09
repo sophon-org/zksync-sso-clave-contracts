@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity ^0.8.24;
 
-import {Errors} from "../libraries/Errors.sol";
+import { Errors } from "../libraries/Errors.sol";
 
 /**
  * @title SelfAuth
@@ -9,10 +9,10 @@ import {Errors} from "../libraries/Errors.sol";
  * @author https://getclave.io
  */
 abstract contract SelfAuth {
-    modifier onlySelf() {
-        if (msg.sender != address(this)) {
-            revert Errors.NOT_FROM_SELF();
-        }
-        _;
+  modifier onlySelf() {
+    if (msg.sender != address(this)) {
+      revert Errors.NOT_FROM_SELF();
     }
+    _;
+  }
 }

@@ -4,12 +4,9 @@
   "type": "module",
   "scripts": {
     "build": "nuxt build",
-    "dev": "PORT=3004 nuxt dev",
     "generate": "nuxt generate",
     "preview": "nuxt preview",
-    "postinstall": "nuxt prepare",
-    "e2e": "playwright test",
-    "e2e:debug": "playwright test --ui"
+    "postinstall": "nuxt prepare"
   },
   "dependencies": {
     "@nuxtjs/google-fonts": "^3.2.0",
