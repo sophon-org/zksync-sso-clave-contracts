@@ -58,7 +58,7 @@ const config = defaultWagmiConfig({
     zksyncAccountConnector({
       metadata: {
         name: "ZKsync SSO Demo",
-        icon: "https://zksync.io/favicon.ico",
+        icon: "http://localhost:3004/favicon.ico",
       },
       gatewayUrl: "http://localhost:3002/confirm",
       session: {
@@ -77,6 +77,11 @@ const web3modal = createWeb3Modal({ wagmiConfig: config, projectId });
 watchAccount(config, {
   async onChange(data) {
     address.value = data.address;
+
+    if (!address.value) {
+      return;
+    }
+
     const currentBalance = await getBalance(config, {
       address: data.address,
     });
@@ -102,6 +107,10 @@ const connectWallet = async () => {
 };
 
 const sendTokens = async () => {
+  if (!address.value) {
+    return;
+  }
+
   errorMessage.value = "";
 
   try {
@@ -109,8 +118,17 @@ const sendTokens = async () => {
       to: "0x55bE1B079b53962746B2e86d12f158a41DF294A6", // Rich Account 1
       value: parseEther("0.1"),
     });
+
+    const currentBalance = await getBalance(config, {
+      address: address.value,
+    });
+    balance.value = `${currentBalance.formatted} ${currentBalance.symbol}`;
   } catch (error) {
-    const transactionFailureDetails = error.cause?.cause?.cause?.data?.originalError?.cause?.details;
+    let transactionFailureDetails = error.cause?.cause?.cause?.data?.originalError?.cause?.details;
+    if (!transactionFailureDetails) {
+      transactionFailureDetails = error.cause?.cause?.data?.originalError?.cause?.details;
+    }
+
     if (transactionFailureDetails) {
       errorMessage.value = transactionFailureDetails;
     } else {
