@@ -1,13 +1,13 @@
 <template>
-  <ZkButton
+  <zk-button
     :type
     :ui="buttonUI"
   >
-    <ZkIcon
+    <zk-icon
       :ui="iconUI"
       :icon
     />
-  </ZkButton>
+  </zk-button>
 </template>
 
 <script setup lang="ts">

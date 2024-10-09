@@ -1,10 +1,10 @@
 <template>
   <div class="flex items-center py-8 pt-12 dark:text-neutral-100">
     <div class="text-[40px] flex-auto">
-      <slot></slot>
+      <slot />
     </div>
     <div class="text-base">
-      <slot name="aside"></slot>
+      <slot name="aside" />
     </div>
   </div>
 </template>

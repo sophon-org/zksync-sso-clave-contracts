@@ -4,7 +4,7 @@
       v-bind="TransitionOpacity"
       tag="div"
       mode="out-in"
-      class="w-full h-full xs:max-w-[450px] xs:h-max bg-neutral-950 xs:rounded-[32px] p-4"
+      class="h-full w-panel xs:h-max bg-neutral-950 xs:rounded-[32px] p-4"
     >
       <ViewsLogin
         v-if="!isLoggedIn"

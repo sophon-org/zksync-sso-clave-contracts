@@ -28,4 +28,9 @@ export default defineNuxtConfig({
       },
     },
   },
+  runtimeConfig: {
+    public: {
+      reownId: "dde7b251fcfd7e11d5270497a053816e",
+    },
+  },
 });

@@ -13,9 +13,9 @@ const messageHandler = function (event: MessageEvent) {
   });
 };
 
+const origin = ref<string | null>(null);
 window.addEventListener("message", messageHandler);
 
-const origin = ref<string | null>(null);
 export const useCommunicator = () => {
   const setOrigin = (_origin: string) => {
     origin.value = (new URLSearchParams(_origin)).get("origin");

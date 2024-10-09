@@ -17,12 +17,12 @@
       sub="You must have at least one Passkey, but up to 10 are possible."
     >
       <template #aside>
-        <zk-button type="secondary">
+        <ZkButton type="secondary">
           <template #prefix>
             <zk-icon icon="add" />
           </template>
           Add
-        </zk-button>
+        </ZkButton>
       </template>
       <p>
         Lorem
@@ -114,81 +114,81 @@
       <h3 class="text-xl text-bold mt-3 dark:text-white">
         Primary
       </h3>
-      <zk-button>Primary Button</zk-button>
-      <zk-button disabled>
+      <ZkButton>Primary Button</ZkButton>
+      <ZkButton disabled>
         Primary Disabled
-      </zk-button>
+      </ZkButton>
 
       <h3 class="text-xl text-bold mt-3 dark:text-white">
         Secondary
       </h3>
-      <zk-button type="secondary">
+      <ZkButton type="secondary">
         Secondary Button
-      </zk-button>
-      <zk-button
+      </ZkButton>
+      <ZkButton
         type="secondary"
         disabled
       >
         Secondary Disabled
-      </zk-button>
+      </ZkButton>
 
       <h3 class="text-xl text-bold mt-3 dark:text-white">
         Tertiary
       </h3>
-      <zk-button type="tertiary">
+      <ZkButton type="tertiary">
         Tertiary Button
-      </zk-button>
-      <zk-button
+      </ZkButton>
+      <ZkButton
         type="tertiary"
         disabled
       >
         Tertiary Disabled
-      </zk-button>
+      </ZkButton>
 
       <h3 class="text-xl text-bold mt-3 dark:text-white">
         Danger
       </h3>
-      <zk-button type="danger">
+      <ZkButton type="danger">
         Danger Button
-      </zk-button>
-      <zk-button
+      </ZkButton>
+      <ZkButton
         type="danger"
         disabled
       >
         Danger Disabled
-      </zk-button>
+      </ZkButton>
 
       <h3 class="text-xl text-bold mt-3 dark:text-white">
         Ghost
       </h3>
-      <zk-button type="ghost">
+      <ZkButton type="ghost">
         Ghost Button
-      </zk-button>
-      <zk-button
+      </ZkButton>
+      <ZkButton
         type="ghost"
         disabled
       >
         Ghost Disabled
-      </zk-button>
+      </ZkButton>
 
       <h3 class="text-xl text-bold mt-3 dark:text-white">
         With icon
       </h3>
-      <zk-button type="primary">
+      <ZkButton type="primary">
         <template #prefix>
-          <zk-icon
+          <ZkIcon
             icon="switch_access_shortcut"
             ui="rotate-90"
           />
         </template>
         Button with icon
-      </zk-button>
-      <zk-button type="ghost">
+      </ZkButton>
+      <ZkButton type="ghost">
         <template #prefix>
-          <zk-icon icon="open_in_new" />
+          <ZkIcon icon="open_in_new" />
         </template>
         Button with icon
-      </zk-button>
+      </ZkButton>
 
       <h3 class="text-xl text-bold mt-3 dark:text-white">
         Icon
@@ -196,43 +196,43 @@
       <h4 class="dark:text-white">
         Default (Ghost)
       </h4>
-      <zk-button-icon icon="open_in_new" />
-      <zk-button-icon
+      <ZkButtonIcon icon="open_in_new" />
+      <ZkButtonIcon
         icon="open_in_new"
         disabled
       />
       <h4 class="dark:text-white">
         Primary
       </h4>
-      <zk-button-icon
+      <ZkButtonIcon
         type="primary"
         icon="open_in_new"
       />
       <h4 class="dark:text-white">
         Secondary
       </h4>
-      <zk-button-icon
+      <ZkButtonIcon
         type="secondary"
         icon="open_in_new"
       />
       <h4 class="dark:text-white">
         Tertiary
       </h4>
-      <zk-button-icon
+      <ZkButtonIcon
         type="tertiary"
         icon="open_in_new"
       />
       <h4 class="dark:text-white">
         Ghost
       </h4>
-      <zk-button-icon
+      <ZkButtonIcon
         type="ghost"
         icon="open_in_new"
       />
       <h4 class="dark:text-white">
         Danger
       </h4>
-      <zk-button-icon
+      <ZkButtonIcon
         type="danger"
         icon="open_in_new"
       />
@@ -240,13 +240,13 @@
       <h3 class="test-xl text-bold mt-3 dark:text-white">
         Copy Button
       </h3>
-      <zk-copy content="Copied content" />
+      <ZkCopy content="Copied content" />
 
       <h2 class="text-2xl text-bold mt-4 dark:text-white">
         Dropdown
       </h2>
 
-      <zk-dropdown
+      <ZkDropdown
         :menu="dropdownMenu"
         @select="itemSelected"
       />
@@ -254,25 +254,25 @@
       <h2 class="text-2xl text-bold mt-4 dark:text-white">
         Dialog
       </h2>
-      <zk-dialog title="Disconnect?">
+      <ZkDialog title="Disconnect?">
         Disconnect your username@zksync.eth account?
         <template #submit>
-          <zk-button
+          <ZkButton
             type="danger"
             class="w-full"
           >
             <template #prefix>
-              <zk-icon icon="logout" />
+              <ZkIcon icon="logout" />
             </template>
             Disconnect
-          </zk-button>
+          </ZkButton>
         </template>
-      </zk-dialog>
+      </ZkDialog>
 
       <h2 class="text-2xl text-bold mt-4 dark:text-white">
         Tabs
       </h2>
-      <zk-tabs
+      <ZkTabs
         :tabs="[
           { slot: 'tab1', label: 'Tab1', icon: 'shield' },
           { slot: 'tab2', label: 'Tab2', icon: 'settings_account_box' },
@@ -288,7 +288,7 @@
         <template #tab3>
           I am content for Tab3
         </template>
-      </zk-tabs>
+      </ZkTabs>
 
       <h2 class="text-2xl text-bold mt-4 dark:text-white">
         Input
@@ -320,194 +320,194 @@
       <h2 class="text-2xl text-bold mt-4 dark:text-white">
         Table
       </h2>
-      <zk-table-body>
-        <zk-table-row>
+      <ZkTableBody>
+        <ZkTableRow>
           <div>
             <img
               src="/demo/avatar-uniswap.png"
               alt="Thumbnail"
             >
           </div>
-          <zk-table-cell-data class="flex-auto">
+          <ZkTableCellData class="flex-auto">
             Something Something
             <template #sub>
               sub text underneath
             </template>
-          </zk-table-cell-data>
-          <zk-table-cell-data class="text-right">
+          </ZkTableCellData>
+          <ZkTableCellData class="text-right">
             0.50
             <template #sub>
               $1,500.00
             </template>
-          </zk-table-cell-data>
-        </zk-table-row>
-        <zk-table-row>
+          </ZkTableCellData>
+        </ZkTableRow>
+        <ZkTableRow>
           <div>
             <img
               src="/demo/frame-thumbnail.png"
               alt="Thumbnail"
             >
           </div>
-          <zk-table-cell-data class="flex-auto">
+          <ZkTableCellData class="flex-auto">
             Something Something
             <template #sub>
               sub text underneath
             </template>
-          </zk-table-cell-data>
-          <zk-table-cell-data class="text-right">
+          </ZkTableCellData>
+          <ZkTableCellData class="text-right">
             0.50
             <template #sub>
               $1,500.00
             </template>
-          </zk-table-cell-data>
-        </zk-table-row>
-        <zk-table-row-link>
+          </ZkTableCellData>
+        </ZkTableRow>
+        <ZkTableRow-link>
           <span>A link</span>
-        </zk-table-row-link>
-        <zk-table-row>
+        </ZkTableRow-link>
+        <ZkTableRow>
           <div>
             <img
               src="/demo/square-thumbnail.png"
               alt="Thumbnail"
             >
           </div>
-          <zk-table-cell-data class="flex-auto">
+          <ZkTableCellData class="flex-auto">
             Something Something
             <template #sub>
               sub text underneath
             </template>
-          </zk-table-cell-data>
-          <zk-table-cell-data class="text-right">
+          </ZkTableCellData>
+          <ZkTableCellData class="text-right">
             0.50
             <template #sub>
               $1,500.00
             </template>
-          </zk-table-cell-data>
-        </zk-table-row>
-      </zk-table-body>
+          </ZkTableCellData>
+        </ZkTableRow>
+      </ZkTableBody>
 
       <h2 class="text-2xl text-bold mt-4 dark:text-white">
         Panel
       </h2>
-      <zk-panel-section
+      <ZkPanelSection
         title="Ecosystem"
         :ui="{ footer: 'flex justify-center' }"
       >
         <template #header-side>
-          <zk-button type="secondary">
+          <ZkButton type="secondary">
             View All
-          </zk-button>
+          </ZkButton>
         </template>
-        <zk-table-body>
-          <zk-table-row>
-            <zk-table-cell-data>
+        <ZkTableBody>
+          <ZkTableRow>
+            <ZkTableCellData>
               <zk-icon-thumbnail :icon="'passkey'" />
-            </zk-table-cell-data>
-            <zk-table-cell-data class="flex-auto">
+            </ZkTableCellData>
+            <ZkTableCellData class="flex-auto">
               Something Something
               <template #sub>
                 sub text underneath
               </template>
-            </zk-table-cell-data>
-            <zk-table-cell-data class="text-right">
+            </ZkTableCellData>
+            <ZkTableCellData class="text-right">
               0.50
               <template #sub>
                 $1,500.00
               </template>
-            </zk-table-cell-data>
-          </zk-table-row>
-          <zk-table-row>
-            <zk-table-cell-data>
-              <zk-icon-thumbnail :icon="'account_balance_wallet'" />
-            </zk-table-cell-data>
-            <zk-table-cell-data class="flex-auto">
+            </ZkTableCellData>
+          </ZkTableRow>
+          <ZkTableRow>
+            <ZkTableCellData>
+              <ZkIconThumbnail :icon="'account_balance_wallet'" />
+            </ZkTableCellData>
+            <ZkTableCellData class="flex-auto">
               Something Something
               <template #sub>
                 sub text underneath
               </template>
-            </zk-table-cell-data>
-            <zk-table-cell-data class="text-right">
+            </ZkTableCellData>
+            <ZkTableCellData class="text-right">
               0.50
               <template #sub>
                 $1,500.00
               </template>
-            </zk-table-cell-data>
-          </zk-table-row>
-          <zk-table-row>
+            </ZkTableCellData>
+          </ZkTableRow>
+          <ZkTableRow>
             <div>
               <img
                 src="/demo/avatar-uniswap.png"
                 alt="Thumbnail"
               >
             </div>
-            <zk-table-cell-data class="flex-auto">
+            <ZkTableCellData class="flex-auto">
               Something Something
               <template #sub>
                 sub text underneath
               </template>
-            </zk-table-cell-data>
-            <zk-table-cell-data class="text-right">
+            </ZkTableCellData>
+            <ZkTableCellData class="text-right">
               0.50
               <template #sub>
                 $1,500.00
               </template>
-            </zk-table-cell-data>
-          </zk-table-row>
-        </zk-table-body>
+            </ZkTableCellData>
+          </ZkTableRow>
+        </ZkTableBody>
         <template #footer>
-          <zk-button type="secondary">
+          <ZkButton type="secondary">
             View All
-          </zk-button>
+          </ZkButton>
         </template>
-      </zk-panel-section>
+      </ZkPanelSection>
       <br>
-      <zk-panel-section title="Card panel">
+      <ZkPanelSection title="Card panel">
         <template #header-side>
-          <zk-button-icon
+          <ZkButtonIcon
             icon="settings"
             type="secondary"
           />
         </template>
-        <zk-panel-card>
+        <ZkPanelCard>
           <div>
             <span class="text-[2em] text-neutral-500">$</span>
             <span class="text-[3em]">12,200</span>
             <span class="text-[2em] text-neutral-500">.25</span>
           </div>
           <p>Card content</p>
-          <zk-button
+          <ZkButton
             class="mr-2"
             type="ghost"
           >
             <template #prefix>
-              <zk-icon icon="south_west" />
+              <ZkIcon icon="south_west" />
             </template>
             Deposit
-          </zk-button>
-          <zk-button
+          </ZkButton>
+          <ZkButton
             class="mr-2"
             type="ghost"
           >
             <template #prefix>
-              <zk-icon icon="north_east" />
+              <ZkIcon icon="north_east" />
             </template>
             Withdraw
-          </zk-button>
+          </ZkButton>
 
-          <zk-button
+          <ZkButton
             class="mr-2"
             type="ghost"
           >
             <template #prefix>
-              <zk-icon
+              <ZkIcon
                 icon="switch_access_shortcut"
                 ui="rotate-90"
               />
             </template>
             Bridge
-          </zk-button>
-        </zk-panel-card>
-      </zk-panel-section>
+          </ZkButton>
+        </ZkPanelCard>
+      </ZkPanelSection>
     </div>
   </div>
 </template>

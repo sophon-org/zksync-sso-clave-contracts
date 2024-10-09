@@ -5,6 +5,9 @@ export default {
   darkMode: ["selector", ".dark-mode"],
   theme: {
     extend: {
+      spacing: {
+        panel: "450px",
+      },
       fontFamily: {
         sans: ["Inter", ...defaultTheme.fontFamily.sans],
       },
