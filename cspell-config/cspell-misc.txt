@@ -7,3 +7,4 @@ Nuxt
 nuxtjs
 verdaccio
 vueuse
+ctap
