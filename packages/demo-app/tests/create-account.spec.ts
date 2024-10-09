@@ -1,6 +1,37 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, type Page } from "@playwright/test";
+
+async function waitForServicesToLoad(page: Page): Promise<void> {
+  const maxRetryAttempts = 10;
+  let retryCount = 0;
+
+  // Wait for demo-app to finish loading
+  await page.goto("/");
+  let demoHeader = page.getByText("ZKsync SSO Demo");
+  while (!demoHeader.isVisible() && retryCount < maxRetryAttempts) {
+    await page.waitForTimeout(1000);
+    demoHeader = page.getByText("ZKsync SSO Demo");
+    retryCount++;
+
+    console.log(`Waiting for demo app to load (retry ${retryCount})...`);
+  }
+  console.log("Demo App loaded");
+
+  // Wait for auth server to finish loading
+  retryCount = 0;
+  await page.goto("http://localhost:3002");
+  let authServerHeader = page.getByText("Index page");
+  while (!authServerHeader.isVisible() && retryCount < maxRetryAttempts) {
+    await page.waitForTimeout(1000);
+    authServerHeader = page.getByText("Index page");
+    retryCount++;
+
+    console.log(`Waiting for auth server to load (retry ${retryCount})...`);
+  }
+  console.log("Auth Server loaded");
+};
 
 test("Create account, session key, and send ETH", async ({ page }) => {
+  await waitForServicesToLoad(page);
   await page.goto("/");
   await expect(page.getByText("ZKsync SSO Demo")).toBeVisible();
 
