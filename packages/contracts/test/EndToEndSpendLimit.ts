@@ -1,6 +1,5 @@
 import { assert, expect } from "chai";
-import { BytesLike, parseEther, randomBytes } from "ethers";
-import { AbiCoder, Contract, ethers, ZeroAddress } from "ethers";
+import { AbiCoder, BytesLike, Contract, ethers, parseEther, randomBytes, ZeroAddress } from "ethers";
 import * as hre from "hardhat";
 import { it } from "mocha";
 import { Address, createWalletClient, encodeAbiParameters, getAddress, Hash, http, publicActions, toHex } from "viem";
@@ -289,7 +288,8 @@ describe("Spend limit validation", function () {
     assert(proxyAccountContract != null, "No account proxy deployed");
   });
 
-  describe("using viem", () => {
+  // This test relies on static data that is not available in the repo
+  describe.skip("using viem", () => {
     it("should deploy proxy account via factory, create a new session key with a passkey, then send funds with the initial session key", async () => {
       const passkeyModule = await fixtures.getWebAuthnVerifierContract();
       const sessionModule = await fixtures.getSessionSpendLimitContract();
@@ -483,7 +483,9 @@ describe("Spend limit validation", function () {
 
       assert(proxyAccountTxReceipt!.contractAddress != ethers.ZeroAddress, "valid proxy account address");
     });
-    it("should add a new session key with a passkey", async () => {
+
+    // This test relies on static data that is not available in the repo
+    it.skip("should add a new session key with a passkey", async () => {
       const initialSessionKeyWallet: Wallet = getWallet("0xf51513036f18ef46508ddb0fff7aa153260ff76721b2f53c33fc178152fb481e");
       const proxyAccountAddress = await fixtures.getFundedProxyAccount(
         fixtures.ethersStaticSalt,
@@ -519,7 +521,8 @@ describe("Spend limit validation", function () {
       assert.equal(passkeyTransactionRecipt.status, 1, "failed passkey transaction");
     });
 
-    it("might be able to add a session key with passkey, then a session key", async () => {
+    // This test relies on static data that is not available in the repo
+    it.skip("might be able to add a session key with passkey, then a session key", async () => {
       const ethersPasskeyResponse = new RecordedResponse("test/signed-ethers-passkey.json");
       const initialSessionKeyWallet = getWallet("0xae3f083edae2d6fb1dfeaa6952ea260596eb67f9f26f4e17ca7d6916479ff9fa");
       const salt = new Uint8Array([
@@ -595,6 +598,7 @@ describe("Spend limit validation", function () {
     });
 
     // (this will break when we implement permissions)
+
     it("can currently add a session key with another session key", async () => {
       const sessionModuleContract = await fixtures.getSessionSpendLimitContract();
       const sessionModuleAddress = await sessionModuleContract.getAddress();
@@ -730,14 +734,12 @@ describe("Spend limit validation", function () {
   it("should deploy all contracts", async () => {
     const verifierContract = await fixtures.getWebAuthnVerifierContract();
     const sessionModuleContract = await fixtures.getSessionSpendLimitContract();
-    const proxyContract = await fixtures.getProxyAccountContract();
     const erc7579Contract = await fixtures.getAccountImplContract();
     const factoryContract = await fixtures.getAaFactory();
 
-    logInfo(`Verifier Address      : ${await verifierContract.getAddress()}`);
-    logInfo(`AA Factory Address    : ${await factoryContract.getAddress()}`);
-    logInfo(`Proxy Account Address : ${await proxyContract.getAddress()}`);
-    logInfo(`ERC7579 Address       : ${await erc7579Contract.getAddress()}`);
-    logInfo(`Session/spend-limit   : ${await sessionModuleContract.getAddress()}`);
+    logInfo(`Session Address                : ${await sessionModuleContract.getAddress()}`);
+    logInfo(`Passkey Address                : ${await verifierContract.getAddress()}`);
+    logInfo(`Account Factory Address        : ${await factoryContract.getAddress()}`);
+    logInfo(`Account Implementation Address : ${await erc7579Contract.getAddress()}`);
   });
 });

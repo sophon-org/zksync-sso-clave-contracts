@@ -1,3 +1,43 @@
 {
-  "name": "demo-app"
+  "name": "demo-app",
+  "targets": {
+    "dev": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "packages/demo-app",
+        "command": "PORT=3004 nuxt dev"
+      },
+      "dependsOn": []
+    },
+    "e2e:setup": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "packages/demo-app",
+        "command": "pnpm exec playwright install"
+      }
+    },
+    "e2e": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "packages/demo-app",
+        "command": "playwright test"
+      },
+      "dependsOn": ["e2e:setup"]
+    },
+    "e2e:debug": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "packages/demo-app",
+        "command": "playwright test --ui"
+      },
+      "dependsOn": ["e2e:setup"]
+    },
+    "show-report": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "packages/demo-app",
+        "command": "playwright show-report"
+      }
+    }
+  }
 }

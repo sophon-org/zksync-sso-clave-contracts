@@ -5,7 +5,7 @@
 Verdaccio is a local proxy registry that helps with publishing npm packages to a
 non production or private environment.
 
-## Run Verdaccio
+## Run Verdaccio via the monorepo
 
 Verdaccio is installed in this project from an NX plugin `@nx/js`, you do not
 need to install the package globally. Open up a terminal within the monorepo
@@ -36,6 +36,9 @@ and view packages at [http://localhost:4873/](http://localhost:4873/).
 With the way Verdaccio is setup and how it proxies the NPM registry, it's
 probably best practice to always keep Verdaccio running on your machine. How you
 do that is up to you.
+
+The quickest and simplest way to run Verdaccio on your machine is open up a
+separate terminal and run `pnpm verdaccio`.
 
 ### Unable to access NPM registry when installing packages
 
