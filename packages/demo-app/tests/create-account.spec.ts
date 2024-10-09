@@ -14,6 +14,7 @@ test("Create account, session key, and send ETH", async ({ page }) => {
   await expect(popup.getByText("Create account")).toBeVisible();
 
   // Setup webauthn a Chrome Devtools Protocol session
+  // NOTE: This needs to be done for every page of every test that uses WebAuthn
   const client = await popup.context().newCDPSession(popup);
   await client.send("WebAuthn.enable");
   const result = await client.send("WebAuthn.addVirtualAuthenticator", {

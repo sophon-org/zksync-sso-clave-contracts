@@ -65,3 +65,24 @@ At the root level of the monorepo, run the `lint` command to run linting across
 the project.
 
 To fix lint issues that come up from linting, run the `lint:fix` command.
+
+## Running/Debugging End-to-End Tests
+
+To execute the end-to-end tests for the `demo-app`, you'll need to do some
+setup:
+
+1. Start `era_test_node` (Separate terminal)
+2. Deploy the smart contracts, `pnpm nx deploy contracts`
+
+Once the local node is configured with the smart contracts deployed, you can run
+the e2e tests:
+
+```bash
+pnpm nx e2e demo-app
+```
+
+To debug the end-to-end tests:
+
+```bash
+pnpm nx e2e:debug demo-app
+```
