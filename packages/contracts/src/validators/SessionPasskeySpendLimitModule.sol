@@ -160,7 +160,7 @@ contract SessionPasskeySpendLimitModule is IERC7579Module, IModule, IModuleValid
    * @param smartAccount The smart account to check
    * @return true if spend limits are configured initialized, false otherwise
    */
-  function isInitialized(address smartAccount) external view returns (bool) {
+  function isInitialized(address smartAccount) external view override(IModule, IERC7579Module) returns (bool) {
     return sessionsByAccount[smartAccount].length > 0;
   }
 

@@ -58,11 +58,15 @@ contract ClaveAccount is
     _disableInitializers();
   }
 
+  function executeTransactionFromOutside(Transaction calldata _transaction) external payable {
+    revert();
+  }
+
   /**
    * @notice Initializer function for the account contract
    * @dev Sets passkey and passkey validator within account storage
    * @param initialTypedModules bytes[] - Modules that declare a type and init data
-   * @param initalK1Owners[] - public keys of the initial owners
+   * @param initialK1Owners[] - public keys of the initial owners
    */
   function initialize(bytes[] calldata initialTypedModules, address[] calldata initialK1Owners) external initializer {
     for (uint256 moduleIndex = 0; moduleIndex < initialTypedModules.length; moduleIndex++) {

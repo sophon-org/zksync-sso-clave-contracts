@@ -24,8 +24,7 @@ contract AAFactory {
     bytes32 salt,
     address accountImplementionLocation,
     string calldata uniqueAccountId,
-    bytes[] calldata initialValidators,
-    bytes[] calldata initialModules,
+    bytes[] calldata initialTypedModules,
     address[] calldata initialK1Owners
   ) external returns (address accountAddress) {
     (bool success, bytes memory returnData) = SystemContractsCaller.systemCallWithReturndata(
@@ -47,12 +46,9 @@ contract AAFactory {
     (accountAddress) = abi.decode(returnData, (address));
     console.log("accountAddress %s", accountAddress);
 
-    // add session-key/spend-limit module (similar code)
-    IClaveAccount(accountAddress).initialize(initialValidators, initialModules, initialK1Owners);
+    IClaveAccount(accountAddress).initialize(initialTypedModules, initialK1Owners);
 
-    if (accountMappings[msg.sender][uniqueAccountId] != address(0)) {
-      revert("Account already exists");
-    }
+    require(accountMappings[msg.sender][uniqueAccountId] != address(0), "Account already exists");
     accountMappings[msg.sender][uniqueAccountId] = accountAddress;
   }
 }

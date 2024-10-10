@@ -32,11 +32,5 @@ interface IClaveAccount is
 {
   event FeePaid();
 
-  // TODO: instead of splitting the modules by types here, we can just have a single array that checks the type of the module
-  // and installs it 7579 style
-  function initialize(
-    bytes[] calldata initialValidators,
-    bytes[] calldata initialModules,
-    address[] calldata k1Owners
-  ) external;
+  function initialize(bytes[] calldata initialTypedModules, address[] calldata initialK1Owners) external;
 }
