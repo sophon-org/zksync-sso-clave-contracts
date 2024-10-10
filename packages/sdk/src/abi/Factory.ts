@@ -74,6 +74,11 @@ export const FactoryAbi = [
         name: "initialModules",
         type: "bytes[]",
       },
+      {
+        internalType: "address[]",
+        name: "initialK1Owners",
+        type: "address[]",
+      },
     ],
     name: "deployProxy7579Account",
     outputs: [
