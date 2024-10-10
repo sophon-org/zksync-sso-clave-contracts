@@ -9,7 +9,6 @@ import { zksyncInMemoryNode } from "viem/chains";
 import { SessionData } from "zksync-account";
 import { createZksyncSessionClient, deployAccount } from "zksync-account/client";
 import { setSessionKey } from "zksync-account/client/actions";
-import { encodePasskeyModuleParameters, encodeSessionSpendLimitParameters } from "zksync-account/utils";
 import { SmartAccount, types, utils, Wallet } from "zksync-ethers";
 
 import type { AAFactory, ERC7579Account, SessionPasskeySpendLimitModule, WebAuthValidator } from "../typechain-types";

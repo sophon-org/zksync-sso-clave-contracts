@@ -45,7 +45,7 @@ contract ClaveAccount is
   // Helper library for the Transaction struct
   using TransactionHelper for Transaction;
   // Batch transaction helper contract
-  // TODO: Address should probably be keccack256("BatchCaller"), but for now it is 0xbatch (0xba7c4)
+  // TODO: Address should probably be keccak256("BatchCaller"), but for now it is "0xbatch"
   address public constant BATCH_CALLER = address(0xba7c4);
 
   /**

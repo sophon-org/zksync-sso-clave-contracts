@@ -1,6 +1,6 @@
 import { assert, expect } from "chai";
 import { parseEther, randomBytes } from "ethers";
-import { ethers, ZeroAddress, Wallet } from "ethers";
+import { Wallet, ZeroAddress } from "ethers";
 import { it } from "mocha";
 import { SmartAccount, utils } from "zksync-ethers";
 
@@ -25,7 +25,7 @@ describe("Basic tests", function () {
       gasPrice: await provider.getGasPrice(),
       customData: { gasPerPubdata: utils.DEFAULT_GAS_PER_PUBDATA_LIMIT },
       gasLimit: 0n,
-    }
+    };
   }
 
   it("should deploy implemention", async () => {
@@ -107,13 +107,13 @@ describe("Basic tests", function () {
       {
         target: target1,
         value,
-        callData: '0x',
+        callData: "0x",
         allowFailure: false,
       },
       {
         target: target2,
         value,
-        callData: '0x',
+        callData: "0x",
         allowFailure: false,
       },
     ];
@@ -138,5 +138,5 @@ describe("Basic tests", function () {
     expect(await provider.getBalance(proxyAccountAddress)).to.equal(balanceBefore - value * 2n - fee, "invalid final account balance");
     expect(await provider.getBalance(target1)).to.equal(value, "invalid final target balance");
     expect(await provider.getBalance(target2)).to.equal(value, "invalid final target balance");
-  })
+  });
 });
