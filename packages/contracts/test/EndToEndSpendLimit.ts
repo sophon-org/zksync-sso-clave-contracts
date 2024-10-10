@@ -2,13 +2,13 @@ import { assert, expect } from "chai";
 import { AbiCoder, BytesLike, Contract, ethers, parseEther, randomBytes, ZeroAddress } from "ethers";
 import * as hre from "hardhat";
 import { it } from "mocha";
-import { Address, createWalletClient, encodeAbiParameters, getAddress, Hash, http, publicActions, toHex } from "viem";
+import { Address, createWalletClient, getAddress, Hash, http, publicActions } from "viem";
 import { generatePrivateKey, privateKeyToAccount, privateKeyToAddress } from "viem/accounts";
 import { waitForTransactionReceipt } from "viem/actions";
 import { zksyncInMemoryNode } from "viem/chains";
-import { SessionData } from "zksync-account";
 import { createZksyncSessionClient, deployAccount } from "zksync-account/client";
 import { setSessionKey } from "zksync-account/client/actions";
+import { encodePasskeyModuleParameters, encodeSessionSpendLimitParameters } from "zksync-account/utils";
 import { SmartAccount, types, utils, Wallet } from "zksync-ethers";
 
 import type { AAFactory, ERC7579Account, SessionPasskeySpendLimitModule, WebAuthValidator } from "../typechain-types";
@@ -163,7 +163,7 @@ export class ContractFixtures {
     return getAddress(proxyAccountAddress);
   }
 
-  async passkeySigner(hash: BytesLike, secret: RecordedResponse) {
+  async passkeySigner(_hash: BytesLike, secret: RecordedResponse) {
     const fatSignature = this.abiCoder.encode(["bytes", "bytes", "bytes32[2]"], [
       secret.authDataBuffer,
       secret.clientDataBuffer,
@@ -203,33 +203,6 @@ export class ContractFixtures {
 
   getEncodedSessionModuleData(sessionPublicKey: Address) {
     const sessionKeyData = this.getSessionSpendLimitModuleData(sessionPublicKey);
-    const encodeSessionSpendLimitParameters = (sessions: SessionData[]) => {
-      const spendLimitTypes = [
-        { type: "address", name: "tokenAddress" },
-        { type: "uint256", name: "limit" },
-      ] as const;
-
-      const sessionKeyTypes = [
-        { type: "address", name: "sessionKey" },
-        { type: "uint256", name: "expiresAt" },
-        { type: "tuple[]", name: "spendLimits", components: spendLimitTypes },
-      ] as const;
-
-      return encodeAbiParameters(
-        [{ type: "tuple[]", components: sessionKeyTypes }],
-        [
-          sessions.map((sessionData) => ({
-            sessionKey: sessionData.sessionKey,
-            expiresAt: BigInt(Math.floor(new Date(sessionData.expiresAt).getTime() / 1000)),
-            spendLimits: Object.entries(sessionData.spendLimit).map(([tokenAddress, limit]) => ({
-              tokenAddress: tokenAddress as Address,
-              limit: BigInt(limit),
-            })),
-          })),
-        ],
-      );
-    };
-
     return encodeSessionSpendLimitParameters([{
       sessionKey: sessionKeyData.sessionKey,
       expiresAt: new Date(parseInt((sessionKeyData.expiresAt * BigInt(1000)).toString())).toISOString(),
@@ -241,18 +214,6 @@ export class ContractFixtures {
 
   // passkey has the public key + origin domain
   getEncodedPasskeyModuleData(response: RecordedResponse) {
-    const encodePasskeyModuleParameters = (passkey: { passkeyPublicKey: [Buffer, Buffer]; expectedOrigin: string }) => {
-      return encodeAbiParameters(
-        [
-          { type: "bytes32[2]", name: "xyPublicKeys" },
-          { type: "string", name: "expectedOrigin" },
-        ],
-        [
-          [toHex(passkey.passkeyPublicKey[0]), toHex(passkey.passkeyPublicKey[1])],
-          passkey.expectedOrigin,
-        ],
-      );
-    };
     return encodePasskeyModuleParameters({
       passkeyPublicKey: response.getXyPublicKeys(),
       expectedOrigin: response.expectedOrigin,
@@ -421,7 +382,7 @@ describe("Spend limit validation", function () {
       const sessionKeyWallet = Wallet.createRandom(getProvider());
       const webauthModuleData = abiCoder.encode(
         ["address", "bytes"],
-        [await passkeyModule.getAddress(), await fixtures.getEncodedPasskeyModuleData(ethersResponse)]);
+        [await passkeyModule.getAddress(), fixtures.getEncodedPasskeyModuleData(ethersResponse)]);
       const sessionSpendModuleData = abiCoder.encode(
         ["address", "bytes"],
         [await spendLimitModule.getAddress(), fixtures.getEncodedSessionModuleData(sessionKeyWallet.address as Address)]);
@@ -466,7 +427,7 @@ describe("Spend limit validation", function () {
       const sessionKeyWallet = Wallet.createRandom(getProvider());
       const passkeyModuleData = abiCoder.encode(
         ["address", "bytes"],
-        [expensiveVerifierAddress, await fixtures.getEncodedPasskeyModuleData(ethersResponse)]);
+        [expensiveVerifierAddress, fixtures.getEncodedPasskeyModuleData(ethersResponse)]);
       const sessionModuleData = abiCoder.encode(
         ["address", "bytes"],
         [sessionModuleAddress, fixtures.getEncodedSessionModuleData(sessionKeyWallet.address as Address)]);
