@@ -1,10 +1,11 @@
 import { defineNuxtConfig } from "nuxt/config";
+import type { NuxtPage } from "nuxt/schema";
 
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
   compatibilityDate: "2024-07-08",
   devtools: { enabled: true },
-  modules: ["@nuxt/eslint", "@pinia/nuxt", "@nuxtjs/tailwindcss", "@nuxtjs/google-fonts", "@vueuse/nuxt", "radix-vue/nuxt"],
+  modules: ["@nuxt/eslint", "@pinia/nuxt", "@nuxtjs/tailwindcss", "@nuxtjs/google-fonts", "@vueuse/nuxt", "radix-vue/nuxt", "@nuxtjs/color-mode"],
 
   ssr: false,
   devServer: {
@@ -44,4 +45,24 @@ export default defineNuxtConfig({
       },
     },
   },
+  hooks: {
+    // https://deltener.com/blog/nuxt-enterprise-patterns-component-management/
+    "pages:extend"(pages) {
+      const pagesToRemove: NuxtPage[] = [];
+      pages.forEach((page) => {
+        if (page.path.includes("components")) pagesToRemove.push(page);
+      });
+
+      pagesToRemove.forEach((page: NuxtPage) => {
+        pages.splice(pages.indexOf(page), 1);
+      });
+    },
+  },
+  components: [
+    "~/components", {
+      path: "~/pages",
+      pattern: "*/components/**",
+      pathPrefix: false,
+    },
+  ],
 });

@@ -1,7 +1,8 @@
 <template>
-  <div class="relative flex flex-col max-w-[380px]">
+  <div class="relative flex flex-col min-w-[380px]">
     <div class="flex">
       <input
+        v-model="model"
         :placeholder
         type="text"
         :class="twMerge(inputUI, ui.input, stateUI)"
@@ -16,7 +17,8 @@
     </div>
     <div class="block pl-5">
       <span
-        v-for="message in messages"
+        v-for="(message, index) in messages"
+        :key="index"
         :class="
           twMerge('block text-xs text-red-600 dark:text-red-400', ui.messages)
         "
@@ -29,6 +31,8 @@
 
 <script setup lang="ts">
 import { twMerge } from "tailwind-merge";
+
+const model = defineModel({ default: "", type: String });
 
 type UI = {
   input?: string;

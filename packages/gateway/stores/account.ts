@@ -24,7 +24,7 @@ export const useAccountStore = defineStore("account", () => {
     accountData.value = null;
   };
 
-  const { subscribe: subscribeOnAddressChange, notify: notifyOnAccountChange } = useObservable<Address | null>();
+  const { subscribe: subscribeOnAccountChange, notify: notifyOnAccountChange } = useObservable<Address | null>();
   watch(address, (newAddress) => {
     notifyOnAccountChange(newAddress);
   });
@@ -35,7 +35,7 @@ export const useAccountStore = defineStore("account", () => {
     sessionKey,
     username,
     isLoggedIn,
-    subscribeOnAddressChange,
+    subscribeOnAccountChange,
     login,
     logout,
   };

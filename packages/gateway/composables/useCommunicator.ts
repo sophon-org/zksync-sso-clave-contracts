@@ -14,19 +14,28 @@ const messageHandler = function (event: MessageEvent) {
 };
 
 const origin = ref<string | null>(null);
+const isLocal = ref<boolean>(false); ;
 window.addEventListener("message", messageHandler);
 
 export const useCommunicator = () => {
-  const setOrigin = (_origin: string) => {
-    origin.value = (new URLSearchParams(_origin)).get("origin");
+  const setOrigin = (_origin: string, local = false) => {
+    if (local) {
+      isLocal.value = true;
+      console.log("Setting origin to", _origin);
+      origin.value = _origin;
+    } else {
+      origin.value = (new URLSearchParams(_origin)).get("origin");
+    }
   };
 
   /**
    * Posts a message back to the opener window
    */
   const postMessage = <M extends Message>(message: M) => {
-    if (!window.opener) throw new Error("No opener window found");
-    window.opener.postMessage(message, origin);
+    if (!isLocal) {
+      if (!window.opener) throw new Error("No opener window found");
+      window.opener.postMessage(message, origin);
+    }
   };
 
   /**

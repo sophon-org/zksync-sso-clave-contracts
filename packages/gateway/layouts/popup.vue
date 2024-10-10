@@ -1,5 +1,7 @@
 <template>
-  <div class="m-auto flex justify-center pt-36 h-dvh min-h-[600px] w-panel">
+  <div
+    class="flex justify-center items-center h-dvh w-full"
+  >
     <NuxtPage />
   </div>
 </template>

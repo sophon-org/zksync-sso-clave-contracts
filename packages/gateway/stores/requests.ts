@@ -8,6 +8,7 @@ export const useRequestsStore = defineStore("requests", () => {
   const hasRequests = computed(() => !!request.value);
   const requestChain = computed(() => {
     const chainId = request.value?.content.chainId;
+    console.log("chainId", chainId, supportedChains.find((chain) => chain.id === chainId));
     return supportedChains.find((chain) => chain.id === chainId);
   });
   const requestMethod = computed(() => request.value?.content.action.method);
@@ -19,6 +20,7 @@ export const useRequestsStore = defineStore("requests", () => {
         const handshakeData = message.content.action.params as ExtractParams<"eth_requestAccounts", GatewayRpcSchema>;
         appMeta.value = handshakeData.metadata;
       }
+      console.log("MESSAGE", message);
       request.value = message;
     });
 

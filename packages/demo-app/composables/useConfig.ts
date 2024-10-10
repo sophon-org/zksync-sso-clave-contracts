@@ -14,7 +14,7 @@ export const useConfig = () => {
     name: "ZKsync SSO Demo",
     description: "A Demo of the ZKsync Smart Sign-On",
     url: "http://localhost:3002",
-    icons: ["https://zksync.io/favicon.ico"],
+    icons: ["http://localhost:3002/favicon.ico"],
   };
 
   const connectors: CreateConnectorFn[] = [];

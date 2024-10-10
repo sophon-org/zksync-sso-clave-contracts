@@ -16,6 +16,15 @@
     >
       <slot name="postfix" />
     </div>
+    <div
+      v-if="loading"
+      class="absolute bg-white/90 top-0 left-0 w-full h-full rounded-full"
+    >
+      <ZkIcon
+        :ui="'animate-spin mt-3'"
+        icon="progress_activity"
+      />
+    </div>
   </button>
 </template>
 
@@ -35,14 +44,15 @@ export type ButtonUI = {
   postfix?: string;
 };
 
-const { ui, type = "primary" } = defineProps<{
+const { ui, type = "primary", loading = false } = defineProps<{
   type?: ButtonTypes;
   ui?: ButtonUI;
+  loading?: boolean;
 }>();
 
 const buttonUI = computed(() => {
   let base
-    = "inline-flex items-center justify-center rounded-zk border border-transparent px-4 py-1 align-middle leading-3 focus:outline-none focus:ring-4 focus:ring-primary-400 focus:ring-opacity-50 dark:focus:ring-blue-800 dark:focus:ring-opacity-80 disabled:cursor-not-allowed";
+    = "relative inline-flex items-center justify-center rounded-zk border border-transparent px-4 py-1 align-middle leading-3 focus:outline-none focus:ring-4 focus:ring-primary-400 focus:ring-opacity-50 dark:focus:ring-blue-800 dark:focus:ring-opacity-80 disabled:cursor-not-allowed";
 
   if (type) {
     base = twMerge(base, types[type]);

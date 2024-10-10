@@ -185,7 +185,7 @@ const { inProgress: loginInProgress, execute: connectToAccount } = useAsync(asyn
       challenge: new Uint8Array(32),
       userVerification: "discouraged",
     },
-  });
+  }) as PublicKeyCredential | null;
   if (!credential) throw new Error("No registered passkeys");
 
   // eslint-disable-next-line no-console
