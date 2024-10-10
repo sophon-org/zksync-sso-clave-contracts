@@ -690,9 +690,9 @@ describe("Spend limit validation", function () {
   it("should deploy all contracts", async () => {
     const verifierContract = await fixtures.getWebAuthnVerifierContract();
     const sessionModuleContract = await fixtures.getSessionSpendLimitContract();
+    const proxyContract = await fixtures.getProxyAccountContract();
     const erc7579Contract = await fixtures.getAccountImplContract();
     const factoryContract = await fixtures.getAaFactory();
-    const proxyContract = await fixtures.getProxyAccountContract();
 
     logInfo(`Session Address                : ${await sessionModuleContract.getAddress()}`);
     logInfo(`Passkey Address                : ${await verifierContract.getAddress()}`);
