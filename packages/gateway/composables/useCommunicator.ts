@@ -21,7 +21,6 @@ export const useCommunicator = () => {
   const setOrigin = (_origin: string, local = false) => {
     if (local) {
       isLocal.value = true;
-      console.log("Setting origin to", _origin);
       origin.value = _origin;
     } else {
       origin.value = (new URLSearchParams(_origin)).get("origin");
@@ -32,7 +31,7 @@ export const useCommunicator = () => {
    * Posts a message back to the opener window
    */
   const postMessage = <M extends Message>(message: M) => {
-    if (!isLocal) {
+    if (!isLocal.value) {
       if (!window.opener) throw new Error("No opener window found");
       window.opener.postMessage(message, origin);
     }
