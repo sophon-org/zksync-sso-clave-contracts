@@ -14,6 +14,7 @@
     <ZkButton
       type="primary"
       class="w-full mt-4"
+      :loading="accountDataFetchInProgress"
       @click="loginUser"
     >
       Create ZK Account
@@ -29,17 +30,25 @@
 </template>
 
 <script setup lang="ts">
+// import { zksyncInMemoryNode } from "viem/chains";
+
 const username = ref("");
 
-const communicator = useCommunicator();
+// const communicator = useCommunicator();
 // const { requestChain } = storeToRefs(useRequestsStore());
 
-communicator.setOrigin(window.location.host, true);
+// communicator.setOrigin(window.location.host, true);
 
 // const { accountData, accountDataFetchInProgress, accountDataFetchError/* , fetchAccountData */ } = useFetchAccountData(
 //   username,
-//   computed(() => requestChain.value!.id),
+//   computed(() => zksyncInMemoryNode.id),
 // );
+
+// const errorState = computed<"username-taken" | "account-not-found" | undefined>(() => {
+//   if (accountData.value) {
+//     return "username-taken";
+//   }
+// });
 
 const loginUser = () => {
   console.log(username.value);

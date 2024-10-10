@@ -17,7 +17,7 @@
       <slot name="postfix" />
     </div>
     <div
-      v-if="loading"
+      v-show="loading"
       class="absolute bg-white/90 top-0 left-0 w-full h-full rounded-full"
     >
       <ZkIcon
