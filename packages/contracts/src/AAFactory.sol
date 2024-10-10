@@ -25,7 +25,8 @@ contract AAFactory {
     address accountImplementionLocation,
     string calldata uniqueAccountId,
     bytes[] calldata initialValidators,
-    bytes[] calldata initialModules
+    bytes[] calldata initialModules,
+    address[] calldata initialK1Owners
   ) external returns (address accountAddress) {
     (bool success, bytes memory returnData) = SystemContractsCaller.systemCallWithReturndata(
       uint32(gasleft()),
@@ -47,7 +48,7 @@ contract AAFactory {
     console.log("accountAddress %s", accountAddress);
 
     // add session-key/spend-limit module (similar code)
-    IClaveAccount(accountAddress).initialize(initialValidators, initialModules);
+    IClaveAccount(accountAddress).initialize(initialValidators, initialModules, initialK1Owners);
 
     if (accountMappings[msg.sender][uniqueAccountId] != address(0)) {
       revert("Account already exists");

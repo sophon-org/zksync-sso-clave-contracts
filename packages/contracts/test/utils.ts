@@ -9,6 +9,8 @@ import * as hre from "hardhat";
 import { base64UrlToUint8Array, getPublicKeyBytesFromPasskeySignature, unwrapEC2Signature } from "zksync-account/utils";
 import { ContractFactory, Provider, utils, Wallet } from "zksync-ethers";
 
+import { AAFactory, AAFactory__factory } from "../typechain-types";
+
 // Load env file
 dotenv.config();
 
@@ -22,7 +24,7 @@ export const getProvider = () => {
   return provider;
 };
 
-export async function deployFactory(factoryName: string, wallet: Wallet, expectedAddress?: string): Promise<ethers.Contract> {
+export async function deployFactory(factoryName: string, wallet: Wallet, expectedAddress?: string): Promise<AAFactory> {
   const factoryArtifact = JSON.parse(await promises.readFile(`artifacts-zk/src/${factoryName}.sol/${factoryName}.json`, "utf8"));
   const proxyAaArtifact = JSON.parse(await promises.readFile("artifacts-zk/src/AccountProxy.sol/AccountProxy.json", "utf8"));
 
@@ -33,10 +35,10 @@ export async function deployFactory(factoryName: string, wallet: Wallet, expecte
   if (expectedAddress && factoryAddress != expectedAddress) {
     console.warn(`${factoryName}.sol address is not the expected default address (${expectedAddress}).`);
     console.warn(`Please update the default value in your tests or restart Era Test Node. Proceeding with expected default address...`);
-    return new ethers.Contract(expectedAddress, factoryArtifact.abi, wallet);
+    return AAFactory__factory.connect(expectedAddress, wallet);
   }
 
-  return new ethers.Contract(factoryAddress, factoryArtifact.abi, wallet);
+  return AAFactory__factory.connect(factoryAddress, wallet);
 }
 
 export const getWallet = (privateKey?: string) => {
@@ -76,9 +78,7 @@ export const verifyContract = async (data: {
 };
 
 export const create2 = async (contractName: string, wallet: Wallet, salt: ethers.BytesLike, args?: ReadonlyArray<string>) => {
-  if (!salt["startsWith"]) {
-    salt = ethers.hexlify(salt);
-  }
+  salt = ethers.hexlify(salt);
   const contractArtifact = await hre.artifacts.readArtifact(contractName);
   const deployer = new ContractFactory(contractArtifact.abi, contractArtifact.bytecode, wallet, "create2");
   const bytecodeHash = utils.hashBytecode(contractArtifact.bytecode);
@@ -190,8 +190,8 @@ export class RecordedResponse {
     this.expectedOrigin = responseData.expectedOrigin;
   }
 
-  async getXyPublicKeys() {
-    return await getPublicKeyBytesFromPasskeySignature(this.passkeyBytes);
+  getXyPublicKeys() {
+    return getPublicKeyBytesFromPasskeySignature(this.passkeyBytes);
   }
 
   get authDataBuffer() { return base64UrlToUint8Array(this.authenticatorData); }
