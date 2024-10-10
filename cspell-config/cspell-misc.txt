@@ -8,3 +8,4 @@ nuxtjs
 revolut
 verdaccio
 vueuse
+ctap

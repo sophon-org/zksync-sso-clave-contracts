@@ -29,10 +29,10 @@ export const contractsByChain: Record<SupportedChainId, ChainContracts> = {
     accountImplementation: "0x",
   },
   [zksyncInMemoryNode.id]: {
-    session: "0x848eB049C5a3A86E006131FA737F1c7d9431bc18",
-    passkey: "0x8FB03ED4a9c9Dc185bc9d1dE39e0070E7fbbfCA4",
+    session: "0x476F23ef274F244282252341792c8a610feF78ee",
+    passkey: "0x455e8d86DC6728396f8d3B740Fc893F4E20b25Dc",
     accountFactory: "0x23b13d016E973C9915c6252271fF06cCA2098885",
-    accountImplementation: "0x1A7b6cdEbEB7D0BC40604D523a4b9946CE42B985",
+    accountImplementation: "0x6cd5A2354Be0E656e7A1E94F1C0570E08EC4789B",
   },
 };
 

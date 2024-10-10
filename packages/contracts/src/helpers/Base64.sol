@@ -69,11 +69,7 @@ library Base64 {
       mstore(afterPtr, 0x00)
 
       // Run over the input, 3 bytes at a time
-      for {
-
-      } lt(dataPtr, endPtr) {
-
-      } {
+      for {} lt(dataPtr, endPtr) {} {
         // Advance 3 bytes
         dataPtr := add(dataPtr, 3)
         let input := mload(dataPtr)
@@ -144,11 +140,7 @@ library Base64 {
       if dataLength {
         let decodedLength := mul(shr(2, dataLength), 3)
 
-        for {
-
-        } 1 {
-
-        } {
+        for {} 1 {} {
           // If padded.
           if iszero(and(dataLength, 3)) {
             let t := xor(mload(add(data, dataLength)), 0x3d3d)
@@ -177,11 +169,7 @@ library Base64 {
         mstore(0x3b, 0x04080c1014181c2024282c3034383c4044484c5054585c6064)
         mstore(0x1a, 0xf8fcf800fcd0d4d8dce0e4e8ecf0f4)
 
-        for {
-
-        } 1 {
-
-        } {
+        for {} 1 {} {
           // Read 4 bytes.
           data := add(data, 4)
           let input := mload(data)

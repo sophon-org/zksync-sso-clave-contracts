@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity ^0.8.24;
 
+import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import { IAccount, ACCOUNT_VALIDATION_SUCCESS_MAGIC } from "@matterlabs/zksync-contracts/l2/system-contracts/interfaces/IAccount.sol";
 import { Transaction, TransactionHelper } from "@matterlabs/zksync-contracts/l2/system-contracts/libraries/TransactionHelper.sol";
 import { EfficientCall } from "@matterlabs/zksync-contracts/l2/system-contracts/libraries/EfficientCall.sol";
@@ -20,7 +21,7 @@ import { SignatureDecoder } from "./libraries/SignatureDecoder.sol";
 import { ModeCode } from "./libraries/ERC7579Mode.sol";
 
 import { ERC1271Handler } from "./handlers/ERC1271Handler.sol";
-import { Call } from "./batch/BatchCaller.sol";
+import { BatchCaller } from "./batch/BatchCaller.sol";
 
 import { IClaveAccount } from "./interfaces/IClaveAccount.sol";
 
@@ -30,6 +31,7 @@ import "hardhat/console.sol";
  * @title Main account contract from the Clave wallet infrastructure in ZKsync Era
  * @author https://getclave.io
  */
+
 contract ClaveAccount is
   Initializable,
   UpgradeManager,
@@ -37,15 +39,14 @@ contract ClaveAccount is
   ModuleManager,
   ERC1271Handler,
   TokenCallbackHandler,
+  BatchCaller,
   IClaveAccount
 {
   // Helper library for the Transaction struct
   using TransactionHelper for Transaction;
-  /** Removing batch call functionality to simplify setup
-    TODO: Consider inlining this batch contract to avoid construction dependency
-    // Batch transaction helper contract
-    address private immutable _BATCH_CALLER;
-     */
+  // Batch transaction helper contract
+  // TODO: Address should probably be keccak256("BatchCaller"), but for now it is "0xbatch"
+  address public constant BATCH_CALLER = address(0xba7c4);
 
   /**
    * @notice Constructor for the account implementation
@@ -61,7 +62,11 @@ contract ClaveAccount is
    * @param initialValidators bytes[] calldata - Validator addresses and init data for validation modules
    * @param initialModules bytes[] - Non-validator modules and init data for validation modules
    */
-  function initialize(bytes[] calldata initialValidators, bytes[] calldata initialModules) external initializer {
+  function initialize(
+    bytes[] calldata initialValidators,
+    bytes[] calldata initialModules,
+    address[] calldata initialK1Owners
+  ) external initializer {
     for (uint256 validatorIndex = 0; validatorIndex < initialValidators.length; validatorIndex++) {
       (address validatorAddress, bytes memory validatorData) = abi.decode(
         initialValidators[validatorIndex],
@@ -72,6 +77,9 @@ contract ClaveAccount is
     for (uint256 moduleIndex = 0; moduleIndex < initialModules.length; moduleIndex++) {
       (address moduleAddress, bytes memory moduleData) = abi.decode(initialModules[moduleIndex], (address, bytes));
       _addNativeModule(moduleAddress, moduleData);
+    }
+    for (uint256 ownerIndex = 0; ownerIndex < initialK1Owners.length; ownerIndex++) {
+      _k1AddOwner(initialK1Owners[ownerIndex]);
     }
   }
 
@@ -101,6 +109,7 @@ contract ClaveAccount is
     // should be checked explicitly to prevent user paying for fee for a
     // transaction that wouldn't be included on Ethereum.
     if (transaction.totalRequiredBalance() > address(this).balance) {
+      console.log("revert Errors.INSUFFICIENT_FUNDS()");
       revert Errors.INSUFFICIENT_FUNDS();
     }
 
@@ -200,9 +209,16 @@ contract ClaveAccount is
     bytes32 signedHash,
     Transaction calldata transaction
   ) internal returns (bytes4 magicValue) {
+    console.log("_validateTransaction");
     if (transaction.signature.length == 65) {
-      // This is a gas estimation
-      return bytes4(0);
+      console.log("transaction.signature.length == 65");
+      (address signer, ) = ECDSA.tryRecover(signedHash, transaction.signature);
+      console.log("recovered signer", signer);
+      // gas estimation?
+      if (signer == address(0)) {
+        return bytes4(0);
+      }
+      return _k1IsOwner(signer) ? ACCOUNT_VALIDATION_SUCCESS_MAGIC : bytes4(0);
     }
 
     // Extract the signature, validator address and hook data from the transaction.signature
@@ -246,16 +262,12 @@ contract ClaveAccount is
           revert(add(returnData, 0x20), size)
         }
       }
-    }
-    /** FIXME: batch calling support
-        else if (to == _BATCH_CALLER) {
-            bool success = EfficientCall.rawDelegateCall(gas, to, data);
-            if (!success && !allowFailure) {
-                EfficientCall.propagateRevert();
-            }
-        }
-        */
-    else {
+    } else if (to == BATCH_CALLER) {
+      bool success = EfficientCall.rawDelegateCall(gas, address(this), data);
+      if (!success && !allowFailure) {
+        EfficientCall.propagateRevert();
+      }
+    } else {
       bool success = EfficientCall.rawCall(gas, to, value, data, false);
       if (!success && !allowFailure) {
         EfficientCall.propagateRevert();

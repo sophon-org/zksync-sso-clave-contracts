@@ -32,6 +32,9 @@
       "source.fixAll.eslint": "explicit"
     }
   },
-  "cSpell.words": ["viem"],
+  "prettier.documentSelectors": ["**/*.sol"],
+  "[solidity]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
   "vue.server.hybridMode": "auto"
 }

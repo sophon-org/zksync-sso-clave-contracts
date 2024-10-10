@@ -4,12 +4,16 @@ A collection of commands to help with running NX in the monorepo.
 
 ## Running NX commands
 
-Use the `npx nx` command to use the monorepo's NX package, or install NX
+Use the `pnpm nx` command to use the monorepo's NX package, or install NX
 globally on your machine with npm. Project names are based on the name defined
-in the `package.json`, not the directory name.
+in the workspace's `project.json`, not the directory name.
 
 ```bash
-npx nx <target> <project>
+pnpm nx <target> <project>
+# examples
+# pnpm nx deploy contracts
+# pnpm nx serve gateway
+# pnpm nx build sdk
 ```
 
 ## Run commands in parallel across all packages
@@ -18,13 +22,13 @@ NX commands can be run in parallel across all the packages with the `run-many`
 command.
 
 ```bash
-npx nx run-many --target=build --all
+pnpm nx run-many --target=build --all
 ```
 
 Finetune to specific projects:
 
 ```bash
-npx nx run-many --target=build --projects=zksync-account,smart-account-gateway
+pnpm nx run-many -t serve -p demo-app gateway
 ```
 
 ## View project commands
@@ -36,10 +40,10 @@ easier to see if NX is modifying a particular command based on a plugin.
 To see the available commands for a project with NX:
 
 ```bash
-npx nx show project <project> --web
+pnpm nx show project <project> --web
 ```
 
 ## Keeping NX up to date
 
-Run the `npx nx report` command to get the list of NX packages and plugins with
+Run the `pnpm nx report` command to get the list of NX packages and plugins with
 their versions. It will report whether any packages need to be updated.

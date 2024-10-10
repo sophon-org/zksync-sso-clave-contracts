@@ -1,5 +1,5 @@
 {
-  "name": "zksync-account-sdk",
+  "name": "verdaccio-registry",
   "$schema": "node_modules/nx/schemas/project-schema.json",
   "targets": {
     "local-registry": {

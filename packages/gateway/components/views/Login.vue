@@ -2,14 +2,14 @@
   <div class="h-full flex flex-col justify-center pb-8">
     <div class="mx-auto mt-6 w-20 h-20 rounded-full bg-neutral-800">
       <img
-        v-if="appMeta.icon"
+        v-if="appMeta && appMeta.icon"
         :src="appMeta.icon"
         :alt="appMeta.name"
         class="h-full w-full object-cover rounded-full"
       >
     </div>
     <h1 class="text-white text-center text-2xl mt-4 font-semibold">
-      Connect to {{ appMeta.name }}
+      Connect to {{ appMeta?.name }}
     </h1>
 
     <div
@@ -95,7 +95,7 @@
           type="button"
           size="sm"
           class="w-full"
-          @click="secondaryButton.onClick()"
+          @click="secondaryButton?.onClick()"
         >
           {{ secondaryButton?.label }}
         </CommonButton>

@@ -1,102 +1,107 @@
 export const FactoryAbi = [
   {
-    "inputs": [
+    inputs: [
       {
-        "internalType": "bytes32",
-        "name": "_proxyAaBytecodeHash",
-        "type": "bytes32"
-      }
+        internalType: "bytes32",
+        name: "_proxyAaBytecodeHash",
+        type: "bytes32",
+      },
     ],
-    "stateMutability": "nonpayable",
-    "type": "constructor"
+    stateMutability: "nonpayable",
+    type: "constructor",
   },
   {
-    "inputs": [
+    inputs: [
       {
-        "internalType": "address",
-        "name": "",
-        "type": "address"
+        internalType: "address",
+        name: "",
+        type: "address",
       },
       {
-        "internalType": "string",
-        "name": "",
-        "type": "string"
-      }
+        internalType: "string",
+        name: "",
+        type: "string",
+      },
     ],
-    "name": "accountMappings",
-    "outputs": [
+    name: "accountMappings",
+    outputs: [
       {
-        "internalType": "address",
-        "name": "",
-        "type": "address"
-      }
+        internalType: "address",
+        name: "",
+        type: "address",
+      },
     ],
-    "stateMutability": "view",
-    "type": "function"
+    stateMutability: "view",
+    type: "function",
   },
   {
-    "inputs": [
+    inputs: [
       {
-        "internalType": "bytes32",
-        "name": "uniqueAccountId",
-        "type": "bytes32"
-      }
+        internalType: "bytes32",
+        name: "uniqueAccountId",
+        type: "bytes32",
+      },
     ],
-    "name": "addNewUniqueId",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
+    name: "addNewUniqueId",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
   },
   {
-    "inputs": [
+    inputs: [
       {
-        "internalType": "bytes32",
-        "name": "salt",
-        "type": "bytes32"
+        internalType: "bytes32",
+        name: "salt",
+        type: "bytes32",
       },
       {
-        "internalType": "address",
-        "name": "accountImplementionLocation",
-        "type": "address"
+        internalType: "address",
+        name: "accountImplementionLocation",
+        type: "address",
       },
       {
-        "internalType": "string",
-        "name": "uniqueAccountId",
-        "type": "string"
+        internalType: "string",
+        name: "uniqueAccountId",
+        type: "string",
       },
       {
-        "internalType": "bytes[]",
-        "name": "initialValidators",
-        "type": "bytes[]"
+        internalType: "bytes[]",
+        name: "initialValidators",
+        type: "bytes[]",
       },
       {
-        "internalType": "bytes[]",
-        "name": "initialModules",
-        "type": "bytes[]"
-      }
+        internalType: "bytes[]",
+        name: "initialModules",
+        type: "bytes[]",
+      },
+      {
+        internalType: "address[]",
+        name: "initialK1Owners",
+        type: "address[]",
+      },
     ],
-    "name": "deployProxy7579Account",
-    "outputs": [
+    name: "deployProxy7579Account",
+    outputs: [
       {
-        "internalType": "address",
-        "name": "accountAddress",
-        "type": "address"
-      }
+        internalType: "address",
+        name: "accountAddress",
+        type: "address",
+      },
     ],
-    "stateMutability": "nonpayable",
-    "type": "function"
+    stateMutability: "nonpayable",
+    type: "function",
   },
   {
-    "inputs": [],
-    "name": "proxyAaBytecodeHash",
-    "outputs": [
+    inputs: [],
+    name: "proxyAaBytecodeHash",
+    outputs: [
       {
-        "internalType": "bytes32",
-        "name": "",
-        "type": "bytes32"
-      }
+        internalType: "bytes32",
+        name: "",
+        type: "bytes32",
+      },
     ],
-    "stateMutability": "view",
-    "type": "function"
-  }
+    stateMutability: "view",
+    type: "function",
+  },
 ] as const;

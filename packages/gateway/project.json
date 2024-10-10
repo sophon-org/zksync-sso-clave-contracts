@@ -1,3 +1,13 @@
 {
-  "name": "gateway"
+  "name": "gateway",
+  "targets": {
+    "dev": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "packages/gateway",
+        "command": "PORT=3002 nuxt dev"
+      },
+      "dependsOn": []
+    }
+  }
 }
