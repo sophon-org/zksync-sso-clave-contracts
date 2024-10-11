@@ -29,7 +29,7 @@
     <LayoutCard class="mb-8" v-else>
       <div class="flex">
         <div class="grow mb-4">
-          <p class="text-4xl font-bold">{{ formatEther(accountBalance) }} ETH</p>
+          <p class="text-4xl font-bold">{{ (+formatEther(accountBalance)).toFixed(6) }} ETH</p>
           <p class="text-lg font-medium text-neutral-400">ZKsync</p>
         </div>
         <div>
@@ -156,7 +156,7 @@
               <TokenEth :height="26"/>
             </div>
             <div class="grow flex justify-stretch py-8">
-              <span>Stuff goes here</span>
+              <span>Stake 0.1 ETH</span>
             </div>
             <div class="flex justify-center">
               <ZkButton type="primary" @click="supplyEthToAaave" class="w-full py-0 text-l">Supply ETH</ZkButton>
@@ -195,14 +195,18 @@ const publicClient = createPublicClient({
   transport: http(),
 });
 
-accountBalance.value = await publicClient.getBalance({
-  address: appMeta.value.cryptoAccountAddress! as Address,
-});
+if (appMeta.value.cryptoAccountAddress) {
+  accountBalance.value = await publicClient.getBalance({
+    address: appMeta.value.cryptoAccountAddress! as Address,
+  });
+}
 
-watch(appMeta, async (newvalue, oldValue) => {
+watch(appMeta, async (newValue, oldValue) => {
+  if (!newValue.cryptoAccountAddress) { return; }
+
   console.log("Updating balance...");
   accountBalance.value = await publicClient.getBalance({
-    address: newvalue.cryptoAccountAddress! as Address,
+    address: newValue.cryptoAccountAddress! as Address,
   });
 });
 
@@ -210,25 +214,15 @@ const supplyEthToAaave = async () => {
   // Send 0.1 ETH to the AAVE address
   const passkeyClient = createZksyncPasskeyClient({
     address: appMeta.value.cryptoAccountAddress! as Address,
-    credentialPublicKey: appMeta.value.credentialPublicKey!,
+    credentialPublicKey: new Uint8Array(JSON.parse(appMeta.value.credentialPublicKey!)),
     userDisplayName: userDisplay,
     userName: userRevTag,
     contracts,
     chain: zksyncInMemoryNode,
     transport: http(),
   });
-  const sessionKey = generatePrivateKey();
-  const sessionPublicKey = privateKeyToAccount(sessionKey).address;
-
-  console.log("trying to set session key");
-  await passkeyClient.setSessionKey({
-    sessionKey: sessionPublicKey,
-    expiresAt: (new Date(Date.now() + 1000 * 60 * 60 * 24)).toISOString(), // 1 day expiry
-    spendLimit: {
-        ["0x000000000000000000000000000000000000800A"]: "1000", // ETH
-    },
-  });
-  console.log("trying to send transaction");
+  
+  console.log("Sending 0.1 ETH to AAVE Address");
   await passkeyClient.sendTransaction({
     to: aaveAddress as Address,
     value: parseEther("0.1"),

@@ -4,7 +4,7 @@ import type { Address } from "viem";
 export interface AppMetadata {
   name: string;
   icon: string | null;
-  credentialPublicKey: Uint8Array | null;
+  credentialPublicKey: string | null;
   cryptoAccountAddress: string | null;
   hasCompletedInitialTransfer: boolean;
   hasCompletedAaveStake: boolean;

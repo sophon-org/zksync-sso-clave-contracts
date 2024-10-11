@@ -12,6 +12,13 @@ import { registerNewPasskey } from 'zksync-account/client/passkey';
 const { appMeta, userDisplay, userRevTag, contracts, richAccountPrivateKey } = useAppMeta();
 const { push } = useRouter();
 
+const u8ToString = (input: Uint8Array): string => {
+  const str = JSON.stringify(Array.from ? Array.from(input) : [].map.call(input, (v => v)));
+  // console.log("String version");
+  // console.log(str);
+  return str;
+};
+
 const createCryptoAccount = async () => {
   let credentialPublicKey: Uint8Array;
 
@@ -24,7 +31,7 @@ const createCryptoAccount = async () => {
       });
       appMeta.value = {
         ...appMeta.value, // Preserve existing metadata like name/icon
-        credentialPublicKey: newCredentialPublicKey,
+        credentialPublicKey: u8ToString(newCredentialPublicKey),
       };
       credentialPublicKey = newCredentialPublicKey;
     } catch (error) {
@@ -33,7 +40,7 @@ const createCryptoAccount = async () => {
       return;
     }
   } else {
-    credentialPublicKey = appMeta.value.credentialPublicKey;
+    credentialPublicKey = new Uint8Array(JSON.parse(appMeta.value.credentialPublicKey));
   }
 
   const deployerClient = createWalletClient({
