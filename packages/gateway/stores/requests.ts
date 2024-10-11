@@ -2,13 +2,11 @@ import type { ExtractParams, ExtractReturnType, GatewayRpcSchema, Method, RPCReq
 
 export const useRequestsStore = defineStore("requests", () => {
   const { appMeta } = useAppMeta();
-  const communicator = useCommunicator();
 
   const request = ref<RPCRequestMessage<Method> | undefined>();
   const hasRequests = computed(() => !!request.value);
   const requestChain = computed(() => {
     const chainId = request.value?.content.chainId;
-    console.log("chainId", chainId, supportedChains.find((chain) => chain.id === chainId));
     return supportedChains.find((chain) => chain.id === chainId);
   });
   const requestMethod = computed(() => request.value?.content.action.method);
@@ -27,7 +25,6 @@ export const useRequestsStore = defineStore("requests", () => {
 
   const { inProgress: responseInProgress, execute: respond, error: responseError } = useAsync(async (responder: () => RPCResponseMessage<ExtractReturnType<Method>>["content"] | Promise<RPCResponseMessage<ExtractReturnType<Method>>["content"]>) => {
     if (!request.value) throw new Error("No request to confirm");
-
     communicator.postMessage({
       id: crypto.randomUUID(),
       requestId: request.value.id,

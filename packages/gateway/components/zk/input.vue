@@ -20,7 +20,7 @@
         v-for="(message, index) in messages"
         :key="index"
         :class="
-          twMerge('block text-xs text-red-600 dark:text-red-400', ui.messages)
+          twMerge('block text-xs text-red-600 dark:text-red-400 mt-1', ui.messages)
         "
       >
         {{ message }}
@@ -51,7 +51,7 @@ const {
   placeholder?: string;
   postLabel?: string;
   ui?: UI;
-  state?: string;
+  state?: "error";
   messages?: string[];
   disabled?: boolean;
 }>();

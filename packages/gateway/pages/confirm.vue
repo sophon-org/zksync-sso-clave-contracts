@@ -27,13 +27,11 @@
 <script lang="ts" setup>
 const { appMeta } = useAppMeta();
 const { isLoggedIn } = storeToRefs(useAccountStore());
-const communicator = useCommunicator();
+const { hasRequests, requestMethod } = storeToRefs(useRequestsStore());
 
 definePageMeta({
   layout: "popup",
 });
 
-communicator.setOrigin(window.location.search);
-
-const { hasRequests, requestMethod } = storeToRefs(useRequestsStore());
+communicator.init();
 </script>

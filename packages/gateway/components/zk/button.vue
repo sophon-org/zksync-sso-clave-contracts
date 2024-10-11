@@ -1,7 +1,7 @@
 <template>
   <button
-    type="button"
     :class="buttonUI"
+    :type="submit ? 'submit' : 'button'"
   >
     <div
       v-if="$slots.prefix"
@@ -18,11 +18,11 @@
     </div>
     <div
       v-show="loading"
-      class="absolute bg-white/90 top-0 left-0 w-full h-full rounded-full"
+      class="absolute flex justify-center items-center bg-white/90 top-0 left-0 w-full h-full rounded-full"
     >
-      <ZkIcon
-        :ui="'animate-spin mt-3'"
-        icon="progress_activity"
+      <CommonSpinner
+        :height="24"
+        class="dark:text-neutral-800"
       />
     </div>
   </button>
@@ -48,6 +48,7 @@ const { ui, type = "primary", loading = false } = defineProps<{
   type?: ButtonTypes;
   ui?: ButtonUI;
   loading?: boolean;
+  submit?: boolean;
 }>();
 
 const buttonUI = computed(() => {
