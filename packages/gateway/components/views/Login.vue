@@ -137,7 +137,7 @@ const errorState = computed<"username-taken" | "account-not-found" | undefined>(
   return undefined;
 });
 const { inProgress: registerInProgress, execute: createAccount } = useAsync(async () => {
-  const { credentialPublicKey } = await registerNewPasskey({
+  const { newCredentialPublicKey: credentialPublicKey } = await registerNewPasskey({
     userName: username.value,
     userDisplayName: username.value,
   });
