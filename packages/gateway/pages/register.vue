@@ -117,7 +117,7 @@ const { inProgress: registerInProgress, execute: createAccount } = useAsync(asyn
       ],
       contracts: contractsByChain[chainId],
     }).catch(() => {
-      throw new Error("Failed to deploy account.");
+      throw new Error("Failed to create a new account.");
     });
 
     await deployerClient.sendTransaction({

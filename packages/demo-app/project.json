@@ -18,6 +18,17 @@
         ]
       }
     },
+    "build": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "packages/demo-app",
+        "commands": [
+          {
+            "command": "pnpm nuxt generate"
+          }
+        ]
+      }
+    },
     "e2e:setup": {
       "executor": "nx:run-commands",
       "options": {

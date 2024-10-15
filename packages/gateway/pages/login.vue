@@ -26,6 +26,13 @@
         Login
       </ZkButton>
     </form>
+    <ZkLink
+      class="w-full mt-6"
+      type="secondary"
+      href="/register"
+    >
+      Create a new ZK Account
+    </ZkLink>
   </main>
 </template>
 
