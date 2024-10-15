@@ -6,15 +6,15 @@
     <div class="flex gap-4 mb-4">
       <AppNavButton href="/">Accounts</AppNavButton>
       <AppNavButton href="/cards">Cards</AppNavButton>
-      <AppNavButton href="/crypto-account" v-if="appMeta.cryptoAccountAddress">Crypto Account</AppNavButton>
-      <AddCryptoButton v-else></AddCryptoButton>
+      <AppNavButton v-if="appMeta.cryptoAccountAddress" href="/crypto-account">Crypto Account</AppNavButton>
+      <AppAddCryptoButton v-else/>
     </div>
 
     <LayoutCard class="mb-8">
       <div class="flex">
         <div class="grow mb-4">
-          <p class="text-4xl font-bold" v-if="!appMeta.hasCompletedInitialTransfer">£ 2,000</p>
-          <p class="text-4xl font-bold" v-else>£213.21</p>
+          <p v-if="!appMeta.hasCompletedInitialTransfer" class="text-4xl font-bold">£ 2,000</p>
+          <p v-else class="text-4xl font-bold">£213.21</p>
           <p class="text-lg font-medium text-neutral-400">British Pound</p>
         </div>
         <div>
@@ -48,7 +48,7 @@
       </div>
 
       <p class="mt-6 text-neutral-500">Transactions</p>
-      <div class="flex gap-2 mt-6" v-if="appMeta.hasCompletedInitialTransfer">
+      <div v-if="appMeta.hasCompletedInitialTransfer" class="flex gap-2 mt-6">
         <ZkIconThumbnail icon="currency_bitcoin" />
         <div class="grow">
           <p>www.revolut.com/*London</p>
@@ -129,7 +129,5 @@
 </template>
 
 <script setup lang="ts">
-import AddCryptoButton from '~/components/app/AddCryptoButton.vue';
-
 const { appMeta } = useAppMeta();
 </script>
