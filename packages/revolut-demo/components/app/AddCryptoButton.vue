@@ -3,14 +3,13 @@
 </template>
 
 <script setup lang="ts">
-import { createWalletClient, http, type Address } from 'viem';
-import { generatePrivateKey, privateKeyToAccount } from 'viem/accounts';
-import { zksyncInMemoryNode } from 'viem/zksync';
-import { deployAccount } from 'zksync-account/client';
-import { registerNewPasskey } from 'zksync-account/client/passkey';
+import { createWalletClient, http, type Address } from "viem";
+import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
+import { zksyncInMemoryNode } from "viem/zksync";
+import { deployAccount } from "zksync-account/client";
+import { registerNewPasskey } from "zksync-account/client/passkey";
 
 const { appMeta, userDisplay, userRevTag, contracts, richAccountPrivateKey } = useAppMeta();
-const { push } = useRouter();
 
 const u8ToString = (input: Uint8Array): string => {
   const str = JSON.stringify(Array.from ? Array.from(input) : [].map.call(input, (v => v)));
@@ -48,7 +47,7 @@ const createCryptoAccount = async () => {
     account: privateKeyToAccount(richAccountPrivateKey as Address),
     chain: zksyncInMemoryNode,
     transport: http()
-  })
+  });
   const sessionKey = generatePrivateKey();
   const sessionPublicKey = privateKeyToAccount(sessionKey).address;
 
@@ -66,7 +65,7 @@ const createCryptoAccount = async () => {
       ],
       contracts: contracts,
     });
-  
+
     appMeta.value = {
       ...appMeta.value,
       cryptoAccountAddress: address,
@@ -77,6 +76,6 @@ const createCryptoAccount = async () => {
   }
 
   console.log("Successfully created the account");
-  push("/crypto-account");
+  navigateTo("/crypto-account");
 };
 </script>

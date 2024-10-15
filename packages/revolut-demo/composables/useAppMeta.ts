@@ -15,10 +15,15 @@ export const useAppMeta = () => {
   const appMetaStorage = useStorage<AppMetadata>("app-meta", {
     name: "",
     icon: null,
+    // uint8 array
     credentialPublicKey: null,
+    // account address that got created
     cryptoAccountAddress: null,
+    // have you purchased any ETH
     hasCompletedInitialTransfer: false,
+    // have you staked any ETH
     hasCompletedAaveStake: false,
+    // not using it
     cryptoBalance: "0",
   });
 

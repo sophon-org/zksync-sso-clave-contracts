@@ -9,10 +9,12 @@ interface Tab {
 defineProps<{
   tabs: Tab[];
 }>();
+
+const currentTabSlot = defineModel<string | number>();
 </script>
 
 <template>
-  <Tabs.Root class="flex flex-col w-full" :default-value="tabs[0].slot">
+  <Tabs.Root v-model="currentTabSlot" class="flex flex-col w-full">
     <Tabs.List
       class="relative w-full flex bg-neutral-200 rounded-full"
     >
