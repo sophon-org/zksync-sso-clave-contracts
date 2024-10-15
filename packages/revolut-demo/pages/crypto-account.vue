@@ -236,6 +236,7 @@
             </div>
           </div>
           </div>
+          <div v-else>No assets supplied.</div>
         </template>
       </ZkTabs>
       </div>
