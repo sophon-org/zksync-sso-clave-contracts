@@ -20,7 +20,7 @@
         <span class="text-l font-bold">Crypto Account Address</span>
         <div>
           <span>{{ appMeta.cryptoAccountAddress?.slice(0,5) + '...' + appMeta.cryptoAccountAddress?.slice(-3)  }}</span>
-          <ZkCopy :content="appMeta.cryptoAccountAddress" />
+          <ZkCopy :content="appMeta.cryptoAccountAddress! as string" />
         </div>
     </LayoutCard>
 
@@ -246,8 +246,7 @@
 </template>
 
 <script setup lang="ts">
-import { createPublicClient, formatEther, http, parseEther, type Address } from "viem";
-import { zksyncInMemoryNode } from "viem/zksync";
+import { createPublicClient, formatEther, http, parseEther, type Address, type Chain } from "viem";
 import { createZksyncPasskeyClient } from "zksync-account/client/passkey";
 import OnRampCrypto from "~/components/app/OnRampCrypto.vue";
 
@@ -258,8 +257,10 @@ const priceOfEth = 1786.79;
 const stakeAmount = ref(0.1);
 const tabSlot = ref<string | number>("tab1");
 
+const config = useRuntimeConfig();
+
 const publicClient = createPublicClient({
-  chain: zksyncInMemoryNode,
+  chain: config.public.network as Chain,
   transport: http(),
 });
 
@@ -286,7 +287,7 @@ const supplyEthToAave = async () => {
     userDisplayName: userDisplay,
     userName: userRevTag,
     contracts,
-    chain: zksyncInMemoryNode,
+    chain: config.public.network as Chain,
     transport: http(),
   });
 

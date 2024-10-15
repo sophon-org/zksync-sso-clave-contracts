@@ -3,13 +3,12 @@
 </template>
 
 <script setup lang="ts">
-import { createWalletClient, http, type Address } from "viem";
+import { createWalletClient, http, type Address, type Chain } from "viem";
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
-import { zksyncInMemoryNode } from "viem/zksync";
 import { deployAccount } from "zksync-account/client";
 import { registerNewPasskey } from "zksync-account/client/passkey";
 
-const { appMeta, userDisplay, userRevTag, contracts, richAccountPrivateKey } = useAppMeta();
+const { appMeta, userDisplay, userRevTag, contracts, deployerKey } = useAppMeta();
 
 const u8ToString = (input: Uint8Array): string => {
   const str = JSON.stringify(Array.from ? Array.from(input) : [].map.call(input, (v => v)));
@@ -41,11 +40,10 @@ const createCryptoAccount = async () => {
   } else {
     credentialPublicKey = new Uint8Array(JSON.parse(appMeta.value.credentialPublicKey));
   }
-
+  const config = useRuntimeConfig();
   const deployerClient = createWalletClient({
-    // Rich Account 0
-    account: privateKeyToAccount(richAccountPrivateKey as Address),
-    chain: zksyncInMemoryNode,
+    account: privateKeyToAccount(deployerKey as Address),
+    chain: config.public.network as Chain,
     transport: http()
   });
   const sessionKey = generatePrivateKey();

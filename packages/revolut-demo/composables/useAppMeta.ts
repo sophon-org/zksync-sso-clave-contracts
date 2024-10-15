@@ -5,7 +5,7 @@ export interface AppMetadata {
   name: string;
   icon: string | null;
   credentialPublicKey: string | null;
-  cryptoAccountAddress: string | null;
+  cryptoAccountAddress: `0x${string}` | null;
   hasCompletedInitialTransfer: boolean;
   hasCompletedAaveStake: boolean;
   cryptoBalance: string;
@@ -27,17 +27,18 @@ export const useAppMeta = () => {
     cryptoBalance: "0",
   });
 
+  const config = useRuntimeConfig();
   return {
     appMeta: appMetaStorage,
-    userDisplay: "Nicolas Villanueva",
-    userRevTag: "nicolakwkm",
+    userDisplay: "Jane Doe",
+    userRevTag: "jdoe",
     contracts: {
-      accountFactory: "0x23b13d016E973C9915c6252271fF06cCA2098885" as Address,
-      accountImplementation: "0x6cd5A2354Be0E656e7A1E94F1C0570E08EC4789B" as Address,
-      passkey: "0x455e8d86DC6728396f8d3B740Fc893F4E20b25Dc" as Address,
-      session: "0x476F23ef274F244282252341792c8a610feF78ee" as Address,
+      accountFactory: config.public.accountFactory as Address,
+      accountImplementation: config.public.accountImplementation as Address,
+      passkey: config.public.passkey as Address,
+      session: config.public.session as Address,
     },
-    richAccountPrivateKey: "0x3d3cbc973389cb26f657686445bcc75662b415b656078503592ac8c1abb8810e", // Rich Account 0
-    aaveAddress: "0xE90E12261CCb0F3F7976Ae611A29e84a6A85f424", // Rich Account 9
+    deployerKey: config.public.revolutDemoDeployerKey as Address,
+    aaveAddress: config.public.aaveAddress as Address
   };
 };

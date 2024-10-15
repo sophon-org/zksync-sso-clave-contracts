@@ -75,37 +75,37 @@
 <script setup lang="ts">
 import { createPublicClient, createWalletClient, formatEther, http, parseEther, type Address } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
-import { zksyncInMemoryNode } from "viem/zksync";
 
 const transferAmount = ref(1);
 const priceOfEth = 1786.79;
 
-const { appMeta, richAccountPrivateKey } = useAppMeta();
+const { appMeta, deployerKey } = useAppMeta();
+const config = useRuntimeConfig();
 
 const cancelTransaction = () => {
   navigateTo("/crypto-account");
 };
 
 const continueToTransferConfirmation = async () => {
-  // Send that account 1 ETH from Rich Wallet
+  // Send that account 1 ETH from deployer account
   const deployerClient = createWalletClient({
-    account: privateKeyToAccount(richAccountPrivateKey as Address),
-    chain: zksyncInMemoryNode,
+    account: privateKeyToAccount(deployerKey as Address),
+    chain: config.public.network,
     transport: http(),
   });
 
   await deployerClient.sendTransaction({
-    to: appMeta.value.cryptoAccountAddress! as Address,
-    value: parseEther("1"),
+    to: appMeta.value.cryptoAccountAddress!,
+    value: parseEther("1")
   });
 
   const publicClient = createPublicClient({
-    chain: zksyncInMemoryNode,
+    chain: config.public.network,
     transport: http(),
   });
 
   const balance = await publicClient.getBalance({
-    address: appMeta.value.cryptoAccountAddress! as Address
+    address: appMeta.value.cryptoAccountAddress!
   });
 
   console.log("balance after transfer of 1 ETH");

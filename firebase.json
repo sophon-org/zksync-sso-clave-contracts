@@ -5,6 +5,12 @@
       "trailingSlash": false,
       "public": "packages/gateway/.output/public",
       "ignore": ["firebase.json", "**/.*", "**/node_modules/**"]
+    },
+    {
+      "target": "revolut-demo-app",
+      "trailingSlash": false,
+      "public": "packages/revolut-demo/.output/public",
+      "ignore": ["firebase.json", "**/.*", "**/node_modules/**"]
     }
   ]
 }

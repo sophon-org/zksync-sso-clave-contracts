@@ -6,6 +6,13 @@
           "zksync-auth-server-staging"
         ]
       }
+    },
+    "revolut-demo-app": {
+      "hosting": {
+        "revolut-demo-app": [
+          "revolut-demo-app"
+        ]
+      }
     }
   },
   "etags": {}
