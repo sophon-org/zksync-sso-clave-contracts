@@ -166,6 +166,7 @@ export function passkeyHashSignatureResponseFormat(
     passkey: Address;
   },
 ) {
+  console.debug("passkeyResponse.signature", passkeyResponse.signature);
   const signature = unwrapEC2Signature(base64UrlToUint8Array(passkeyResponse.signature));
   const fatSignature = encodeAbiParameters(
     [
@@ -191,6 +192,8 @@ export function passkeyHashSignatureResponseFormat(
       [],
     ],
   );
+
+  console.debug("contracts.passkey", contracts.passkey);
 
   return fullFormattedSig;
 }
