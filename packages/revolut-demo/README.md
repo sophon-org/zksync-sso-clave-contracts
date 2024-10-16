@@ -17,7 +17,7 @@ Account session and data is stored via the browser Local storage.
 
 1. When you need to restart the demo, delete the Local storage data via the Chrome
 browser's Debug Tool. Open the Debug Tool, navigate to Application, right click
-the Local storage entry for `http://localhost:3004` and click "Clear".
+the Local storage entry for `http://localhost:3005` and click "Clear".
 
 2. You will also need to delete the Passkey stored for the app. In the Chrome
 browser, navigate to `chrome://settings/passkeys`. Click the settings button for

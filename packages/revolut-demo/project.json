@@ -1,5 +1,6 @@
 {
   "name": "revolut-demo",
+  "implicitDependencies": ["sdk"],
   "targets": {
     "dev": {
       "executor": "nx:run-commands",
@@ -7,7 +8,7 @@
         "cwd": "packages/revolut-demo",
         "command": "PORT=3005 nuxt dev"
       },
-      "dependsOn": []
+      "dependsOn": ["^build"]
     },
     "build": {
       "executor": "nx:run-commands",
@@ -15,7 +16,7 @@
         "cwd": "packages/revolut-demo",
         "command": "nuxt generate"
       },
-      "dependsOn": []
+      "dependsOn": ["^build"]
     },
     "preview": {
       "executor": "nx:run-commands",
