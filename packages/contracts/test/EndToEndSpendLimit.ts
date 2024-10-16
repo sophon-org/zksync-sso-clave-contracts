@@ -11,7 +11,8 @@ import { setSessionKey } from "zksync-account/client/actions";
 import { encodePasskeyModuleParameters, encodeSessionSpendLimitParameters } from "zksync-account/utils";
 import { SmartAccount, types, utils, Wallet } from "zksync-ethers";
 
-import type { AAFactory, ERC7579Account, SessionPasskeySpendLimitModule, WebAuthValidator } from "../typechain-types";
+import type { AAFactory, ERC7579Account, SessionKeyValidator, WebAuthValidator } from "../typechain-types";
+import { AAFactory__factory, ERC7579Account__factory, SessionKeyValidator__factory, WebAuthValidator__factory } from "../typechain-types";
 import { createZksyncPasskeyClient } from "./sdk/PasskeyClient";
 import { create2, deployFactory, getProvider, getWallet, LOCAL_RICH_WALLETS, logInfo, RecordedResponse } from "./utils";
 
@@ -61,19 +62,21 @@ export class ContractFixtures {
     return this._aaFactory;
   }
 
-  private _sessionSpendLimitModule: SessionPasskeySpendLimitModule;
-  async getSessionSpendLimitContract() {
-    if (!this._sessionSpendLimitModule) {
-      this._sessionSpendLimitModule = <any> await create2("SessionPasskeySpendLimitModule", this.wallet, this.ethersStaticSalt);
+  private _sessionKeyModule: SessionKeyValidator;
+  async getSessionKeyContract() {
+    if (!this._sessionKeyModule) {
+      const contract = await create2("SessionKeyValidator", this.wallet, this.ethersStaticSalt);
+      this._sessionKeyModule = SessionKeyValidator__factory.connect(await contract.getAddress(), this.wallet);
     }
-    return this._sessionSpendLimitModule;
+    return this._sessionKeyModule;
   }
 
   private _webauthnValidatorModule: WebAuthValidator;
   // does passkey validation via modular interface
   async getWebAuthnVerifierContract() {
     if (!this._webauthnValidatorModule) {
-      this._webauthnValidatorModule = <any> await create2("WebAuthValidator", this.wallet, this.ethersStaticSalt);
+      const contract = await create2("WebAuthValidator", this.wallet, this.ethersStaticSalt);
+      this._webauthnValidatorModule = WebAuthValidator__factory.connect(await contract.getAddress(), this.wallet);
     }
     return this._webauthnValidatorModule;
   }
@@ -91,7 +94,8 @@ export class ContractFixtures {
   // wraps the clave account
   async getAccountImplContract() {
     if (!this._accountImplContract) {
-      this._accountImplContract = <any> await create2("ERC7579Account", this.wallet, this.ethersStaticSalt);
+      const contract = await create2("ERC7579Account", this.wallet, this.ethersStaticSalt);
+      this._accountImplContract = ERC7579Account__factory.connect(await contract.getAddress(), this.wallet);
     }
     return this._accountImplContract;
   }
@@ -106,11 +110,12 @@ export class ContractFixtures {
     return this._accountImplAddress;
   }
 
-  private _proxyAccountContract: Contract;
+  private _proxyAccountContract: ERC7579Account;
   async getProxyAccountContract() {
     const claveAddress = await this.getAccountImplAddress();
     if (!this._proxyAccountContract) {
-      this._proxyAccountContract = await create2("AccountProxy", this.wallet, this.ethersStaticSalt, [claveAddress]);
+      const contract = await create2("AccountProxy", this.wallet, this.ethersStaticSalt, [claveAddress]);
+      this._proxyAccountContract = ERC7579Account__factory.connect(await contract.getAddress(), this.wallet);
     }
     return this._proxyAccountContract;
   }
@@ -125,7 +130,7 @@ export class ContractFixtures {
     }
     const passkeyModule = await this.getWebAuthnVerifierContract();
     const passkeyModuleAddress = await passkeyModule.getAddress();
-    const sessionModuleContract = await this.getSessionSpendLimitContract();
+    const sessionModuleContract = await this.getSessionKeyContract();
     const sessionModuleAddress = await sessionModuleContract.getAddress();
     const factory = await this.getAaFactory();
     const accountImpl = await this.getAccountImplAddress();
@@ -182,7 +187,7 @@ export class ContractFixtures {
 
   async sessionKeySigner(hash: BytesLike, secret: ethers.SigningKey) {
     const sessionKeySignature = secret.sign(hash);
-    const spendLimitModule = await this.getSessionSpendLimitContract();
+    const spendLimitModule = await this.getSessionKeyContract();
     return this.abiCoder.encode(["bytes", "address", "bytes[]"], [
       sessionKeySignature.serialized,
       await spendLimitModule.getAddress(),
@@ -229,7 +234,7 @@ describe("Spend limit validation", function () {
   const provider = getProvider();
 
   it("should deploy module", async () => {
-    const sessionModuleContract = await fixtures.getSessionSpendLimitContract();
+    const sessionModuleContract = await fixtures.getSessionKeyContract();
     assert(sessionModuleContract != null, "No session spend limit module deployed");
   });
 
@@ -252,7 +257,7 @@ describe("Spend limit validation", function () {
   describe.skip("using viem", () => {
     it("should deploy proxy account via factory, create a new session key with a passkey, then send funds with the initial session key", async () => {
       const passkeyModule = await fixtures.getWebAuthnVerifierContract();
-      const sessionModule = await fixtures.getSessionSpendLimitContract();
+      const sessionModule = await fixtures.getSessionKeyContract();
       const factoryContract = await fixtures.getAaFactory();
       const factoryAddress = await factoryContract.getAddress() as Address;
 
@@ -370,7 +375,7 @@ describe("Spend limit validation", function () {
       const aaFactoryContract = await fixtures.getAaFactory();
       assert(aaFactoryContract != null, "No AA Factory deployed");
 
-      const spendLimitModule = await fixtures.getSessionSpendLimitContract();
+      const spendLimitModule = await fixtures.getSessionKeyContract();
       assert(spendLimitModule != null, "no module available");
 
       const passkeyModule = await fixtures.getWebAuthnVerifierContract();
@@ -420,7 +425,7 @@ describe("Spend limit validation", function () {
       const validatorModule = await fixtures.getWebAuthnVerifierContract();
       const expensiveVerifierAddress = await validatorModule.getAddress();
 
-      const sessionModuleAddress = await (await fixtures.getSessionSpendLimitContract()).getAddress();
+      const sessionModuleAddress = await (await fixtures.getSessionKeyContract()).getAddress();
       //
       // PART TWO: Install Module with passkey (salt needs to be random to not collide with other tests)
       //
@@ -461,7 +466,7 @@ describe("Spend limit validation", function () {
       // we just need a stable wallet address, the fact that this is a rich wallet shouldn't matter
       const extraSessionKeyWallet: Wallet = getWallet(LOCAL_RICH_WALLETS[4].privateKey);
       const tokenData = fixtures.getSessionSpendLimitModuleData(extraSessionKeyWallet.address as Address);
-      const sessionModuleContract = await fixtures.getSessionSpendLimitContract();
+      const sessionModuleContract = await fixtures.getSessionKeyContract();
       const callData = sessionModuleContract.interface.encodeFunctionData("setSessionKeys", [[tokenData]]);
       const aaTx = {
         from: proxyAccountAddress,
@@ -507,7 +512,7 @@ describe("Spend limit validation", function () {
       const extraSessionKeyWallet: Wallet = getWallet("0x97006fa3cfc8f133ae17d8f0c9a815a8224246b0c667bf08b7a122f5be858c34");
       const tokenData = fixtures.getSessionSpendLimitModuleData(extraSessionKeyWallet.address as Address);
 
-      const sessionModuleContract = await fixtures.getSessionSpendLimitContract();
+      const sessionModuleContract = await fixtures.getSessionKeyContract();
       const callData = sessionModuleContract.interface.encodeFunctionData("setSessionKeys", [[tokenData]]);
       const transactionForPasskey = {
         from: proxyAccountAddress,
@@ -560,7 +565,7 @@ describe("Spend limit validation", function () {
     // (this will break when we implement permissions)
 
     it("can currently add a session key with another session key", async () => {
-      const sessionModuleContract = await fixtures.getSessionSpendLimitContract();
+      const sessionModuleContract = await fixtures.getSessionKeyContract();
       const sessionModuleAddress = await sessionModuleContract.getAddress();
       const factory = await fixtures.getAaFactory();
       const accountImpl = await fixtures.getAccountImplAddress();
@@ -693,7 +698,7 @@ describe("Spend limit validation", function () {
   // NOTE: Use `pnpm run deploy` to only deploy the contracts to your environment
   it("should deploy all contracts", async () => {
     const verifierContract = await fixtures.getWebAuthnVerifierContract();
-    const sessionModuleContract = await fixtures.getSessionSpendLimitContract();
+    const sessionModuleContract = await fixtures.getSessionKeyContract();
     const proxyContract = await fixtures.getProxyAccountContract();
     const erc7579Contract = await fixtures.getAccountImplContract();
     const factoryContract = await fixtures.getAaFactory();

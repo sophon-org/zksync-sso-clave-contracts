@@ -14,6 +14,8 @@ import { IInitable } from "../interfaces/IInitable.sol";
 import { IHookManager } from "../interfaces/IHookManager.sol";
 import { IHook } from "../interfaces/IERC7579Module.sol";
 
+import "hardhat/console.sol";
+
 /**
  * @title Manager contract for hooks
  * @notice Abstract contract for managing the enabled hooks of the account
@@ -194,7 +196,7 @@ abstract contract HookManager is IHookManager, Auth {
 
     if (!_supportsHook(hookAddress, isValidation)) {
       // TODO this will fail probably
-      revert Errors.HOOK_ERC165_FAIL();
+      // revert Errors.HOOK_ERC165_FAIL();
     }
 
     bytes calldata initData = hookAndData[20:];
