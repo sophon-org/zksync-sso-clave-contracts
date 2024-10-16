@@ -14,7 +14,7 @@
     <h2 class="my-6 font-bold text-lg">Order Summary</h2>
 
     <div class="rounded-zk p-1 bg-white">
-      <div class="rounded-zk bg-primary-100/50 font-bold p-4">Revolut Ramp</div>
+      <div class="rounded-zk bg-primary-100/50 font-bold p-4">Purchasing</div>
       <div class="flex p-4 gap-2">
       <TokenEth :height="48"/>
       <div class="grow flex justify-stretch">
@@ -76,6 +76,8 @@
 import { createPublicClient, createWalletClient, formatEther, http, parseEther, type Address } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 
+const history = useHistory();
+
 const transferAmount = ref(1);
 const priceOfEth = 1786.79;
 
@@ -111,6 +113,20 @@ const continueToTransferConfirmation = async () => {
   console.log("balance after transfer of 1 ETH");
   console.log(`${formatEther(balance)} ETH`);
 
+
+  history.value.mainAccount.unshift({
+    description: "www.revolut.com/*London",
+    time: "Pending - A few minutes ago",
+    amount: "- £1,786.79",
+    icon: "currency_bitcoin",
+  });
+
+  history.value.cryptoAccount.unshift({
+    description: "Received from Main account",
+    time: "Pending - A few minutes ago",
+    amount: "+ 1.0000 ETH",
+    icon: "add",
+  });
   // Update UI to show completed transfer of 1 ETH
   appMeta.value = {
     ...appMeta.value,

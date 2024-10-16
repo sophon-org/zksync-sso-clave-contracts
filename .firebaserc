@@ -7,10 +7,10 @@
         ]
       }
     },
-    "revolut-demo-app": {
+    "stake-demo-app": {
       "hosting": {
-        "revolut-demo-app": [
-          "revolut-demo-app"
+        "stake-demo-app": [
+          "stake-demo-app"
         ]
       }
     }

@@ -44,90 +44,40 @@
           Account details
         </ZkButton>
 
-        <ZkButtonIcon type="secondary" icon="more_horiz"/>
+
+        <ZkDropdown :hide-toggle="true" :menu="dropdownMenu" type="secondary" @select="itemSelected"><ZkIcon icon="more_horiz" ui="px-2"/></ZkDropdown>
       </div>
 
       <p class="mt-6 text-neutral-500">Transactions</p>
-      <div v-if="appMeta.hasCompletedInitialTransfer" class="flex gap-2 mt-6">
-        <ZkIconThumbnail icon="currency_bitcoin" />
+      <div v-for="(item, index) in history.mainAccount" :key="index" class="flex gap-2 mt-6">
+        <ZkIconThumbnail :icon="item.icon" />
         <div class="grow">
-          <p>www.revolut.com/*London</p>
-          <p class="text-sm text-neutral-600">Pending - A few minutes ago</p>
-        </div>
-        <div class="text-2xl font-light text-neutral-600">
-          - £1,786.79
-        </div>
-      </div>
-      <div class="flex gap-2 mt-6">
-        <ZkIconThumbnail icon="add" />
-        <div class="grow">
-          <p>OBA topup from N Villanueva</p>
-          <p class="text-sm text-neutral-600">4 Oct, 13:32 - OBAGNSGT3OXBB4433</p>
+          <p>{{ item.description  }}</p>
+          <p class="text-sm text-neutral-600">{{ item.time }}</p>
         </div>
         <div class="text-2xl font-light">
-          + £2,000.00
+          {{item.amount}}
         </div>
       </div>
     </LayoutCard>
-
-    <!-- <h2 class="mb-4 font-semibold text-neutral-600">Assets</h2>
-
-    <LayoutCard class="flex gap-2 items-center mb-8">
-      <TokenUsdc :height="48" />
-      <div class="flex flex-col">
-        <span>USDC</span>
-        <span class="text-neutral-700 text-sm">USDC</span>
-      </div>
-      <span class="grow text-right">300</span>
-    </LayoutCard>
-
-    <h2 class="mb-4 font-semibold text-neutral-600">Applications</h2>
-
-    <div>
-      <div class="bg-primary-200 rounded-t-zk flex items-center justify-center gap-2 py-4">
-        <img src="/aave-logo.png" class="rounded-lg h-[32px]"  >
-        <span class="text-white">AAVE</span>
-      </div>
-      <div class="bg-white rounded-b-zk pt-4 px-8 pb-8">
-        <ZkTabs
-        :tabs="[
-          { slot: 'tab1', label: 'Assets to supply' },
-          { slot: 'tab2', label: 'Your supplies' },
-        ]"
-      >
-        <template #tab1>
-          <div class="flex gap-2">
-            <TokenUsdc :height="48"/>
-            <div class="grow flex justify-stretch">
-              <div class="grow">
-                <div>USDC</div>
-                <div class="text-sm text-neutral-600">USDC</div>
-              </div>
-              <div class="grow">
-                <div>0.97 %</div>
-                <div class="text-sm text-neutral-600">APY</div>
-              </div>
-              <div class="grow">
-                <div>YES</div>
-                <div class="text-sm text-neutral-600">Can be collateral</div>
-              </div>
-            </div>
-            <div class="flex gap-2">
-              <ZkButton type="secondary">Supply</ZkButton>
-              <ZkButtonIcon type="secondary" icon="more_horiz"/>
-            </div>
-          </div>
-        </template>
-        <template #tab2>
-          Supplies
-        </template>
-      </ZkTabs>
-      </div>
-    </div> -->
-
   </div>
 </template>
 
 <script setup lang="ts">
 const { appMeta } = useAppMeta();
+const history = useHistory();
+
+const dropdownMenu = [
+  {
+    value: "reset",
+    label: "Reset Demo",
+  }
+];
+
+const itemSelected = (value: string) => {
+  if (value === "reset") {
+    localStorage.clear();
+    window.location.reload();
+  }
+};
 </script>

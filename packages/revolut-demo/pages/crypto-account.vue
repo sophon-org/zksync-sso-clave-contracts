@@ -73,24 +73,14 @@
           + 5.00 USDC
         </div>
       </div> -->
-      <div v-if="appMeta.hasCompletedAaveStake" class="flex gap-2 mt-4">
-        <ZkIconThumbnail icon="savings" />
+      <div v-for="(item, index) in history.cryptoAccount" :key="index" class="flex gap-2 mt-4">
+        <ZkIconThumbnail :icon="item.icon" />
         <div class="grow">
-          <p>Staked on AAVE</p>
-          <p class="text-sm text-neutral-600">Just now</p>
-        </div>
-        <div class="text-2xl font-light text-neutral-600">
-          - 0.1000 ETH
-        </div>
-      </div>
-      <div class="flex gap-2 mt-4">
-        <ZkIconThumbnail icon="add" />
-        <div class="grow">
-          <p>Received from Main account</p>
-          <p class="text-sm text-neutral-600">5 minutes ago</p>
+          <p>{{ item.description }}</p>
+          <p class="text-sm text-neutral-600">{{ item.time }}</p>
         </div>
         <div class="text-2xl font-light">
-          + 1.0000 ETH
+          {{ item.amount }}
         </div>
       </div>
     </LayoutCard>
@@ -251,6 +241,7 @@ import { createZksyncPasskeyClient } from "zksync-account/client/passkey";
 import OnRampCrypto from "~/components/app/OnRampCrypto.vue";
 
 const { appMeta, userDisplay, userRevTag, contracts, aaveAddress } = useAppMeta();
+const history = useHistory();
 const accountBalance = ref(0n);
 const isAaveSupplyClicked = ref(false);
 const priceOfEth = 1786.79;
@@ -298,6 +289,12 @@ const supplyEthToAave = async () => {
   });
 
   // Update that Aave Staking is completed
+  history.value.cryptoAccount.unshift({
+    description: "Staked on AAVE",
+    time: "Just now",
+    icon: "savings",
+    amount: "- 0.1000 ETH"
+  });
   appMeta.value = {
     ...appMeta.value,
     hasCompletedAaveStake: true,

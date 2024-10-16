@@ -4,7 +4,7 @@
       <DropdownMenu.Trigger :as-child="true">
           <ZkButton :type :ui="{base: 'py-0', button: 'px-1'}">
             <slot/>
-            <template #postfix>
+            <template v-if="!hideToggle" #postfix>
               <zk-icon
                 :icon="
                   toggleState ? 'keyboard_arrow_up' : 'keyboard_arrow_down'
@@ -49,7 +49,7 @@ type MenuItem = {
 };
 type MenuItems = Array<MenuItem>;
 
-const { align="end", type="primary" } = defineProps<{ menu: MenuItems, align: "start" | "end" | "center", type: "primary" | "secondary" | "ghost" }>();
+const { align="end", type="primary", hideToggle = false } = defineProps<{ menu: MenuItems, align: "start" | "end" | "center", type: "primary" | "secondary" | "ghost", hideToggle: boolean; }>();
 
 function selectItem(value: string) {
   emit("select", value);

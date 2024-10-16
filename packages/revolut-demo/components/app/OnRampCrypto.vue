@@ -3,8 +3,6 @@
     <span class="text-white text-2xl">Buy</span>
   </div>
 
-  <!-- <h2 class="mb-4 font-semibold text-neutral-600">Buy</h2> -->
-
   <LayoutCard class="mb-8 rounded-t-none">
     <div class="flex gap-2 mb-12">
       <TokenEth :height="48"/>
@@ -51,6 +49,7 @@
       <div class="flex gap-2 justify-center mt-8">
         <ZkButton type="secondary" class="h-8" @click="transferAmount = 0.01">0.01 ETH</ZkButton>
         <ZkButton type="secondary" class="h-8" @click="transferAmount = 0.1">0.1 ETH</ZkButton>
+        <ZkButton type="secondary" class="h-8" @click="transferAmount = 0.5">0.5 ETH</ZkButton>
         <ZkButton type="secondary" class="h-8" @click="transferAmount = 1">1 ETH</ZkButton>
       </div>
     </div>
@@ -58,7 +57,7 @@
 
   <LayoutCard class="mb-8 py-4 px-4">
     <div class="flex gap-2 items-center">
-      <img src="/revolut-logo.png" class="rounded-md h-8 mr-2"  >
+      <ZkIcon icon="credit_card" />
       <div class="grow flex justify-stretch">
         <div class="grow">
           <div class="font-bold">Pay with</div>
