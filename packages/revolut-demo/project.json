@@ -23,7 +23,7 @@
         "cwd": "packages/revolut-demo",
         "command": "nuxt preview"
       },
-      "dependsOn": ["build"]
+      "dependsOn": ["^build", "build"]
     }
   }
 }
