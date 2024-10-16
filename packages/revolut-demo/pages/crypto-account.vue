@@ -153,7 +153,7 @@
               </div>
               <div class="relative">
                 <input v-model="stakeAmount" class="w-full text-neutral-800 rounded-zk p-4 pb-8 mt-2 border border-neutral-800" type="text" placeholder="0.1">
-                <div class="absolute bottom-1 left-4 text-neutral-600">£{{(stakeAmount * priceOfEth).toFixed(2)}}</div>
+                <div class="absolute bottom-1 left-4 text-neutral-600">£{{(stakeAmount * cart.priceOfEth).toFixed(2)}}</div>
               </div>
             </div>
             <p class="text-sm font-bold text-neutral-700">Transaction overview</p>
@@ -195,7 +195,7 @@
             <span class="mr-2 text-neutral-600">APY</span>
             <span class="mr-6">0.47 %</span>
             <span class="mr-2 text-neutral-600">Collateral</span>
-            <span>£{{(stakeAmount * priceOfEth).toFixed(2)}}</span>
+            <span>£{{(stakeAmount * cart.priceOfEth).toFixed(2)}}</span>
           </div>
           <div class="rounded-zk bg-neutral-100 p-4 mt-4">
             <div class="mb-2 flex items-center">
@@ -212,7 +212,7 @@
             <hr class="border-neutral-200">
             <div class="flex mt-2 gap-4">
               <div>
-                <span>0.1</span> <span class="text-xs text-neutral-600">£{{(stakeAmount * priceOfEth).toFixed(2)}}</span>
+                <span>0.1</span> <span class="text-xs text-neutral-600">£{{(stakeAmount * cart.priceOfEth).toFixed(2)}}</span>
                 <div class="text-sm text-neutral-600">Balance</div>
               </div>
               <div>
@@ -239,16 +239,28 @@
 import { createPublicClient, formatEther, http, parseEther, type Address, type Chain } from "viem";
 import { createZksyncPasskeyClient } from "zksync-account/client/passkey";
 import OnRampCrypto from "~/components/app/OnRampCrypto.vue";
+import { useTimeoutPoll } from "@vueuse/core";
 
 const { appMeta, userDisplay, userRevTag, contracts, aaveAddress } = useAppMeta();
 const history = useHistory();
 const accountBalance = ref(0n);
 const isAaveSupplyClicked = ref(false);
-const priceOfEth = 1786.79;
+const cart = useCart();
 const stakeAmount = ref(0.1);
 const tabSlot = ref<string | number>("tab1");
 
 const config = useRuntimeConfig();
+
+onMounted(() => {
+  const getBalance = async () => {
+    accountBalance.value = await publicClient.getBalance({
+      address: appMeta.value.cryptoAccountAddress! as Address,
+    });
+  };
+  const { resume } = useTimeoutPoll(getBalance, 1000);
+
+  resume();
+});
 
 const publicClient = createPublicClient({
   chain: config.public.network as Chain,
@@ -282,7 +294,7 @@ const supplyEthToAave = async () => {
     transport: http(),
   });
 
-  console.log("Sending 0.1 ETH to AAVE Address");
+  console.log("Sending 0.1 ETH to AAVE Address", aaveAddress);
   await passkeyClient.sendTransaction({
     to: aaveAddress as Address,
     value: parseEther("0.1"),

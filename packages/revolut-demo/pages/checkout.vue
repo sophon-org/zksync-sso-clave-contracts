@@ -24,7 +24,7 @@
         </div>
       </div>
       <div class="flex gap-2">
-        <p class="text-sm font-medium">£{{(transferAmount * priceOfEth).toLocaleString(undefined, {maximumFractionDigits: 2})}}</p>
+        <p class="text-sm font-medium">£{{(transferAmount * cart.priceOfEth).toLocaleString(undefined, {maximumFractionDigits: 2})}}</p>
       </div>
     </div>
     </div>
@@ -48,7 +48,7 @@
       <div class="flex py-4">
         <div class="grow text-neutral-500">Price</div>
         <div class="text-right">
-          <div>ETH 1 = £{{priceOfEth.toLocaleString(undefined, {maximumFractionDigits: 2})}}</div>
+          <div>ETH 1 = £{{cart.priceOfEth.toLocaleString(undefined, {maximumFractionDigits: 2})}}</div>
         </div>
       </div>
     </div>
@@ -56,7 +56,7 @@
     <div class="rounded-zk p-4 bg-white mt-4">
       <div class="flex justify-between">
         <div class="text-neutral-500">Total</div>
-        <div class="font-bold">£{{(transferAmount * priceOfEth).toLocaleString(undefined, {maximumFractionDigits: 2})}}</div>
+        <div class="font-bold">£{{(transferAmount * cart.priceOfEth).toLocaleString(undefined, {maximumFractionDigits: 2})}}</div>
       </div>
     </div>
 
@@ -66,7 +66,7 @@
 
     <div class="flex justify-center pb-12">
       <ZkButton type="primary" class="mt-4" @click="continueToTransferConfirmation">
-        Pay £{{(transferAmount * priceOfEth).toLocaleString(undefined, {maximumFractionDigits: 2})}}
+        Pay £{{(transferAmount * cart.priceOfEth).toLocaleString(undefined, {maximumFractionDigits: 2})}}
       </ZkButton>
     </div>
   </div>
@@ -79,7 +79,7 @@ import { privateKeyToAccount } from "viem/accounts";
 const history = useHistory();
 
 const transferAmount = ref(1);
-const priceOfEth = 1786.79;
+const cart = useCart();
 
 const { appMeta, deployerKey } = useAppMeta();
 const config = useRuntimeConfig();
@@ -98,7 +98,7 @@ const continueToTransferConfirmation = async () => {
 
   await deployerClient.sendTransaction({
     to: appMeta.value.cryptoAccountAddress!,
-    value: parseEther("1")
+    value: parseEther(transferAmount.value.toString())
   });
 
   const publicClient = createPublicClient({
@@ -110,12 +110,12 @@ const continueToTransferConfirmation = async () => {
     address: appMeta.value.cryptoAccountAddress!
   });
 
-  console.log("balance after transfer of 1 ETH");
+  console.log(`balance after transfer of ${transferAmount.value} ETH`);
   console.log(`${formatEther(balance)} ETH`);
 
 
   history.value.mainAccount.unshift({
-    description: "www.revolut.com/*London",
+    description: "www.exchange.com/*London",
     time: "Pending - A few minutes ago",
     amount: "- £1,786.79",
     icon: "currency_bitcoin",
