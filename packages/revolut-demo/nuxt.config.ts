@@ -26,7 +26,7 @@ export default defineNuxtConfig({
       network: zksyncInMemoryNode,
       session: "0x476F23ef274F244282252341792c8a610feF78ee",
       passkey: "0x455e8d86DC6728396f8d3B740Fc893F4E20b25Dc",
-      accountFactory: "0x04FaEd9dCb8d7731d89fe94eb3cc8a29E0e10204",
+      accountFactory: "0x35938C70af13d0c3bBb4e852A9Ab10B20797AeD5",
       accountImplementation: "0x6cd5A2354Be0E656e7A1E94F1C0570E08EC4789B",
     }
   },
@@ -38,7 +38,7 @@ export default defineNuxtConfig({
         network: zksyncSepoliaTestnet,
         session: "0xE1c71303ED0215A0c2789F7f6e5C0A83D62740e0",
         passkey: "0x5a80c5F9A978847491080578b5f756770bDF0F0F",
-        accountFactory: "0x47FCE4A53efb7F98B2b7cf5014d4D71EE1564379",
+        accountFactory: "0x1A6345A9a4B645F8d3919f003BfE8CA5beB901b7",
         accountImplementation: "0xf2F56D1005b35E1160E577D98eA7353F1aBBabB3",
       }
     }
