@@ -26,7 +26,7 @@ export default defineNuxtConfig({
       network: zksyncInMemoryNode,
       session: "0x476F23ef274F244282252341792c8a610feF78ee",
       passkey: "0x455e8d86DC6728396f8d3B740Fc893F4E20b25Dc",
-      accountFactory: "0x23b13d016E973C9915c6252271fF06cCA2098885",
+      accountFactory: "0x04FaEd9dCb8d7731d89fe94eb3cc8a29E0e10204",
       accountImplementation: "0x6cd5A2354Be0E656e7A1E94F1C0570E08EC4789B",
     }
   },
@@ -36,10 +36,10 @@ export default defineNuxtConfig({
         aaveAddress: "0x34847471630EEAB49c07Eb2EdABE773F4A0eaDf7",
         revolutDemoDeployerKey: "0x89b96a981c0943d67a01cfc73f3f07c96d7da5dd0ccfef4e65366cb25f62e80c",
         network: zksyncSepoliaTestnet,
-        session: "0x5f8BA8B94Ed013D06a7A2Db8001E18D3b8b48C49",
-        passkey: "0x4A417adBef9B8Cad98A1347AAd5FD63c89c56b33",
-        accountFactory: "0x8A993b0E56bB3248AEeb9D83FaD3051AE7B937F1",
-        accountImplementation: "0xf614017569f0cBD6d6D11b79bdfdf29C191ABE00",
+        session: "0xE1c71303ED0215A0c2789F7f6e5C0A83D62740e0",
+        passkey: "0x5a80c5F9A978847491080578b5f756770bDF0F0F",
+        accountFactory: "0x47FCE4A53efb7F98B2b7cf5014d4D71EE1564379",
+        accountImplementation: "0xf2F56D1005b35E1160E577D98eA7353F1aBBabB3",
       }
     }
   }

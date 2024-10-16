@@ -1,3 +1,29 @@
 {
-  "name": "revolut-demo"
+  "name": "revolut-demo",
+  "targets": {
+    "dev": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "packages/revolut-demo",
+        "command": "PORT=3005 nuxt dev"
+      },
+      "dependsOn": []
+    },
+    "build": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "packages/revolut-demo",
+        "command": "nuxt generate"
+      },
+      "dependsOn": []
+    },
+    "preview": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "packages/revolut-demo",
+        "command": "nuxt preview"
+      },
+      "dependsOn": ["build"]
+    }
+  }
 }
