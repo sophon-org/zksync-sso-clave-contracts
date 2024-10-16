@@ -294,11 +294,13 @@ const supplyEthToAave = async () => {
     transport: http(),
   });
 
+  console.log("contracts", contracts);
   console.log("Sending 0.1 ETH to AAVE Address", aaveAddress);
   await passkeyClient.sendTransaction({
     to: aaveAddress as Address,
     value: parseEther("0.1"),
   });
+
 
   // Update that Aave Staking is completed
   history.value.cryptoAccount.unshift({

@@ -27,6 +27,7 @@ export function createZksyncPasskeyClient<
         },
       };
 
+      console.log("(signHash)calling custom sign function for hash", passkeySignature);
       return passkeyHashSignatureResponseFormat(passkeySignature.passkeyAuthenticationResponse.response, parameters.contracts);
     },
   });
