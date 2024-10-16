@@ -193,6 +193,7 @@ abstract contract HookManager is IHookManager, Auth {
     address hookAddress = address(bytes20(hookAndData[0:20]));
 
     if (!_supportsHook(hookAddress, isValidation)) {
+      // TODO this will fail probably
       revert Errors.HOOK_ERC165_FAIL();
     }
 
