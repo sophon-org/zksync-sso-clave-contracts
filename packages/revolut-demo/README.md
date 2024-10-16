@@ -30,9 +30,11 @@ The Revolut demo app uses Sepolia testnet for staging.
 1. Edit the `.env` with `NUXT_PUBLIC_REVOLUT_DEMO_DEPLOYER_KEY` for an address in
 Sepolia testnet that will be used for creating the demo crypto account.
 
-2. Build the project with `pnpm nx build revolut-demo`.
+2. Navigate to the project `cd packages/revolut-demo`.
 
-3. Deploy the project to a preview channel on Firebase.
+3. Build the project with `pnpm nx build revolut-demo`.
+
+4. Deploy the project to a preview channel on Firebase.
 
     ```bash
     npx firebase-tools@latest hosting:channel:deploy \

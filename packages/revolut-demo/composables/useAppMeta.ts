@@ -38,7 +38,7 @@ export const useAppMeta = () => {
       passkey: config.public.passkey as Address,
       session: config.public.session as Address,
     },
-    deployerKey: config.public.revolutDemoDeployerKey as Address,
+    deployerKey: config.public.revolutDemoDeployerKey,
     aaveAddress: config.public.aaveAddress as Address
   };
 };
