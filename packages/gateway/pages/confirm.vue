@@ -3,7 +3,7 @@
     v-bind="TransitionOpacity"
     tag="div"
     mode="out-in"
-    class="h-full w-panel xs:h-max bg-neutral-950 xs:rounded-[32px] p-4"
+    class="h-dvh"
   >
     <ViewsLogin
       v-if="!isLoggedIn"

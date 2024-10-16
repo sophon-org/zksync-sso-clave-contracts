@@ -5,7 +5,7 @@ type SmartAccount = {
   username: string;
   address: Address;
   passkey: Hash;
-  sessionKey: Hash; // TODO: This one is temporary, should be removed once sessions work properly
+  sessionKey?: Hash; // TODO: This one is temporary, should be removed once sessions work properly
 };
 
 export const useAccountStore = defineStore("account", () => {

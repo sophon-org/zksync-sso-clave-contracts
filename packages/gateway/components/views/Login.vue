@@ -1,5 +1,5 @@
 <template>
-  <div class="h-full flex flex-col justify-center pb-8">
+  <div class="h-full flex flex-col justify-center px-4">
     <div class="mx-auto mt-6 w-20 h-20 rounded-full bg-neutral-800">
       <img
         v-if="appMeta && appMeta.icon"
