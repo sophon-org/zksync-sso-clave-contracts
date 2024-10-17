@@ -1,6 +1,8 @@
 <template>
-  <div class="p-4">
-    <slot />
+  <div>
+    <layout-header>
+      Sessions
+    </layout-header>
   </div>
 </template>
 

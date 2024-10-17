@@ -13,12 +13,13 @@
     >
       Login to your ZK Account
     </ZkLink>
-    <ZkButton
+    <ZkLink
       type="secondary"
       class="w-full mt-4"
+      href="/register"
     >
       Create a ZK Account
-    </ZkButton>
+    </ZkLink>
     <p class="dark:text-neutral-300 py-6">
       or
     </p>
@@ -26,7 +27,6 @@
       type="secondary"
       class="w-full"
       disabled
-      @click="modal.open()"
     >
       Connect your wallet
     </ZkButton>
@@ -36,7 +36,9 @@
 <script setup lang="ts">
 import { useColorMode } from "@vueuse/core";
 
-const modal = useConfig();
+definePageMeta({
+  middleware: ["redirect-dashboard"],
+});
 
 const mode = useColorMode({
   modes: {

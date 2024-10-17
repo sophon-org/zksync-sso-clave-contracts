@@ -1,6 +1,8 @@
 <template>
-  <div class="p-4">
-    <slot />
+  <div>
+    <layout-header>
+      Settings
+    </layout-header>
   </div>
 </template>
 

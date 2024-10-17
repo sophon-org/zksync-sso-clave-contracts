@@ -27,8 +27,9 @@
       </ZkButton>
     </form>
     <ZkLink
-      class="mt-4 w-full"
-      type="secondary"
+      class="mt-8"
+      ui="border-b-0"
+      type="ghost"
       href="/login"
     >
       Login to your ZK Account
@@ -42,6 +43,10 @@ import { zksyncInMemoryNode } from "viem/chains";
 import { registerNewPasskey } from "zksync-account/client/passkey";
 import { generatePrivateKey, privateKeyToAddress } from "viem/accounts";
 import { deployAccount } from "zksync-account/client";
+
+definePageMeta({
+  middleware: ["redirect-dashboard"],
+});
 
 const chainId = zksyncInMemoryNode.id;
 const { getRichWalletClient } = useClientStore();
@@ -127,8 +132,6 @@ const { inProgress: registerInProgress, execute: createAccount } = useAsync(asyn
       throw new Error("Failed to send transaction.");
     });
 
-    console.log("ACCOUNT ==========");
-    console.log(username.value, address, toHex(credentialPublicKey), sessionKey);
     login({
       username: username.value,
       address: address,

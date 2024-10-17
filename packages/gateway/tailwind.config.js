@@ -3,9 +3,20 @@ import defaultTheme from "tailwindcss/defaultTheme";
 /** @type {import('tailwindcss').Config} */
 export default {
   darkMode: ["selector", ".dark-mode"],
+  content: [
+    "./components/**/*.{js,vue,ts}",
+    "./views/**/*.vue",
+    "./layouts/**/*.vue",
+    "./pages/**/*.vue",
+    "./plugins/**/*.{js,ts}",
+    "./utils/**/*.{js,ts}",
+    "./nuxt.config.{js,ts}",
+    "./app.vue",
+  ],
   theme: {
     extend: {
       spacing: {
+        dashboard: "1100px",
         panel: "620px",
       },
       fontFamily: {

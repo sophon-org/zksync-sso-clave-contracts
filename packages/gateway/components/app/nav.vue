@@ -3,10 +3,12 @@
     class="border border-neutral-200 rounded-zk flex justify-between dark:border-neutral-700 dark:bg-neutral-900"
   >
     <div class="flex items-center pl-3">
-      <app-account-logo
-        :height="24"
-        class="dark:text-neutral-100"
-      />
+      <NuxtLink to="/dashboard">
+        <app-account-logo
+          :height="24"
+          class="dark:text-neutral-100"
+        />
+      </NuxtLink>
     </div>
     <div
       ref="menu-wrapper"
@@ -17,56 +19,18 @@
         ref="menu"
         class="flex"
       >
-        <a
-          href="#"
-          class="active w-fit border-y-2 border-transparent border-b-neutral-700 px-5 py-3 text-neutral-900 hover:text-neutral-800 flex items-center dark:text-neutral-100 dark:border-b-neutral-200 dark:hover:text-neutral-100"
-        >
-          <zk-icon
-            icon="dashboard"
-            class="mr-2"
-          />
-          Dashboard
-        </a>
-        <a
-          href="#"
+        <NuxtLink
+          v-for="item in mainNav"
+          :key="item.href"
+          :href="item.href"
           class="w-fit border-y-2 border-transparent hover:border-b-neutral-500 px-5 py-3 text-neutral-600 hover:text-neutral-800 flex items-center dark:text-neutral-400 dark:hover:text-neutral-300"
         >
           <zk-icon
-            icon="settings"
+            :icon="item.icon"
             class="mr-2"
           />
-          Settings
-        </a>
-        <a
-          href="#"
-          class="w-fit border-y-2 border-transparent hover:border-b-neutral-500 px-5 py-3 text-neutral-600 hover:text-neutral-800 flex items-center dark:text-neutral-400 dark:hover:text-neutral-300"
-        >
-          <zk-icon
-            icon="description"
-            class="mr-2"
-          />
-          History
-        </a>
-        <a
-          href="#"
-          class="w-fit border-y-2 border-transparent hover:border-b-neutral-500 px-5 py-3 text-neutral-600 hover:text-neutral-800 flex items-center dark:text-neutral-400 dark:hover:text-neutral-300"
-        >
-          <zk-icon
-            icon="grid_view"
-            class="mr-2"
-          />
-          Marketplace
-        </a>
-        <a
-          href="#"
-          class="w-fit border-y-2 border-transparent hover:border-b-neutral-500 px-5 py-3 text-neutral-600 hover:text-neutral-800 flex items-center dark:text-neutral-400 dark:hover:text-neutral-300"
-        >
-          <zk-icon
-            icon="link"
-            class="mr-2"
-          />
-          Connections (4)
-        </a>
+          {{ item.name }}
+        </NuxtLink>
       </div>
     </div>
     <div
@@ -92,6 +56,7 @@ const { width: windowWidth } = useWindowSize();
 const menuWrapper = useTemplateRef("menu-wrapper");
 const menu = useTemplateRef("menu");
 const menuWidth = ref(0);
+const { mainNav } = useNav();
 
 const showMobileMenu = ref(false);
 
@@ -116,3 +81,9 @@ onBeforeUnmount(() => {
 
 watch(windowWidth, checkWidths);
 </script>
+
+<style lang="postcss" scoped>
+.router-link-exact-active {
+  @apply border-b-neutral-700 text-neutral-900 dark:text-neutral-100 dark:border-b-neutral-200 dark:hover:text-neutral-100
+}
+</style>

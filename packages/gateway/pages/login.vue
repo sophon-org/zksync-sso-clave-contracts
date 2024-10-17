@@ -27,8 +27,9 @@
       </ZkButton>
     </form>
     <ZkLink
-      class="w-full mt-6"
-      type="secondary"
+      class="mt-8"
+      ui="border-b-0"
+      type="ghost"
       href="/register"
     >
       Create a new ZK Account
@@ -37,6 +38,9 @@
 </template>
 
 <script setup lang="ts">
+definePageMeta({
+  middleware: ["redirect-dashboard"],
+});
 const username = ref("");
 const errorMessages: Ref<string[]> = ref([]);
 const loadingInProgress = computed(() => {
