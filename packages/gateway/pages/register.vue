@@ -38,28 +38,37 @@
 </template>
 
 <script setup lang="ts">
-import { parseEther, toHex } from "viem";
+// import { parseEther, toHex } from "viem";
 import { zksyncInMemoryNode } from "viem/chains";
-import { registerNewPasskey } from "zksync-account/client/passkey";
-import { generatePrivateKey, privateKeyToAddress } from "viem/accounts";
-import { deployAccount } from "zksync-account/client";
+// import { registerNewPasskey } from "zksync-account/client/passkey";
+// import { generatePrivateKey, privateKeyToAddress } from "viem/accounts";
+// import { deployAccount } from "zksync-account/client";
 
 definePageMeta({
   middleware: ["redirect-dashboard"],
 });
 
 const chainId = zksyncInMemoryNode.id;
-const { getRichWalletClient } = useClientStore();
-const { login } = useAccountStore();
+// const { getRichWalletClient } = useClientStore();
+// const { login } = useAccountStore();
 
 const username = ref("");
 const errorMessages: Ref<string[]> = ref([]);
+const { inProgress: registerInProgress, execute: createAccount, result: registerResult, error: registerError } = useAccountRegistration(username);
 const loadingInProgress = computed(() => {
   if (accountDataFetchInProgress.value || registerInProgress.value) {
     return true;
   } else {
     return false;
   }
+});
+
+watch(registerResult, () => {
+  navigateTo({ path: "/dashboard" });
+});
+
+watch(registerError, () => {
+  errorMessages.value = [(registerError.value as Error).message];
 });
 
 const { accountDataFetchInProgress, accountDataFetchError } = useFetchAccountData(
@@ -86,62 +95,62 @@ const registerUser = () => {
   createAccount();
 };
 
-const { inProgress: registerInProgress, execute: createAccount } = useAsync(async () => {
-  try {
-    const { credentialPublicKey } = await registerNewPasskey({
-      userName: username.value,
-      userDisplayName: username.value,
-    }).catch(() => {
-      throw new Error("Failed to register new passkey.");
-    });
+// const { inProgress: registerInProgress, execute: createAccount } = useAsync(async () => {
+//   try {
+//     const { credentialPublicKey } = await registerNewPasskey({
+//       userName: username.value,
+//       userDisplayName: username.value,
+//     }).catch(() => {
+//       throw new Error("Failed to register new passkey.");
+//     });
 
-    /* TODO: implement username check */
-    /* await fetchAccountData();
-  if (accountData.value) {
-    return; // username is taken
-  } */
-    const deployerClient = getRichWalletClient({ chainId: chainId });
-    const sessionKey = generatePrivateKey();
-    const sessionPublicKey = privateKeyToAddress(sessionKey);
+//     /* TODO: implement username check */
+//     /* await fetchAccountData();
+//   if (accountData.value) {
+//     return; // username is taken
+//   } */
+//     const deployerClient = getRichWalletClient({ chainId: chainId });
+//     const sessionKey = generatePrivateKey();
+//     const sessionPublicKey = privateKeyToAddress(sessionKey);
 
-    // Breaks at this following step
+//     // Breaks at this following step
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { address } = await deployAccount(deployerClient as any, {
-      credentialPublicKey,
-      uniqueAccountId: username.value,
-      /* TODO: Remove spend limit, right now deployment fails without initial data */
-      initialSessions: [
-        {
-          sessionPublicKey,
-          expiresAt: new Date(new Date().getTime() + 1000 * 60 * 60 * 24).toISOString(), // 24 hours
-          spendLimit: {
-            "0x111C3E89Ce80e62EE88318C2804920D4c96f92bb": "10000",
-          },
-        },
-      ],
-      contracts: contractsByChain[chainId],
-    }).catch(() => {
-      throw new Error("Failed to create a new account.");
-    });
+//     // eslint-disable-next-line @typescript-eslint/no-explicit-any
+//     const { address } = await deployAccount(deployerClient as any, {
+//       credentialPublicKey,
+//       uniqueAccountId: username.value,
+//       /* TODO: Remove spend limit, right now deployment fails without initial data */
+//       initialSessions: [
+//         {
+//           sessionPublicKey,
+//           expiresAt: new Date(new Date().getTime() + 1000 * 60 * 60 * 24).toISOString(), // 24 hours
+//           spendLimit: {
+//             "0x111C3E89Ce80e62EE88318C2804920D4c96f92bb": "10000",
+//           },
+//         },
+//       ],
+//       contracts: contractsByChain[chainId],
+//     }).catch(() => {
+//       throw new Error("Failed to create a new account.");
+//     });
 
-    await deployerClient.sendTransaction({
-      to: address,
-      value: parseEther("1"),
-    }).catch(() => {
-      throw new Error("Failed to send transaction.");
-    });
+//     await deployerClient.sendTransaction({
+//       to: address,
+//       value: parseEther("1"),
+//     }).catch(() => {
+//       throw new Error("Failed to send transaction.");
+//     });
 
-    login({
-      username: username.value,
-      address: address,
-      passkey: toHex(credentialPublicKey),
-      sessionKey,
-    });
-    await navigateTo({ path: "/dashboard" });
-  } catch (error) {
-    errorMessages.value = [(error as Error).message];
-    return;
-  }
-});
+//     login({
+//       username: username.value,
+//       address: address,
+//       passkey: toHex(credentialPublicKey),
+//       sessionKey,
+//     });
+//     await navigateTo({ path: "/dashboard" });
+//   } catch (error) {
+//     errorMessages.value = [(error as Error).message];
+//     return;
+//   }
+// });
 </script>
