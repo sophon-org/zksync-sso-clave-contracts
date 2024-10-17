@@ -122,16 +122,13 @@ describe.only("SessionKeyModule tests", function () {
     const sessionKeyModuleContract = await fixtures.getSessionKeyContract();
     const sessionKeyModuleAddress = await sessionKeyModuleContract.getAddress();
 
-    console.log("session key module", sessionKeyModuleAddress);
-    console.log("session owner", sessionOwner.address);
-
     const smartAccount = new SmartAccount({
       payloadSigner: async (hash) => abiCoder.encode(
         ["bytes", "address", "bytes[]"],
         [
           sessionOwner.signingKey.sign(hash).serialized,
           sessionKeyModuleAddress,
-          []
+          ["0x"]
         ]
       ),
       address: proxyAccountAddress,
@@ -142,7 +139,7 @@ describe.only("SessionKeyModule tests", function () {
       ...await aaTxTemplate(),
       to: sessionTarget,
       value: parseEther("0.1"),
-      gasLimit: 100_000_000n, // FIXME idk why but gas estimation doesn't work
+      gasLimit: 100_000_000n,
     };
     // aaTx.gasLimit = await provider.estimateGas(aaTx);
 
@@ -150,8 +147,9 @@ describe.only("SessionKeyModule tests", function () {
     assert(signedTransaction != null, "valid transaction to sign");
 
     const tx = await provider.broadcastTransaction(signedTransaction);
-    const receipt = await tx.wait();
-    console.log(receipt);
+    await tx.wait();
+
+    expect(await provider.getBalance(sessionTarget)).to.equal(parseEther("0.1"), "session target should have received the funds");
   });
 
 });
