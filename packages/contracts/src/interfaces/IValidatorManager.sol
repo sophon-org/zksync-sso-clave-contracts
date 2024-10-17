@@ -68,6 +68,13 @@ interface IValidatorManager {
   function k1RemoveValidator(address validator) external;
 
   /**
+   * @notice Removes a validator from the list of modular validators
+   * @dev Can only be called by self or a whitelisted module
+   * @param validator address - Address of the validator to remove
+   */
+  function removeModuleValidator(address validator) external;
+
+  /**
    * @notice Checks if an address is in the r1 validator list
    * @param validator address -Address of the validator to check
    * @return True if the address is a validator, false otherwise
@@ -82,6 +89,13 @@ interface IValidatorManager {
   function k1IsValidator(address validator) external view returns (bool);
 
   /**
+   * @notice Checks if an address is in the modular validator list
+   * @param validator address - Address of the validator to check
+   * @return True if the address is a validator, false otherwise
+   */
+  function isModuleValidator(address validator) external view returns (bool);
+
+  /**
    * @notice Returns the list of r1 validators
    * @return validatorList address[] memory - Array of r1 validator addresses
    */
@@ -92,4 +106,10 @@ interface IValidatorManager {
    * @return validatorList address[] memory - Array of k1 validator addresses
    */
   function k1ListValidators() external view returns (address[] memory validatorList);
+
+  /**
+   * @notice Returns the list of modular validators
+   * @return validatorList address[] memory - Array of modular validator addresses
+   */
+  function listModuleValidators() external view returns (address[] memory validatorList);
 }

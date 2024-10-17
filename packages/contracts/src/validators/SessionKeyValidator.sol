@@ -291,8 +291,7 @@ contract SessionKeyValidator is IHook, IValidationHook, IExecutionHook, IModuleV
   }
 
   function createSession(NewSession memory newSession) public {
-    // FIXME check if smart account has this module installed
-    // require(isInitialized(msg.sender), "Account not initialized");
+    require(_isInitialized(msg.sender), "Account not initialized");
     uint256 sessionId = sessions[msg.sender].nextSessionId++;
     sessions[msg.sender].sessionsBySigner[newSession.signer] = sessionId;
     SessionLib.SessionPolicy storage session = sessions[msg.sender].sessionsById[sessionId];
@@ -301,39 +300,43 @@ contract SessionKeyValidator is IHook, IValidationHook, IExecutionHook, IModuleV
 
   function init(bytes calldata data) external {
     // to prevent recursion, since addHook also calls init
-    if (!IHookManager(msg.sender).isHook(address(this))) {
+    if (!_isInitialized(msg.sender)) {
       _install(data);
-      IValidatorManager(msg.sender).addModuleValidator(address(this), "");
+      IValidatorManager(msg.sender).addModuleValidator(address(this), data);
       IHookManager(msg.sender).addHook(abi.encodePacked(address(this)), true);
     }
   }
 
-  /* array of token spend limit configurations (sane defaults)
-   * @param data TokenConfig[]
-   */
   function onInstall(bytes calldata data) external override {
+    // TODO
     _install(data);
   }
 
   function _install(bytes calldata data) internal {
-    // TODO maybe add ability to add session keys here too
-    sessions[msg.sender].nextSessionId++;
+    uint256 nextId = sessions[msg.sender].nextSessionId;
+    if (nextId == 0) {
+      sessions[msg.sender].nextSessionId = 1;
+    }
   }
 
-  /* Remove all the spending limits for the message sender
-   * @param data (unused, but needed to satisfy interfaces)
-   */
   function onUninstall(bytes calldata) external override {}
 
-  function disable() external {}
+  // FIXME should also revoke all active session keys somehow
+  function disable() external {
+    if (_isInitialized(msg.sender)) {
+      IValidatorManager(msg.sender).removeModuleValidator(address(this));
+      IHookManager(msg.sender).removeHook(address(this), true);
+    }
+  }
 
   function supportsInterface(bytes4 interfaceId) external pure override returns (bool) {
     // found by example
     return interfaceId == 0x01ffc9a7 || interfaceId == 0xffffffff;
   }
 
-  function revokeKey(address sessionKey) external {
-    sessions[msg.sender].sessionsBySigner[sessionKey] = 0;
+  function revokeKey(address sessionOwner) external {
+    require(_isInitialized(msg.sender), "Account not initialized");
+    sessions[msg.sender].sessionsBySigner[sessionOwner] = 0;
   }
 
   /*
@@ -342,8 +345,12 @@ contract SessionKeyValidator is IHook, IValidationHook, IExecutionHook, IModuleV
    * @return true if spend limits are configured initialized, false otherwise
    */
   function isInitialized(address smartAccount) external view returns (bool) {
-    // FIXME not quite true, since it will be > 0 if uninstalled
-    return sessions[smartAccount].nextSessionId > 0;
+    return _isInitialized(smartAccount);
+  }
+
+  function _isInitialized(address smartAccount) internal view returns (bool) {
+    return IHookManager(msg.sender).isHook(address(this));
+      // && IValidatorManager(msg.sender).isModuleValidator(address(this));
   }
 
   /*

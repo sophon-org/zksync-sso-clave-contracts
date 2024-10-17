@@ -47,6 +47,11 @@ abstract contract ValidatorManager is IValidatorManager, Auth {
     _k1RemoveValidator(validator);
   }
 
+  ///@inheritdoc IValidatorManager
+  function removeModuleValidator(address validator) external onlySelfOrModule {
+    _moduleValidatorsLinkedList().remove(validator);
+  }
+
   /// @inheritdoc IValidatorManager
   function r1IsValidator(address validator) external view override returns (bool) {
     return _r1IsValidator(validator);
@@ -58,6 +63,11 @@ abstract contract ValidatorManager is IValidatorManager, Auth {
   }
 
   /// @inheritdoc IValidatorManager
+  function isModuleValidator(address validator) external view override returns (bool) {
+    return _isModuleValidator(validator);
+  }
+
+  /// @inheritdoc IValidatorManager
   function r1ListValidators() external view override returns (address[] memory validatorList) {
     validatorList = _r1ValidatorsLinkedList().list();
   }
@@ -65,6 +75,11 @@ abstract contract ValidatorManager is IValidatorManager, Auth {
   /// @inheritdoc IValidatorManager
   function k1ListValidators() external view override returns (address[] memory validatorList) {
     validatorList = _k1ValidatorsLinkedList().list();
+  }
+
+  /// @inheritdoc IValidatorManager
+  function listModuleValidators() external view override returns (address[] memory validatorList) {
+    validatorList = _moduleValidatorsLinkedList().list();
   }
 
   function _r1AddValidator(address validator) internal {
