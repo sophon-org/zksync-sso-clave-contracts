@@ -4,12 +4,12 @@ import { deployAccount } from "zksync-account/client";
 import { zksyncInMemoryNode } from "viem/chains";
 import { parseEther, toHex } from "viem";
 
-export function useAccountRegistration(username: Ref<string>) {
+export async function useAccountRegistration(username: Ref<string>) {
   const { getRichWalletClient } = useClientStore();
   const chainId = zksyncInMemoryNode.id;
   const { login } = useAccountStore();
 
-  return useAsync(async () => {
+  return await useAsyncData("account-registration", async () => {
     const { credentialPublicKey } = await registerNewPasskey({
       userName: username.value,
       userDisplayName: username.value,
@@ -62,5 +62,7 @@ export function useAccountRegistration(username: Ref<string>) {
     });
 
     return true;
+  }, {
+    immediate: false,
   });
 }

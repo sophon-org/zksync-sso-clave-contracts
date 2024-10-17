@@ -44,7 +44,7 @@ definePageMeta({
 const username = ref("");
 const errorMessages: Ref<string[]> = ref([]);
 const loadingInProgress = computed(() => {
-  if (loginInProgress.value) {
+  if (loginInProgress.value === "pending") {
     return true;
   } else {
     return false;
@@ -52,7 +52,7 @@ const loadingInProgress = computed(() => {
 });
 
 const loginUser = () => {
-  if (!username.value || loginInProgress.value) {
+  if (!username.value || loginInProgress.value === "pending") {
     return;
   }
 
@@ -62,20 +62,5 @@ const loginUser = () => {
   });
 };
 
-const { inProgress: loginInProgress, execute: connectToAccount } = useAsync(async () => {
-  const credential = await navigator.credentials.get({
-    publicKey: {
-      challenge: new Uint8Array(32),
-      userVerification: "discouraged",
-    },
-  }).catch(() => {
-    throw new Error("Passkey verification was interrupted. Please try again.");
-  });
-  if (!credential) throw new Error("There are no registered passkeys for this user.");
-
-  console.log({ credential });
-  console.log("Login not implemented yet");
-  console.log("CREDENTIALS", credential);
-  /* TODO: find account by credential.id */
-});
+const { status: loginInProgress, execute: connectToAccount } = await useAccountLogin();
 </script>
