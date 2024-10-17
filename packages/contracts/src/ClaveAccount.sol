@@ -212,7 +212,9 @@ contract ClaveAccount is
   ) internal returns (bytes4 magicValue) {
     if (transaction.signature.length == 65) {
       (address signer, ) = ECDSA.tryRecover(signedHash, transaction.signature);
-      // TODO: move it lower so that validation hooks are run
+      if (signer == address(0)) {
+        return bytes4(0);
+      }
       return _k1IsOwner(signer) ? ACCOUNT_VALIDATION_SUCCESS_MAGIC : bytes4(0);
     }
 
@@ -226,14 +228,12 @@ contract ClaveAccount is
 
     // Run validation hooks
     bool hookSuccess = runValidationHooks(signedHash, transaction, hookData);
-    console.log("hook success");
     if (!hookSuccess) {
       console.log("failed hook validation");
       return bytes4(0);
     }
 
     bool valid = _handleValidation(validator, signedHash, signature);
-    console.log("passed validation");
 
     magicValue = valid ? ACCOUNT_VALIDATION_SUCCESS_MAGIC : bytes4(0);
   }

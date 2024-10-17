@@ -229,6 +229,8 @@ library SessionLib {
   function fill(SessionPolicy storage session, NewSession memory newSession) internal {
     session.isOpen = true;
     session.expiry = newSession.expiry;
+    session.feeLimit.isLimited = true;
+    session.feeLimit.limit = newSession.feeLimit;
     for (uint256 i = 0; i < newSession.policies.length; i++) {
       NewFunctionPolicy memory newFunctionPolicy = newSession.policies[i];
       FunctionPolicy storage functionPolicy = session.policy[newFunctionPolicy.target][newFunctionPolicy.selector];
@@ -292,6 +294,7 @@ contract SessionKeyValidator is IHook, IValidationHook, IExecutionHook, IModuleV
 
   function createSession(NewSession memory newSession) public {
     require(_isInitialized(msg.sender), "Account not initialized");
+    require(newSession.signer != address(0), "Invalid signer");
     uint256 sessionId = sessions[msg.sender].nextSessionId++;
     sessions[msg.sender].sessionsBySigner[newSession.signer] = sessionId;
     SessionLib.SessionPolicy storage session = sessions[msg.sender].sessionsById[sessionId];
@@ -376,7 +379,8 @@ contract SessionKeyValidator is IHook, IValidationHook, IExecutionHook, IModuleV
     Transaction calldata transaction,
     bytes calldata _hookData
   ) external {
-    (address recoveredAddress, ) = ECDSA.tryRecover(signedHash, transaction.signature);
+    (bytes memory signature, , ) = abi.decode(transaction.signature, (bytes, address, bytes[]));
+    (address recoveredAddress, ) = ECDSA.tryRecover(signedHash, signature);
     uint256 sessionId = sessions[msg.sender].sessionsBySigner[recoveredAddress];
     if (sessionId == 0) {
       // This transaction was not signed by a session key,

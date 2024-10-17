@@ -92,7 +92,7 @@ describe.only("SessionKeyModule tests", function () {
         {
           target: sessionTarget,
           selector: '0x00000000',
-          maxValuePerUse: parseEther("0.1"),
+          maxValuePerUse: parseEther("0.01"),
           isValueLimited: false,
           valueLimit: 0,
           constraints: []
@@ -122,23 +122,26 @@ describe.only("SessionKeyModule tests", function () {
     const sessionKeyModuleContract = await fixtures.getSessionKeyContract();
     const sessionKeyModuleAddress = await sessionKeyModuleContract.getAddress();
 
+    console.log("sessionOwner", sessionOwner.address);
+    console.log("sessionKeyModuleAddress", sessionKeyModuleAddress);
+
     const smartAccount = new SmartAccount({
       payloadSigner: async (hash) => abiCoder.encode(
         ["bytes", "address", "bytes[]"],
         [
           sessionOwner.signingKey.sign(hash).serialized,
           sessionKeyModuleAddress,
-          ["0x"]
+          ["0x"] // this array supplies data for hooks
         ]
       ),
       address: proxyAccountAddress,
-      secret: fixtures.wallet.privateKey,
+      secret: sessionOwner.privateKey,
     }, provider);
 
     const aaTx = {
       ...await aaTxTemplate(),
       to: sessionTarget,
-      value: parseEther("0.1"),
+      value: parseEther("0.01"),
       gasLimit: 100_000_000n,
     };
     // aaTx.gasLimit = await provider.estimateGas(aaTx);
@@ -149,7 +152,38 @@ describe.only("SessionKeyModule tests", function () {
     const tx = await provider.broadcastTransaction(signedTransaction);
     await tx.wait();
 
-    expect(await provider.getBalance(sessionTarget)).to.equal(parseEther("0.1"), "session target should have received the funds");
+    expect(await provider.getBalance(sessionTarget)).to.equal(parseEther("0.01"), "session target should have received the funds");
+  });
+
+  it("should reject a session key transaction that goes over value limit", async () => {
+    const sessionKeyModuleContract = await fixtures.getSessionKeyContract();
+    const sessionKeyModuleAddress = await sessionKeyModuleContract.getAddress();
+
+    const smartAccount = new SmartAccount({
+      payloadSigner: async (hash) => abiCoder.encode(
+        ["bytes", "address", "bytes[]"],
+        [
+          sessionOwner.signingKey.sign(hash).serialized,
+          sessionKeyModuleAddress,
+          ["0x"] // this array supplies data for hooks
+        ]
+      ),
+      address: proxyAccountAddress,
+      secret: sessionOwner.privateKey,
+    }, provider);
+
+    const aaTx = {
+      ...await aaTxTemplate(),
+      to: sessionTarget,
+      value: parseEther("0.02"),
+      gasLimit: 100_000_000n,
+    };
+    // aaTx.gasLimit = await provider.estimateGas(aaTx);
+
+    const signedTransaction = await smartAccount.signTransaction(aaTx);
+    assert(signedTransaction != null, "valid transaction to sign");
+
+    await expect(provider.broadcastTransaction(signedTransaction)).to.be.reverted;
   });
 
 });
