@@ -38,9 +38,14 @@
 </template>
 
 <script setup lang="ts">
+// import { zksyncInMemoryNode } from "viem/chains";
+
 definePageMeta({
   middleware: ["redirect-dashboard"],
 });
+
+// const chainId = zksyncInMemoryNode.id;
+
 const username = ref("");
 const errorMessages: Ref<string[]> = ref([]);
 const loadingInProgress = computed(() => {
@@ -51,16 +56,20 @@ const loadingInProgress = computed(() => {
   }
 });
 
+const { status: loginInProgress, execute: connectToAccount } = await useAccountLogin();
+
+// const { accountData, accountDataFetchInProgress, accountDataFetchError/* , fetchAccountData */ } = useFetchAccountData(
+//   username,
+//   computed(() => chainId),
+// );
+
 const loginUser = () => {
   if (!username.value || loginInProgress.value === "pending") {
     return;
   }
 
   connectToAccount().catch((error) => {
-    console.error(error);
     errorMessages.value = [(error as Error).message];
   });
 };
-
-const { status: loginInProgress, execute: connectToAccount } = await useAccountLogin();
 </script>
