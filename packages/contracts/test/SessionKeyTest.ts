@@ -5,7 +5,8 @@ import { it } from "mocha";
 import { SmartAccount, utils } from "zksync-ethers";
 
 import { ERC7579Account__factory } from "../typechain-types";
-import { NewSessionStruct } from "../typechain-types/src/validators/SessionKeyValidator";
+import type { ERC20 } from "../typechain-types";
+import type { SessionLib } from "../typechain-types/src/validators/SessionKeyValidator";
 import { ContractFixtures } from "./EndToEndSpendLimit";
 import { getProvider } from "./utils";
 
@@ -13,40 +14,69 @@ const fixtures = new ContractFixtures();
 const abiCoder = new ethers.AbiCoder();
 const provider = getProvider();
 
+enum Condition {
+  Unconstrained = 0,
+  Equal = 1,
+  Greater = 2,
+  Less = 3,
+  GreaterEqual = 4,
+  LessEqual = 5,
+  NotEqual = 6,
+}
+
+enum LimitType {
+  Unlimited = 0,
+  Lifetime = 1,
+  Allowance = 2,
+}
+
 function oneYearAway() {
   const now = new Date();
   return Math.floor(+new Date(now.setFullYear(now.getFullYear() + 1)) / 1000);
 }
 
+type PartialLimit = {
+  limitType: LimitType;
+  limit: ethers.BigNumberish;
+  period?: ethers.BigNumberish;
+};
+
 type PartialSession = {
   expiry?: number;
-  feeLimit?: bigint;
+  feeLimit?: PartialLimit;
   policies?: {
     target: string;
     selector?: string;
-    maxValuePerUse?: bigint;
-    valueLimit?: bigint;
+    maxValuePerUse?: ethers.BigNumberish;
+    valueLimit?: PartialLimit;
     constraints?: {
-      condition?: bigint;
-      offset: bigint;
+      condition?: Condition;
+      offset: ethers.BigNumberish;
       refValue?: ethers.BytesLike;
-      usageLimit?: bigint;
-      allowanceLimit?: bigint;
-      timePeriod?: bigint;
+      limit?: PartialLimit;
     }[]
   }[];
 };
 
 class SessionTester {
   public sessionOwner: Wallet;
-  public session: NewSessionStruct;
+  public session: SessionLib.NewSessionStruct;
+  public sessionAccount: SmartAccount;
 
-  constructor(public proxyAccountAddress: string) {
+  constructor(public proxyAccountAddress: string, sessionKeyModuleAddress: string) {
     this.sessionOwner = new Wallet(Wallet.createRandom().privateKey, provider);
-  }
-
-  target(policyIndex: number): string {
-    return this.session.policies[policyIndex].target as any;
+    this.sessionAccount = new SmartAccount({
+      payloadSigner: async (hash) => abiCoder.encode(
+        ["bytes", "address", "bytes[]"],
+        [
+          this.sessionOwner.signingKey.sign(hash).serialized,
+          sessionKeyModuleAddress,
+          ["0x"] // this array supplies data for hooks
+        ]
+      ),
+      address: this.proxyAccountAddress,
+      secret: this.sessionOwner.privateKey,
+    }, provider);
   }
 
   async createSession(newSession: PartialSession) {
@@ -76,22 +106,6 @@ class SessionTester {
   }
 
   async sendTxSuccess(txRequest: ethers.TransactionRequest = {}) {
-    const sessionKeyModuleContract = await fixtures.getSessionKeyContract();
-    const sessionKeyModuleAddress = await sessionKeyModuleContract.getAddress();
-
-    const smartAccount = new SmartAccount({
-      payloadSigner: async (hash) => abiCoder.encode(
-        ["bytes", "address", "bytes[]"],
-        [
-          this.sessionOwner.signingKey.sign(hash).serialized,
-          sessionKeyModuleAddress,
-          ["0x"] // this array supplies data for hooks
-        ]
-      ),
-      address: this.proxyAccountAddress,
-      secret: this.sessionOwner.privateKey,
-    }, provider);
-
     const aaTx = {
       ...await this.aaTxTemplate(),
       ...txRequest,
@@ -99,59 +113,49 @@ class SessionTester {
     // FIXME gas estimation is incorrect
     // aaTx.gasLimit = await provider.estimateGas(aaTx);
 
-    const signedTransaction = await smartAccount.signTransaction(aaTx);
+    const signedTransaction = await this.sessionAccount.signTransaction(aaTx);
     const tx = await provider.broadcastTransaction(signedTransaction);
     await tx.wait();
   }
 
   async sendTxFail(tx: ethers.TransactionRequest = {}) {
-    const sessionKeyModuleContract = await fixtures.getSessionKeyContract();
-    const sessionKeyModuleAddress = await sessionKeyModuleContract.getAddress();
-
-    const smartAccount = new SmartAccount({
-      payloadSigner: async (hash) => abiCoder.encode(
-        ["bytes", "address", "bytes[]"],
-        [
-          this.sessionOwner.signingKey.sign(hash).serialized,
-          sessionKeyModuleAddress,
-          ["0x"] // this array supplies data for hooks
-        ]
-      ),
-      address: this.proxyAccountAddress,
-      secret: this.sessionOwner.privateKey,
-    }, provider);
-
     const aaTx = {
       ...await this.aaTxTemplate(),
       gasLimit: 100_000_000n,
       ...tx,
     };
 
-    const signedTransaction = await smartAccount.signTransaction(aaTx);
+    const signedTransaction = await this.sessionAccount.signTransaction(aaTx);
     await expect(provider.broadcastTransaction(signedTransaction)).to.be.reverted;
   };
 
+  getLimit(limit?: PartialLimit): SessionLib.UsageLimitStruct {
+    return limit == null ? {
+      limitType: LimitType.Unlimited,
+      limit: 0,
+      period: 0,
+    } : {
+      limitType: limit.limitType,
+      limit: limit.limit,
+      period: limit.period ?? 0,
+    }
+  }
 
-  getSession(session: PartialSession): NewSessionStruct {
+  getSession(session: PartialSession): SessionLib.NewSessionStruct {
     return {
       signer: this.sessionOwner.address,
       expiry: session.expiry ?? oneYearAway(),
-      feeLimit: session.feeLimit ?? parseEther("1"),
+      feeLimit: this.getLimit(session.feeLimit),
       policies: session.policies?.map((policy) => ({
         target: policy.target,
         selector: policy.selector ?? "0x00000000",
         maxValuePerUse: policy.maxValuePerUse ?? 0,
-        isValueLimited: policy.valueLimit != null,
-        valueLimit: policy.valueLimit ?? 0,
+        valueLimit: this.getLimit(policy.valueLimit),
         constraints: policy.constraints?.map((constraint) => ({
           condition: constraint.condition ?? 0,
           offset: constraint.offset,
           refValue: constraint.refValue ?? ethers.ZeroHash,
-          isUsageLimited: constraint.usageLimit != null,
-          usageLimit: constraint.usageLimit ?? 0,
-          isAllowanceLimited: constraint.allowanceLimit != null,
-          allowanceLimit: constraint.allowanceLimit ?? 0,
-          timePeriod: constraint.timePeriod ?? 0,
+          limit: this.getLimit(constraint.limit),
         })) ?? []
       })) ?? []
     }
@@ -174,7 +178,6 @@ class SessionTester {
 
 describe.only("SessionKeyModule tests", function () {
   let proxyAccountAddress: string;
-  let tester: SessionTester;
 
   it("should deploy implemention, proxy and session key module", async () => {
     const accountImplContract = await fixtures.getAccountImplContract();
@@ -190,8 +193,7 @@ describe.only("SessionKeyModule tests", function () {
     const aaFactoryContract = await fixtures.getAaFactory();
     assert(aaFactoryContract != null, "No AA Factory deployed");
 
-    const sessionKeyModuleContract = await fixtures.getSessionKeyContract();
-    const sessionKeyModuleAddress = await sessionKeyModuleContract.getAddress();
+    const sessionKeyModuleAddress = await fixtures.getSessionKeyModuleAddress();
     const sessionKeyPayload = abiCoder.encode(["address", "bytes"], [sessionKeyModuleAddress, "0x"]);
 
     const deployTx = await aaFactoryContract.deployProxy7579Account(
@@ -216,30 +218,87 @@ describe.only("SessionKeyModule tests", function () {
     assert(await account.isModuleValidator(sessionKeyModuleAddress), "session key module should be a validator");
   });
 
-  it("should create a session", async () => {
-    tester = new SessionTester(proxyAccountAddress);
-    await tester.createSession({
-      policies: [{
-        target: Wallet.createRandom().address,
-        maxValuePerUse: parseEther("0.01")
-      }]
+  describe("Value transfer limit test", function () {
+    let tester: SessionTester;
+    const sessionTarget = Wallet.createRandom().address;
+
+    it("should create a session", async () => {
+      tester = new SessionTester(proxyAccountAddress, await fixtures.getSessionKeyModuleAddress());
+      await tester.createSession({
+        policies: [{
+          target: sessionTarget,
+          maxValuePerUse: parseEther("0.01")
+        }]
+      });
+    });
+
+    it("should use a session key to send a transaction", async () => {
+      await tester.sendTxSuccess({
+        to: sessionTarget,
+        value: parseEther("0.01"),
+        gasLimit: 100_000_000n,
+      });
+      expect(await provider.getBalance(sessionTarget))
+        .to.equal(parseEther("0.01"), "session target should have received the funds");
+    });
+
+    it("should reject a session key transaction that goes over limit", async () => {
+      await tester.sendTxFail({
+        to: sessionTarget,
+        value: parseEther("0.02"),
+      });
     });
   });
 
-  it("should use a session key to send a transaction", async () => {
-    await tester.sendTxSuccess({
-      to: tester.target(0),
-      value: parseEther("0.01"),
-      gasLimit: 100_000_000n,
-    });
-    expect(await provider.getBalance(tester.target(0)))
-      .to.equal(parseEther("0.01"), "session target should have received the funds");
-  });
+  describe("ERC20 transfer limit", function () {
+    let tester: SessionTester;
+    let erc20: ERC20;
+    const sessionTarget = Wallet.createRandom().address;
 
-  it("should reject a session key transaction that goes over value limit", async () => {
-    await tester.sendTxFail({
-      to: tester.target(0),
-      value: parseEther("0.02"),
+    it("should deploy and mint an ERC20 token", async () => {
+      erc20 = await fixtures.deployERC20(proxyAccountAddress);
+      expect(await erc20.balanceOf(proxyAccountAddress)).to.equal(10n**18n, "should have some tokens");
+    });
+
+    it("should create a session", async () => {
+      tester = new SessionTester(proxyAccountAddress, await fixtures.getSessionKeyModuleAddress());
+      await tester.createSession({
+        policies: [{
+          target: await erc20.getAddress(),
+          selector: erc20.interface.getFunction("transfer").selector,
+          constraints: [
+            // can only transfer to sessionTarget
+            {
+              offset: 0,
+              refValue: ethers.zeroPadValue(sessionTarget, 32),
+              condition: Condition.Equal,
+            },
+            // can only transfer upto 1000 tokens per tx
+            {
+              offset: 1,
+              refValue: ethers.toBeHex(1000, 32),
+              condition: Condition.LessEqual,
+            }
+          ]
+        }]
+      });
+    });
+
+    it("should use a session key to send a transaction", async () => {
+      await tester.sendTxSuccess({
+        to: await erc20.getAddress(),
+        data: erc20.interface.encodeFunctionData("transfer", [sessionTarget, 1000n]),
+        gasLimit: 100_000_000n,
+      });
+      expect(await erc20.balanceOf(sessionTarget))
+        .to.equal(1000n, "session target should have received the tokens");
+    });
+
+    it("should reject a session key transaction that goes over limit", async () => {
+      await tester.sendTxFail({
+        to: await erc20.getAddress(),
+        data: erc20.interface.encodeFunctionData("transfer", [sessionTarget, 1001n]),
+      });
     });
   });
 });

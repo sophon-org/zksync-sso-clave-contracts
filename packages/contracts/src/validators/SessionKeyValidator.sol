@@ -17,34 +17,11 @@ import { IValidatorManager } from "../interfaces/IValidatorManager.sol";
 
 import "hardhat/console.sol";
 
-struct NewSession {
-  address signer;
-  uint256 expiry;
-  uint256 feeLimit;
-  NewFunctionPolicy[] policies;
-}
-
-struct NewFunctionPolicy {
-  bytes4 selector;
-  address target;
-  uint256 maxValuePerUse;
-  bool isValueLimited;
-  uint256 valueLimit;
-  NewConstraint[] constraints;
-}
-
-struct NewConstraint {
-  SessionLib.Condition condition;
-  uint64 offset;
-  bytes32 refValue;
-  bool isUsageLimited;
-  uint256 usageLimit;
-  bool isAllowanceLimited;
-  uint256 timePeriod;
-  uint256 allowanceLimit;
-}
-
 library SessionLib {
+  using SessionLib for SessionLib.Constraint;
+  using SessionLib for SessionLib.UsageLimit;
+
+
   struct SessionPolicy {
     // FIXME: add ability to call without a selector
     // (target, selector) => function policy
@@ -53,7 +30,9 @@ library SessionLib {
     uint256 expiry;
     // to close the session early, flip this flag
     bool isOpen;
-    LimitUsage feeLimit;
+    // fee limit for the session
+    UsageLimit feeLimit;
+    UsageTracker feeTracker;
   }
 
   struct FunctionPolicy {
@@ -61,33 +40,37 @@ library SessionLib {
     // would mean no constraints
     bool isAllowed;
     uint256 maxValuePerUse;
-    // FIXME add value allowance
-    LimitUsage valueUsage;
-    Constraint[] paramConstraints;
+
+    UsageLimit valueLimit;
+    UsageTracker valueTracker;
+
+    Constraint[] constraints;
+    mapping(uint256 => UsageTracker) paramTracker;
   }
 
   struct Constraint {
     Condition condition;
     uint64 offset;
     bytes32 refValue;
-    // Lifetime cumulative limit (optional)
-    LimitUsage usage;
-    // Cumulative limit per time period (optional)
-    Allowance allowance;
+    UsageLimit limit;
   }
 
-  struct LimitUsage {
-    bool isLimited;
-    uint256 limit;
-    uint256 used;
-  }
-
-  struct Allowance {
-    bool isLimited;
-    uint256 timePeriod;
-    uint256 limit;
+  struct UsageTracker {
+    uint256 lifetimeUsage;
     // period => used that period
-    mapping(uint256 => uint256) used;
+    mapping(uint256 => uint256) allowanceUsage;
+  }
+
+  struct UsageLimit {
+    LimitType limitType;
+    uint256 limit;
+    uint256 period; // ignored if limitType != Allowance
+  }
+
+  enum LimitType {
+    Unlimited,
+    Lifetime,
+    Allowance
   }
 
   enum Condition {
@@ -100,59 +83,42 @@ library SessionLib {
     NOT_EQUAL
   }
 
+  struct NewSession {
+    address signer;
+    uint256 expiry;
+    UsageLimit feeLimit;
+    NewFunctionPolicy[] policies;
+  }
 
-  function validate(SessionPolicy storage policy, Transaction calldata transaction) internal returns (bool) {
-    if (!policy.isOpen) {
-      return false;
-    }
-
-    // TODO
-    // if (block.timestamp > policy.expiry) {
-    //   policy.isOpen = false;
-    //   return false;
-    // }
-
-    // TODO: do this in a postCheck during execution to get precise gas usage?
-    uint256 fee = transaction.maxFeePerGas * transaction.gasLimit;
-    if (policy.feeLimit.used + fee > policy.feeLimit.limit) {
-      return false;
-    }
-    policy.feeLimit.used += fee;
-
+  struct NewFunctionPolicy {
     bytes4 selector;
-    // FIXME this is a temporary solution.
-    // We should probably have a separate (OPTIONAL) policy for calls without data
-    if (transaction.data.length >= 4) {
-      selector = bytes4(transaction.data[:4]);
-    } else {
-      selector = bytes4(0);
-    }
-    address target = address(uint160(transaction.to));
-    FunctionPolicy storage functionPolicy = policy.policy[target][selector];
-    if (!functionPolicy.isAllowed) {
-      return false;
-    }
-    if (transaction.value > functionPolicy.maxValuePerUse) {
-      return false;
-    }
-    if (functionPolicy.valueUsage.isLimited) {
-      if (functionPolicy.valueUsage.used + transaction.value > functionPolicy.valueUsage.limit) {
+    address target;
+    uint256 maxValuePerUse;
+    UsageLimit valueLimit;
+    Constraint[] constraints;
+  }
+
+  function checkAndUpdate(UsageLimit storage limit, UsageTracker storage tracker, uint256 value) internal returns (bool) {
+    if (limit.limitType == LimitType.Lifetime) {
+      if (tracker.lifetimeUsage + value > limit.limit) {
         return false;
       }
-      functionPolicy.valueUsage.used += transaction.value;
+      tracker.lifetimeUsage += value;
     }
-
-    for (uint256 i = 0; i < functionPolicy.paramConstraints.length; i++) {
-      if (!checkAndUpdate(functionPolicy.paramConstraints[i], transaction.data)) {
-        return false;
-      }
-    }
-
+    // TODO: uncomment when it's possible to check timestamps during validation
+    // if (limit.limitType == LimitType.Allowance) {
+    //   uint256 period = block.timestamp / limit.period;
+    //   if (tracker.allowanceUsage[period] + value > limit.limit) {
+    //     return false;
+    //   }
+    //   tracker.allowanceUsage[period] += value;
+    // }
     return true;
   }
 
-  function checkAndUpdate(Constraint storage constraint, bytes calldata data) internal returns (bool) {
-    uint256 offset = 4 + constraint.offset;
+  function checkAndUpdate(Constraint storage constraint, UsageTracker storage tracker, bytes calldata data) internal returns (bool) {
+    console.log("param validation started");
+    uint256 offset = 4 + constraint.offset * 32;
     bytes32 param = bytes32(data[offset:offset + 32]);
     Condition condition = constraint.condition;
     bytes32 refValue = constraint.refValue;
@@ -172,37 +138,36 @@ library SessionLib {
         return false;
     }
 
-    // CHECK lifetime limit
-    if (constraint.usage.isLimited) {
-      uint256 newUsed = constraint.usage.used + uint256(param);
-      if (newUsed > constraint.usage.limit) {
-        return false;
-      }
-      constraint.usage.used = newUsed;
+    console.log("condition validated");
+    if (!constraint.limit.checkAndUpdate(tracker, uint256(param))) {
+      return false;
     }
-
-    // TODO time period limit
-    // if (constraint.allowance.isLimited) {
-    //   uint256 period = block.timestamp / constraint.allowance.timePeriod;
-    //   uint256 newUsed = constraint.allowance.used[period] + uint256(param);
-    //   if (newUsed > constraint.allowance.limit) {
-    //     return false;
-    //   }
-    //   constraint.allowance.used[period] = newUsed;
-    // }
+    console.log("limit validated");
 
     return true;
   }
 
-  function validateTimestamps(SessionPolicy storage policy, Transaction calldata transaction) internal returns (bool) {
-    if (block.timestamp > policy.expiry) {
-      policy.isOpen = false;
+  function validate(SessionPolicy storage policy, Transaction calldata transaction) internal returns (bool) {
+    console.log("validation started");
+    if (!policy.isOpen) {
+      return false;
+    }
+
+    // TODO uncomment when it's possible to check timestamps during validation
+    // if (block.timestamp > policy.expiry) {
+    //   policy.isOpen = false;
+    //   return false;
+    // }
+
+    console.log("fee validation");
+    uint256 fee = transaction.maxFeePerGas * transaction.gasLimit;
+    if (!policy.feeLimit.checkAndUpdate(policy.feeTracker, fee)) {
       return false;
     }
 
     bytes4 selector;
     // FIXME this is a temporary solution.
-    // We should probably have a separate policy for calls without data
+    // We should probably have a separate (OPTIONAL) policy for calls without data
     if (transaction.data.length >= 4) {
       selector = bytes4(transaction.data[:4]);
     } else {
@@ -211,53 +176,74 @@ library SessionLib {
     address target = address(uint160(transaction.to));
     FunctionPolicy storage functionPolicy = policy.policy[target][selector];
 
-    for (uint256 i = 0; i < functionPolicy.paramConstraints.length; i++) {
-      Constraint storage constraint = functionPolicy.paramConstraints[i];
-      uint256 offset = 4 + constraint.offset;
-      bytes32 param = bytes32(transaction.data[offset:offset + 32]);
-      if (constraint.allowance.isLimited) {
-        uint256 period = block.timestamp / constraint.allowance.timePeriod;
-        uint256 newUsed = constraint.allowance.used[period] + uint256(param);
-        if (newUsed > constraint.allowance.limit) {
-          return false;
-        }
-        constraint.allowance.used[period] = newUsed;
+    console.log("function validation");
+    if (!functionPolicy.isAllowed) {
+      return false;
+    }
+    console.log("value validation");
+    if (transaction.value > functionPolicy.maxValuePerUse) {
+      return false;
+    }
+    console.log("value limit check");
+    if (!functionPolicy.valueLimit.checkAndUpdate(functionPolicy.valueTracker, transaction.value)) {
+      return false;
+    }
+
+    for (uint256 i = 0; i < functionPolicy.constraints.length; i++) {
+      console.log("param validation", i);
+      if (!functionPolicy.constraints[i].checkAndUpdate(functionPolicy.paramTracker[i], transaction.data)) {
+        return false;
       }
     }
+
+    return true;
   }
+
+
+  // function validateTimestamps(SessionPolicy storage policy, Transaction calldata transaction) internal returns (bool) {
+  //   if (block.timestamp > policy.expiry) {
+  //     policy.isOpen = false;
+  //     return false;
+  //   }
+  //
+  //   bytes4 selector;
+  //   // FIXME this is a temporary solution.
+  //   // We should probably have a separate policy for calls without data
+  //   if (transaction.data.length >= 4) {
+  //     selector = bytes4(transaction.data[:4]);
+  //   } else {
+  //     selector = bytes4(0);
+  //   }
+  //   address target = address(uint160(transaction.to));
+  //   FunctionPolicy storage functionPolicy = policy.policy[target][selector];
+  //
+  //   for (uint256 i = 0; i < functionPolicy.paramConstraints.length; i++) {
+  //     Constraint storage constraint = functionPolicy.paramConstraints[i];
+  //     uint256 offset = 4 + constraint.offset * 32;
+  //     bytes32 param = bytes32(transaction.data[offset:offset + 32]);
+  //     if (constraint.allowance.isLimited) {
+  //       uint256 period = block.timestamp / constraint.allowance.timePeriod;
+  //       uint256 newUsed = constraint.allowance.used[period] + uint256(param);
+  //       if (newUsed > constraint.allowance.limit) {
+  //         return false;
+  //       }
+  //       constraint.allowance.used[period] = newUsed;
+  //     }
+  //   }
+  // }
 
   function fill(SessionPolicy storage session, NewSession memory newSession) internal {
     session.isOpen = true;
     session.expiry = newSession.expiry;
-    session.feeLimit.isLimited = true;
-    session.feeLimit.limit = newSession.feeLimit;
+    session.feeLimit = newSession.feeLimit;
     for (uint256 i = 0; i < newSession.policies.length; i++) {
       NewFunctionPolicy memory newFunctionPolicy = newSession.policies[i];
       FunctionPolicy storage functionPolicy = session.policy[newFunctionPolicy.target][newFunctionPolicy.selector];
       functionPolicy.isAllowed = true;
       functionPolicy.maxValuePerUse = newFunctionPolicy.maxValuePerUse;
-      if (newFunctionPolicy.isValueLimited) {
-        functionPolicy.valueUsage.isLimited = true;
-        functionPolicy.valueUsage.limit = newFunctionPolicy.valueLimit;
-      }
-      for (uint256 j = 0; j < newFunctionPolicy.constraints.length; j++) {
-        NewConstraint memory newConstraint = newFunctionPolicy.constraints[j];
-        Constraint storage constraint = functionPolicy.paramConstraints[j];
-        constraint.condition = newConstraint.condition;
-        constraint.offset = newConstraint.offset;
-        constraint.refValue = newConstraint.refValue;
-        if (newConstraint.isUsageLimited) {
-          constraint.usage.isLimited = true;
-          constraint.usage.limit = newConstraint.usageLimit;
-        }
-        if (newConstraint.isAllowanceLimited) {
-          constraint.allowance.isLimited = true;
-          constraint.allowance.timePeriod = newConstraint.timePeriod;
-          constraint.allowance.limit = newConstraint.allowanceLimit;
-        }
-      }
+      functionPolicy.valueLimit = newFunctionPolicy.valueLimit;
+      functionPolicy.constraints = newFunctionPolicy.constraints;
     }
-
   }
 }
 
@@ -287,16 +273,19 @@ contract SessionKeyValidator is IHook, IValidationHook, IExecutionHook, IModuleV
     if (sessionData.length == 0) {
       return false;
     }
-    NewSession memory newSession = abi.decode(sessionData, (NewSession));
+    SessionLib.NewSession memory newSession = abi.decode(sessionData, (SessionLib.NewSession));
     createSession(newSession);
     return true;
   }
 
-  function createSession(NewSession memory newSession) public {
+  function createSession(SessionLib.NewSession memory newSession) public {
+    console.log("createSession");
     require(_isInitialized(msg.sender), "Account not initialized");
     require(newSession.signer != address(0), "Invalid signer");
+    console.log("passed requies");
     uint256 sessionId = sessions[msg.sender].nextSessionId++;
     sessions[msg.sender].sessionsBySigner[newSession.signer] = sessionId;
+    console.log("set session id", sessionId);
     SessionLib.SessionPolicy storage session = sessions[msg.sender].sessionsById[sessionId];
     session.fill(newSession);
   }
