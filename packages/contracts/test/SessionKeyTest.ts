@@ -36,7 +36,6 @@ function oneYearAway() {
 }
 
 type PartialLimit = {
-  limitType: LimitType;
   limit: ethers.BigNumberish;
   period?: ethers.BigNumberish;
 };
@@ -60,7 +59,7 @@ type PartialSession = {
 
 class SessionTester {
   public sessionOwner: Wallet;
-  public session: SessionLib.NewSessionStruct;
+  public session: SessionLib.SessionSpecStruct;
   public sessionAccount: SmartAccount;
 
   constructor(public proxyAccountAddress: string, sessionKeyModuleAddress: string) {
@@ -134,14 +133,18 @@ class SessionTester {
       limitType: LimitType.Unlimited,
       limit: 0,
       period: 0,
-    } : {
-      limitType: limit.limitType,
+    } : limit.period == null ? {
+      limitType: LimitType.Lifetime,
       limit: limit.limit,
-      period: limit.period ?? 0,
+      period: 0,
+    } : {
+      limitType: LimitType.Allowance,
+      limit: limit.limit,
+      period: limit.period,
     }
   }
 
-  getSession(session: PartialSession): SessionLib.NewSessionStruct {
+  getSession(session: PartialSession): SessionLib.SessionSpecStruct {
     return {
       signer: this.sessionOwner.address,
       expiry: session.expiry ?? oneYearAway(),
@@ -274,10 +277,12 @@ describe.only("SessionKeyModule tests", function () {
               condition: Condition.Equal,
             },
             // can only transfer upto 1000 tokens per tx
+            // can only transfer upto 1500 tokens in total
             {
               offset: 1,
               refValue: ethers.toBeHex(1000, 32),
               condition: Condition.LessEqual,
+              limit: { limit: 1500 },
             }
           ]
         }]
@@ -294,10 +299,24 @@ describe.only("SessionKeyModule tests", function () {
         .to.equal(1000n, "session target should have received the tokens");
     });
 
-    it("should reject a session key transaction that goes over limit", async () => {
+    it("should reject a session key transaction to wrong target", async () => {
+      await tester.sendTxFail({
+        to: await erc20.getAddress(),
+        data: erc20.interface.encodeFunctionData("transfer", [Wallet.createRandom().address, 1000n]),
+      });
+    });
+
+    it("should reject a session key transaction that goes over per-tx limit", async () => {
       await tester.sendTxFail({
         to: await erc20.getAddress(),
         data: erc20.interface.encodeFunctionData("transfer", [sessionTarget, 1001n]),
+      });
+    });
+
+    it("should reject a session key transaction that goes over total limit", async () => {
+      await tester.sendTxFail({
+        to: await erc20.getAddress(),
+        data: erc20.interface.encodeFunctionData("transfer", [sessionTarget, 501n]),
       });
     });
   });

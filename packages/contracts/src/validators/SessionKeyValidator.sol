@@ -24,8 +24,8 @@ library SessionLib {
 
   struct SessionPolicy {
     // FIXME: add ability to call without a selector
-    // (target, selector) => function policy
-    mapping(address => mapping(bytes4 => FunctionPolicy)) policy;
+    // (target, selector) => call policy
+    mapping(address => mapping(bytes4 => CallPolicy)) policy;
     // timestamp when this session expires
     uint256 expiry;
     // to close the session early, flip this flag
@@ -35,8 +35,8 @@ library SessionLib {
     UsageTracker feeTracker;
   }
 
-  struct FunctionPolicy {
-    // this flag is needed, as otherwise, an empty FunctionPolicy (default mapping entry)
+  struct CallPolicy {
+    // this flag is needed, as otherwise, an empty CallPolicy (default mapping entry)
     // would mean no constraints
     bool isAllowed;
     uint256 maxValuePerUse;
@@ -83,16 +83,16 @@ library SessionLib {
     NOT_EQUAL
   }
 
-  struct NewSession {
+  struct SessionSpec {
     address signer;
     uint256 expiry;
     UsageLimit feeLimit;
-    NewFunctionPolicy[] policies;
+    CallSpec[] policies;
   }
 
-  struct NewFunctionPolicy {
-    bytes4 selector;
+  struct CallSpec {
     address target;
+    bytes4 selector;
     uint256 maxValuePerUse;
     UsageLimit valueLimit;
     Constraint[] constraints;
@@ -174,24 +174,24 @@ library SessionLib {
       selector = bytes4(0);
     }
     address target = address(uint160(transaction.to));
-    FunctionPolicy storage functionPolicy = policy.policy[target][selector];
+    CallPolicy storage callPolicy = policy.policy[target][selector];
 
     console.log("function validation");
-    if (!functionPolicy.isAllowed) {
+    if (!callPolicy.isAllowed) {
       return false;
     }
     console.log("value validation");
-    if (transaction.value > functionPolicy.maxValuePerUse) {
+    if (transaction.value > callPolicy.maxValuePerUse) {
       return false;
     }
     console.log("value limit check");
-    if (!functionPolicy.valueLimit.checkAndUpdate(functionPolicy.valueTracker, transaction.value)) {
+    if (!callPolicy.valueLimit.checkAndUpdate(callPolicy.valueTracker, transaction.value)) {
       return false;
     }
 
-    for (uint256 i = 0; i < functionPolicy.constraints.length; i++) {
+    for (uint256 i = 0; i < callPolicy.constraints.length; i++) {
       console.log("param validation", i);
-      if (!functionPolicy.constraints[i].checkAndUpdate(functionPolicy.paramTracker[i], transaction.data)) {
+      if (!callPolicy.constraints[i].checkAndUpdate(callPolicy.paramTracker[i], transaction.data)) {
         return false;
       }
     }
@@ -215,10 +215,10 @@ library SessionLib {
   //     selector = bytes4(0);
   //   }
   //   address target = address(uint160(transaction.to));
-  //   FunctionPolicy storage functionPolicy = policy.policy[target][selector];
+  //   CallPolicy storage callPolicy = policy.policy[target][selector];
   //
-  //   for (uint256 i = 0; i < functionPolicy.paramConstraints.length; i++) {
-  //     Constraint storage constraint = functionPolicy.paramConstraints[i];
+  //   for (uint256 i = 0; i < callPolicy.paramConstraints.length; i++) {
+  //     Constraint storage constraint = callPolicy.paramConstraints[i];
   //     uint256 offset = 4 + constraint.offset * 32;
   //     bytes32 param = bytes32(transaction.data[offset:offset + 32]);
   //     if (constraint.allowance.isLimited) {
@@ -232,17 +232,17 @@ library SessionLib {
   //   }
   // }
 
-  function fill(SessionPolicy storage session, NewSession memory newSession) internal {
+  function fill(SessionPolicy storage session, SessionSpec memory newSession) internal {
     session.isOpen = true;
     session.expiry = newSession.expiry;
     session.feeLimit = newSession.feeLimit;
     for (uint256 i = 0; i < newSession.policies.length; i++) {
-      NewFunctionPolicy memory newFunctionPolicy = newSession.policies[i];
-      FunctionPolicy storage functionPolicy = session.policy[newFunctionPolicy.target][newFunctionPolicy.selector];
-      functionPolicy.isAllowed = true;
-      functionPolicy.maxValuePerUse = newFunctionPolicy.maxValuePerUse;
-      functionPolicy.valueLimit = newFunctionPolicy.valueLimit;
-      functionPolicy.constraints = newFunctionPolicy.constraints;
+      CallSpec memory newPolicy = newSession.policies[i];
+      CallPolicy storage callPolicy = session.policy[newPolicy.target][newPolicy.selector];
+      callPolicy.isAllowed = true;
+      callPolicy.maxValuePerUse = newPolicy.maxValuePerUse;
+      callPolicy.valueLimit = newPolicy.valueLimit;
+      callPolicy.constraints = newPolicy.constraints;
     }
   }
 }
@@ -273,12 +273,12 @@ contract SessionKeyValidator is IHook, IValidationHook, IExecutionHook, IModuleV
     if (sessionData.length == 0) {
       return false;
     }
-    SessionLib.NewSession memory newSession = abi.decode(sessionData, (SessionLib.NewSession));
+    SessionLib.SessionSpec memory newSession = abi.decode(sessionData, (SessionLib.SessionSpec));
     createSession(newSession);
     return true;
   }
 
-  function createSession(SessionLib.NewSession memory newSession) public {
+  function createSession(SessionLib.SessionSpec memory newSession) public {
     console.log("createSession");
     require(_isInitialized(msg.sender), "Account not initialized");
     require(newSession.signer != address(0), "Invalid signer");
@@ -341,8 +341,8 @@ contract SessionKeyValidator is IHook, IValidationHook, IExecutionHook, IModuleV
   }
 
   function _isInitialized(address smartAccount) internal view returns (bool) {
-    return IHookManager(msg.sender).isHook(address(this));
-      // && IValidatorManager(msg.sender).isModuleValidator(address(this));
+    return IHookManager(smartAccount).isHook(address(this));
+      // && IValidatorManager(smartAccount).isModuleValidator(address(this));
   }
 
   /*
