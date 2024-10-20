@@ -289,20 +289,10 @@ describe.only("SessionKeyModule tests", function () {
       });
     });
 
-    it("should use a session key to send a transaction", async () => {
-      await tester.sendTxSuccess({
-        to: await erc20.getAddress(),
-        data: erc20.interface.encodeFunctionData("transfer", [sessionTarget, 1000n]),
-        gasLimit: 100_000_000n,
-      });
-      expect(await erc20.balanceOf(sessionTarget))
-        .to.equal(1000n, "session target should have received the tokens");
-    });
-
     it("should reject a session key transaction to wrong target", async () => {
       await tester.sendTxFail({
         to: await erc20.getAddress(),
-        data: erc20.interface.encodeFunctionData("transfer", [Wallet.createRandom().address, 1000n]),
+        data: erc20.interface.encodeFunctionData("transfer", [Wallet.createRandom().address, 1n]),
       });
     });
 
@@ -311,6 +301,16 @@ describe.only("SessionKeyModule tests", function () {
         to: await erc20.getAddress(),
         data: erc20.interface.encodeFunctionData("transfer", [sessionTarget, 1001n]),
       });
+    });
+
+    it("should use a session key to send a transaction", async () => {
+      await tester.sendTxSuccess({
+        to: await erc20.getAddress(),
+        data: erc20.interface.encodeFunctionData("transfer", [sessionTarget, 1000n]),
+        gasLimit: 100_000_000n,
+      });
+      expect(await erc20.balanceOf(sessionTarget))
+        .to.equal(1000n, "session target should have received the tokens");
     });
 
     it("should reject a session key transaction that goes over total limit", async () => {
