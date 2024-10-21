@@ -14,17 +14,16 @@ export const useRequestsStore = defineStore("requests", () => {
 
   communicator.onMessage<RPCRequestMessage<Method>>((message) => "content" in message)
     .then(async (message) => {
-      console.log("REQUEST", message);
       if (message.content.action.method === "eth_requestAccounts" && message.content.action.params && "metadata" in message.content.action.params) {
         const handshakeData = message.content.action.params as ExtractParams<"eth_requestAccounts", GatewayRpcSchema>;
         appMeta.value = handshakeData.metadata;
       }
-      console.log("MESSAGE", message);
       request.value = message;
     });
 
   const { inProgress: responseInProgress, execute: respond, error: responseError } = useAsync(async (responder: () => RPCResponseMessage<ExtractReturnType<Method>>["content"] | Promise<RPCResponseMessage<ExtractReturnType<Method>>["content"]>) => {
     if (!request.value) throw new Error("No request to confirm");
+
     communicator.postMessage({
       id: crypto.randomUUID(),
       requestId: request.value.id,
