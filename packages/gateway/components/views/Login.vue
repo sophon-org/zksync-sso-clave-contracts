@@ -195,7 +195,7 @@ const { inProgress: loginInProgress, execute: connectToAccount } = useAsync(asyn
 
 const mainButton = computed(() => {
   if (screen.value === "register") {
-    return "Create account";
+    return "Create new account";
   } else if (screen.value === "login") {
     return "Login";
   }
