@@ -19,7 +19,7 @@
       placeholder="Loading"
       :loading="true"
     />
-    <br Z>
+    <br>
     <ZkInput
       placeholder="Error"
       state="error"
