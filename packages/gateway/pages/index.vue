@@ -24,10 +24,6 @@
 <script setup lang="ts">
 import { useColorMode } from "@vueuse/core";
 
-// definePageMeta({
-//   middleware: ["redirect-dashboard"],
-// });
-
 const mode = useColorMode({
   modes: {
     light: "light-mode",
