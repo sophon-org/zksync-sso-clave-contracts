@@ -24,6 +24,10 @@
 <script setup lang="ts">
 import { useColorMode } from "@vueuse/core";
 
+definePageMeta({
+  middleware: ["logged-in"],
+});
+
 const mode = useColorMode({
   modes: {
     light: "light-mode",
