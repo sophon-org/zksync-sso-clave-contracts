@@ -85,9 +85,7 @@ class SessionTester {
       secret: fixtures.wallet.privateKey,
     }, provider);
 
-    const nextSessionId = await sessionKeyModuleContract.sessions(this.proxyAccountAddress);
-    expect(nextSessionId).to.be.greaterThan(0, "should be initialized");
-
+    const currentSessions = await sessionKeyModuleContract.sessionsList(this.proxyAccountAddress);
     this.session = this.getSession(newSession);
 
     const aaTx = {
@@ -100,8 +98,8 @@ class SessionTester {
     const signedTransaction = await smartAccount.signTransaction(aaTx);
     const tx = await provider.broadcastTransaction(signedTransaction);
     await tx.wait();
-    expect(await sessionKeyModuleContract.sessions(this.proxyAccountAddress))
-      .to.equal(nextSessionId + 1n, "session should be created");
+    expect(await sessionKeyModuleContract.sessionsList(this.proxyAccountAddress))
+      .to.have.lengthOf(currentSessions.length + 1, "session should be created");
   }
 
   async sendTxSuccess(txRequest: ethers.TransactionRequest = {}) {
@@ -303,7 +301,7 @@ describe.only("SessionKeyModule tests", function () {
       });
     });
 
-    it("should use a session key to send a transaction", async () => {
+    it("should successfully send a session key transaction", async () => {
       await tester.sendTxSuccess({
         to: await erc20.getAddress(),
         data: erc20.interface.encodeFunctionData("transfer", [sessionTarget, 1000n]),
@@ -320,5 +318,12 @@ describe.only("SessionKeyModule tests", function () {
       });
     });
   });
+
+  // TODO: revoke key tests
+  // TODO: module uninstall tests
+  // TODO: session expiry tests
+  // TODO: session fee limit tests
+  // TODO: allowance tests
+  // TODO: getters tests
 });
 

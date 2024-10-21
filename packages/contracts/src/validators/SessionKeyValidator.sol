@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.23;
 
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "../interfaces/IERC7579Module.sol";
+import { EnumerableMap } from "@openzeppelin/contracts/utils/structs/EnumerableMap.sol";
 
 import { IModule } from "../interfaces/IModule.sol";
 import { IValidationHook, IExecutionHook } from "../interfaces/IHook.sol";
@@ -21,11 +21,12 @@ library SessionLib {
   using SessionLib for SessionLib.Constraint;
   using SessionLib for SessionLib.UsageLimit;
 
-
   struct SessionPolicy {
     // FIXME: add ability to call without a selector
     // (target, selector) => call policy
     mapping(address => mapping(bytes4 => CallPolicy)) policy;
+    // for view functions
+    FullTarget[] allowedTargets;
     // timestamp when this session expires
     uint256 expiry;
     // to close the session early, flip this flag
@@ -83,6 +84,11 @@ library SessionLib {
     NOT_EQUAL
   }
 
+  struct FullTarget {
+    address target;
+    bytes4 selector;
+  }
+
   struct SessionSpec {
     address signer;
     uint256 expiry;
@@ -123,7 +129,6 @@ library SessionLib {
     Condition condition = constraint.condition;
     bytes32 refValue = constraint.refValue;
 
-    // CHECK Condition
     if (condition == Condition.EQUAL && param != refValue) {
         return false;
     } else if (condition == Condition.GREATER_THAN && param <= refValue) {
@@ -199,45 +204,16 @@ library SessionLib {
     return true;
   }
 
-
-  // function validateTimestamps(SessionPolicy storage policy, Transaction calldata transaction) internal returns (bool) {
-  //   if (block.timestamp > policy.expiry) {
-  //     policy.isOpen = false;
-  //     return false;
-  //   }
-  //
-  //   bytes4 selector;
-  //   // FIXME this is a temporary solution.
-  //   // We should probably have a separate policy for calls without data
-  //   if (transaction.data.length >= 4) {
-  //     selector = bytes4(transaction.data[:4]);
-  //   } else {
-  //     selector = bytes4(0);
-  //   }
-  //   address target = address(uint160(transaction.to));
-  //   CallPolicy storage callPolicy = policy.policy[target][selector];
-  //
-  //   for (uint256 i = 0; i < callPolicy.paramConstraints.length; i++) {
-  //     Constraint storage constraint = callPolicy.paramConstraints[i];
-  //     uint256 offset = 4 + constraint.offset * 32;
-  //     bytes32 param = bytes32(transaction.data[offset:offset + 32]);
-  //     if (constraint.allowance.isLimited) {
-  //       uint256 period = block.timestamp / constraint.allowance.timePeriod;
-  //       uint256 newUsed = constraint.allowance.used[period] + uint256(param);
-  //       if (newUsed > constraint.allowance.limit) {
-  //         return false;
-  //       }
-  //       constraint.allowance.used[period] = newUsed;
-  //     }
-  //   }
-  // }
-
   function fill(SessionPolicy storage session, SessionSpec memory newSession) internal {
     session.isOpen = true;
     session.expiry = newSession.expiry;
     session.feeLimit = newSession.feeLimit;
     for (uint256 i = 0; i < newSession.policies.length; i++) {
       CallSpec memory newPolicy = newSession.policies[i];
+      session.allowedTargets.push(FullTarget({
+        target: newPolicy.target,
+        selector: newPolicy.selector
+      }));
       CallPolicy storage callPolicy = session.policy[newPolicy.target][newPolicy.selector];
       callPolicy.isAllowed = true;
       callPolicy.maxValuePerUse = newPolicy.maxValuePerUse;
@@ -245,10 +221,32 @@ library SessionLib {
       callPolicy.constraints = newPolicy.constraints;
     }
   }
+
+  function getSpec(SessionPolicy storage session) internal view returns (SessionSpec memory) {
+    CallSpec[] memory policies = new CallSpec[](session.allowedTargets.length);
+    for (uint256 i = 0; i < session.allowedTargets.length; i++) {
+      FullTarget memory target = session.allowedTargets[i];
+      CallPolicy storage callPolicy = session.policy[target.target][target.selector];
+      policies[i] = CallSpec({
+        target: target.target,
+        selector: target.selector,
+        maxValuePerUse: callPolicy.maxValuePerUse,
+        valueLimit: callPolicy.valueLimit,
+        constraints: callPolicy.constraints
+      });
+    }
+    return SessionSpec({
+      signer: address(0),
+      expiry: session.expiry,
+      feeLimit: session.feeLimit,
+      policies: policies
+    });
+  }
 }
 
-contract SessionKeyValidator is IHook, IValidationHook, IExecutionHook, IModuleValidator {
+contract SessionKeyValidator is IHook, IValidationHook, IModuleValidator {
   using SessionLib for SessionLib.SessionPolicy;
+  using EnumerableMap for EnumerableMap.AddressToUintMap;
 
   bytes4 constant EIP1271_SUCCESS_RETURN_VALUE = 0x1626ba7e;
 
@@ -256,19 +254,33 @@ contract SessionKeyValidator is IHook, IValidationHook, IExecutionHook, IModuleV
     // id => session
     mapping(uint256 => SessionLib.SessionPolicy) sessionsById;
     // signer => id
-    mapping(address => uint256) sessionsBySigner;
+    EnumerableMap.AddressToUintMap sessionsBySigner;
     // should start with 1
     uint256 nextSessionId;
   }
 
-  mapping(address => AccountSessions) public sessions;
+  mapping(address => AccountSessions) private sessions;
+
+  function sessionBySigner(address account, address signer) public view returns (SessionLib.SessionSpec memory spec) {
+    uint256 id = sessions[account].sessionsBySigner.get(signer);
+    spec = sessions[account].sessionsById[id].getSpec();
+    spec.signer = signer;
+  }
+
+  function sessionsList(address account) external view returns (SessionLib.SessionSpec[] memory specs) {
+    specs = new SessionLib.SessionSpec[](sessions[account].sessionsBySigner.length());
+    for (uint256 i = 0; i < specs.length; i++) {
+      (address signer, ) = sessions[account].sessionsBySigner.at(i);
+      specs[i] = sessionBySigner(account, signer);
+    }
+  }
 
   function handleValidation(bytes32 signedHash, bytes memory signature) external view returns (bool) {
     // this only validates that the session key is linked to the account, not the spend limit
     return isValidSignature(signedHash, signature) == EIP1271_SUCCESS_RETURN_VALUE;
   }
 
-  // TODO what bool does it return
+  // TODO what bool does it return?
   function addValidationKey(bytes memory sessionData) external returns (bool) {
     if (sessionData.length == 0) {
       return false;
@@ -284,7 +296,7 @@ contract SessionKeyValidator is IHook, IValidationHook, IExecutionHook, IModuleV
     require(newSession.signer != address(0), "Invalid signer");
     console.log("passed requies");
     uint256 sessionId = sessions[msg.sender].nextSessionId++;
-    sessions[msg.sender].sessionsBySigner[newSession.signer] = sessionId;
+    sessions[msg.sender].sessionsBySigner.set(newSession.signer, sessionId);
     console.log("set session id", sessionId);
     SessionLib.SessionPolicy storage session = sessions[msg.sender].sessionsById[sessionId];
     session.fill(newSession);
@@ -305,20 +317,30 @@ contract SessionKeyValidator is IHook, IValidationHook, IExecutionHook, IModuleV
   }
 
   function _install(bytes calldata data) internal {
-    uint256 nextId = sessions[msg.sender].nextSessionId;
-    if (nextId == 0) {
+    if (sessions[msg.sender].nextSessionId == 0) {
       sessions[msg.sender].nextSessionId = 1;
     }
   }
 
-  function onUninstall(bytes calldata) external override {}
+  function onUninstall(bytes calldata) external override {
+    _uninstall();
+  }
 
   // FIXME should also revoke all active session keys somehow
   function disable() external {
     if (_isInitialized(msg.sender)) {
+      _uninstall();
       IValidatorManager(msg.sender).removeModuleValidator(address(this));
       IHookManager(msg.sender).removeHook(address(this), true);
     }
+  }
+
+  function _uninstall() internal {
+    // Here we have to revoke all keys, so that if the module
+    // is installed again later, there will be no active sessions from the past.
+    // Problem: if there are too many keys, this will run out of gas.
+    // Solution: before uninstalling, require that all keys are revoked manually.
+    require(sessions[msg.sender].sessionsBySigner.length() == 0, "Revoke all keys first");
   }
 
   function supportsInterface(bytes4 interfaceId) external pure override returns (bool) {
@@ -326,9 +348,16 @@ contract SessionKeyValidator is IHook, IValidationHook, IExecutionHook, IModuleV
     return interfaceId == 0x01ffc9a7 || interfaceId == 0xffffffff;
   }
 
-  function revokeKey(address sessionOwner) external {
+  function revokeKey(address sessionOwner) external returns (bool) {
     require(_isInitialized(msg.sender), "Account not initialized");
-    sessions[msg.sender].sessionsBySigner[sessionOwner] = 0;
+    return sessions[msg.sender].sessionsBySigner.remove(sessionOwner);
+  }
+
+  function revokeKeys(address[] calldata sessionOwners) external {
+    require(_isInitialized(msg.sender), "Account not initialized");
+    for (uint256 i = 0; i < sessionOwners.length; i++) {
+      sessions[msg.sender].sessionsBySigner.remove(sessionOwners[i]);
+    }
   }
 
   /*
@@ -355,7 +384,7 @@ contract SessionKeyValidator is IHook, IValidationHook, IExecutionHook, IModuleV
     console.log("recoveredAddress sessionKey");
     console.logAddress(recoveredAddress);
 
-    uint256 sessionId = sessions[msg.sender].sessionsBySigner[recoveredAddress];
+    uint256 sessionId = sessions[msg.sender].sessionsBySigner.get(recoveredAddress);
 
     if (!sessions[msg.sender].sessionsById[sessionId].isOpen) {
       magic = bytes4(0);
@@ -370,8 +399,8 @@ contract SessionKeyValidator is IHook, IValidationHook, IExecutionHook, IModuleV
   ) external {
     (bytes memory signature, , ) = abi.decode(transaction.signature, (bytes, address, bytes[]));
     (address recoveredAddress, ) = ECDSA.tryRecover(signedHash, signature);
-    uint256 sessionId = sessions[msg.sender].sessionsBySigner[recoveredAddress];
-    if (sessionId == 0) {
+    (bool exists, uint256 sessionId) = sessions[msg.sender].sessionsBySigner.tryGet(recoveredAddress);
+    if (!exists) {
       // This transaction was not signed by a session key,
       // and will either be rejected on the signature validation step,
       // or does not use session key validator, in which case we don't care.
@@ -414,26 +443,6 @@ contract SessionKeyValidator is IHook, IValidationHook, IExecutionHook, IModuleV
     return typeID == MODULE_TYPE_VALIDATOR;
   }
 
-  // /**
-  //  * Get the sender of the transaction
-  //  *
-  //  * @return account the sender of the transaction
-  //  */
-  // function _getAccount() internal view returns (address account) {
-  //   account = msg.sender;
-  //   address _account;
-  //   address forwarder;
-  //   if (msg.data.length >= 40) {
-  //     assembly {
-  //       _account := shr(96, calldataload(sub(calldatasize(), 20)))
-  //       forwarder := shr(96, calldataload(sub(calldatasize(), 40)))
-  //     }
-  //     if (forwarder == msg.sender) {
-  //       account = _account;
-  //     }
-  //   }
-  // }
-
   /*
    * Look at the transaction data to parse out what needs to be done
    */
@@ -447,10 +456,4 @@ contract SessionKeyValidator is IHook, IValidationHook, IExecutionHook, IModuleV
    * Validate data from the pre-check hook after the transaction is executed
    */
   function postCheck(bytes calldata hookData) external {}
-
-  function preExecutionHook(Transaction calldata transaction) external returns (bytes memory context) {
-    // TODO timestamp checks here
-  }
-
-  function postExecutionHook(bytes memory context) external {}
 }
