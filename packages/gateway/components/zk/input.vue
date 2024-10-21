@@ -1,14 +1,25 @@
 <template>
-  <div class="relative flex flex-col min-w-[380px]">
-    <div class="flex">
-      <input
-        v-model="model"
-        :placeholder
-        type="text"
-        :class="twMerge(inputUI, ui.input, stateUI)"
-        :disabled
-        :required
-      >
+  <div class="w-full">
+    <div class="flex w-full">
+      <div class="relative grow items-center flex min-w-[380px]">
+        <input
+          v-model="model"
+          :placeholder
+          type="text"
+          :class="twMerge(inputUI, ui.input, stateUI, loadingInputUI)"
+          :disabled
+          :required
+        >
+        <transition
+          v-bind="TransitionOpacity"
+          mode="out-in"
+        >
+          <CommonSpinner
+            v-if="loading"
+            class="-my-1.5 w-auto h-[2em] absolute z-10 right-3"
+          />
+        </transition>
+      </div>
       <div
         v-if="postLabel"
         :class="twMerge(postLabelUI, ui.postLabel)"
@@ -48,6 +59,7 @@ const {
   error = false,
   messages,
   disabled = false,
+  loading = false,
 } = defineProps<{
   placeholder?: string;
   postLabel?: string;
@@ -56,6 +68,7 @@ const {
   messages?: string[];
   disabled?: boolean;
   required?: boolean;
+  loading?: boolean;
 }>();
 
 const baseInputUI
@@ -84,6 +97,13 @@ const stateUI = computed(() => {
     return "border-red-400 focus:border-red-400 dark:border-red-400 dark:focus:border-red-400/80";
   }
 
+  return "";
+});
+
+const loadingInputUI = computed(() => {
+  if (loading) {
+    return "pr-12";
+  }
   return "";
 });
 </script>
