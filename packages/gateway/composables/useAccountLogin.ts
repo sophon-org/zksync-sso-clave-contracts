@@ -1,5 +1,9 @@
 export async function useAccountLogin() {
-  return await useAsyncData("account-login", async () => {
+  const {
+    status: loginInProgress,
+    execute: loginAccount,
+    error: loginError,
+  } = await useAsyncData(async () => {
     const credential = await navigator.credentials.get({
       publicKey: {
         challenge: new Uint8Array(32),
@@ -16,4 +20,10 @@ export async function useAccountLogin() {
   }, {
     immediate: false,
   });
+
+  return {
+    loginInProgress,
+    loginError,
+    loginAccount,
+  };
 }

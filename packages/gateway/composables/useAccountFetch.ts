@@ -8,14 +8,12 @@ type AccountData = {
   chainId: number;
 };
 
-export const useFetchAccountData = (_username: MaybeRef<string>, _chainId: MaybeRef<SupportedChainId>) => {
+export async function useAccountFetch(key: string, _username: MaybeRef<string>, _chainId: MaybeRef<SupportedChainId>) {
   const username = toRef(_username);
   const chainId = toRef(_chainId);
   const accountData = ref<AccountData | null>(null);
-  /* const { getPublicClient } = useClientStore(); */
 
   const fetchAccountDataByUsername = async (name: string): Promise<AccountData | null> => {
-    console.log("fetchAccountDataByUsername", contractsByChain, chainId.value);
     const factoryAddress = contractsByChain[chainId.value].accountFactory;
     if (!factoryAddress) throw new Error("Account factory address is not set");
 
@@ -29,6 +27,7 @@ export const useFetchAccountData = (_username: MaybeRef<string>, _chainId: Maybe
 
     /* Temporary test code */
     await new Promise((resolve) => setTimeout(resolve, 500));
+
     if (name === "test") {
       return await Promise.resolve({
         username: name,
@@ -41,10 +40,10 @@ export const useFetchAccountData = (_username: MaybeRef<string>, _chainId: Maybe
   };
 
   const {
-    inProgress: accountDataFetchInProgress,
+    status: accountDataFetchInProgress,
     error: accountDataFetchError,
     execute: fetchAccountData,
-  } = useAsync(async () => {
+  } = useAsyncData(`fetch-${username.value}-${key}`, async () => {
     const usernameToFetch = username.value;
     if (username.value === "error") {
       throw new Error("Testing error. Use a different username.");
@@ -60,7 +59,7 @@ export const useFetchAccountData = (_username: MaybeRef<string>, _chainId: Maybe
         throw error;
       }
     }
-  });
+  }, { immediate: false });
 
   watchThrottled(username, (val) => {
     accountData.value = null;
@@ -75,4 +74,4 @@ export const useFetchAccountData = (_username: MaybeRef<string>, _chainId: Maybe
     accountDataFetchError,
     fetchAccountData,
   };
-};
+}

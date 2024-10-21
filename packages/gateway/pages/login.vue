@@ -14,8 +14,9 @@
         v-model="username"
         placeholder="Username"
         class="w-full"
-        :messages="errorMessages"
-        :state="errorMessages.length ? 'error' : undefined"
+        :error="hasErrors"
+        required
+        :messages="[loginError, accountDataFetchError]"
       />
       <ZkButton
         type="primary"
@@ -38,38 +39,35 @@
 </template>
 
 <script setup lang="ts">
-// import { zksyncInMemoryNode } from "viem/chains";
+import { zksyncInMemoryNode } from "viem/chains";
 
 definePageMeta({
   middleware: ["redirect-dashboard"],
 });
 
-// const chainId = zksyncInMemoryNode.id;
-
+const chainId = zksyncInMemoryNode.id;
 const username = ref("");
-const errorMessages: Ref<string[]> = ref([]);
+
+const { loginInProgress, loginAccount, loginError } = await useAccountLogin();
+const { accountDataFetchInProgress, accountDataFetchError } = await useAccountFetch(
+  "login",
+  username,
+  computed(() => chainId),
+);
+
 const loadingInProgress = computed(() => {
-  if (loginInProgress.value === "pending") {
-    return true;
-  } else {
-    return false;
-  }
+  return loginInProgress.value === "pending" || accountDataFetchInProgress.value === "pending";
 });
 
-const { status: loginInProgress, execute: connectToAccount } = await useAccountLogin();
-
-// const { accountData, accountDataFetchInProgress, accountDataFetchError/* , fetchAccountData */ } = useFetchAccountData(
-//   username,
-//   computed(() => chainId),
-// );
+const hasErrors = computed(() => {
+  return !loadingInProgress.value && (!!loginError.value || !!accountDataFetchError.value);
+});
 
 const loginUser = () => {
-  if (!username.value || loginInProgress.value === "pending") {
+  if (!username.value || loadingInProgress) {
     return;
   }
 
-  connectToAccount().catch((error) => {
-    errorMessages.value = [(error as Error).message];
-  });
+  loginAccount();
 };
 </script>

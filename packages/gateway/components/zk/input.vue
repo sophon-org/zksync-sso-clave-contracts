@@ -7,6 +7,7 @@
         type="text"
         :class="twMerge(inputUI, ui.input, stateUI)"
         :disabled
+        :required
       >
       <div
         v-if="postLabel"
@@ -44,16 +45,17 @@ const {
   placeholder = "",
   postLabel,
   ui = {},
-  state,
+  error = false,
   messages,
   disabled = false,
 } = defineProps<{
   placeholder?: string;
   postLabel?: string;
   ui?: UI;
-  state?: "error";
+  error?: boolean;
   messages?: string[];
   disabled?: boolean;
+  required?: boolean;
 }>();
 
 const baseInputUI
@@ -78,7 +80,7 @@ const postLabelUI = twMerge(
 );
 
 const stateUI = computed(() => {
-  if (state === "error") {
+  if (error) {
     return "border-red-400 focus:border-red-400 dark:border-red-400 dark:focus:border-red-400/80";
   }
 

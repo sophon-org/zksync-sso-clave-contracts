@@ -12,10 +12,11 @@
     >
       <ZkInput
         v-model="username"
+        required
         placeholder="Username"
         class="w-full"
-        :messages="errorMessages"
-        :state="errorMessages.length ? 'error' : undefined"
+        :error="hasErrors"
+        :messages="[registerError, accountDataFetchError, accountData ? 'Username already taken' : '']"
       />
       <ZkButton
         type="primary"
@@ -45,56 +46,31 @@ definePageMeta({
 });
 
 const chainId = zksyncInMemoryNode.id;
-
 const username = ref("");
-const errorMessages: Ref<string[]> = ref([]);
 
-const { status: registerInProgress, execute: createAccount, error: registerError } = await useAccountRegistration(username);
-
-const loadingInProgress = computed(() => {
-  if (accountDataFetchInProgress.value || registerInProgress.value === "pending") {
-    return true;
-  } else {
-    return false;
-  }
-});
-
-watch(registerInProgress, () => {
-  switch (registerInProgress.value) {
-    case "pending":
-      errorMessages.value = [];
-      break;
-    case "success":
-      errorMessages.value = [];
-      navigateTo({ path: "/dashboard" });
-      break;
-    case "error":
-      errorMessages.value = [(registerError.value as Error).message];
-      break;
-  }
-});
-
-const { accountDataFetchInProgress, accountDataFetchError } = useFetchAccountData(
+const { accountDataFetchInProgress, accountDataFetchError, accountData } = await useAccountFetch(
+  "register",
   username,
   computed(() => chainId),
 );
+const { registerInProgress, createAccount, registerError } = await useAccountRegistration(username);
 
-watch(accountDataFetchError, () => {
-  if (accountDataFetchError.value) {
-    errorMessages.value = ["Username is already taken. Please choose another one."];
-  } else {
-    errorMessages.value = [];
-  }
+const hasErrors = computed(() => {
+  return !loadingInProgress.value && (!!accountData.value || !!registerError.value || !!accountDataFetchError.value);
+
+  // return !loadingInProgress.value && (!!registerError.value || !!accountDataFetchError.value);
+});
+const loadingInProgress = computed(() => {
+  return registerInProgress.value === "pending" || accountDataFetchInProgress.value === "pending";
 });
 
-const registerUser = () => {
-  if (loadingInProgress.value) {
+const registerUser = async () => {
+  if (!username.value || loadingInProgress.value) {
     return;
   }
-  if (username.value === "") {
-    errorMessages.value = ["Username is required."];
-  }
 
-  createAccount();
+  await createAccount().then(() => {
+    navigateTo("/dashboard");
+  });
 };
 </script>

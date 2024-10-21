@@ -3,9 +3,9 @@
     <AppAccountLogo
       class="dark:text-neutral-100 h-16 md:h-20 mb-8"
     />
-    <p class="dark:text-neutral-300 mb-4">
+    <!-- <p class="dark:text-neutral-300 mb-4">
       Authorize your ZK Account
-    </p>
+    </p> -->
     <ZkLink
       type="primary"
       class="w-full"
@@ -20,16 +20,6 @@
     >
       Create a ZK Account
     </ZkLink>
-    <p class="dark:text-neutral-300 py-6">
-      or
-    </p>
-    <ZkButton
-      type="secondary"
-      class="w-full"
-      disabled
-    >
-      Connect your wallet
-    </ZkButton>
   </main>
 </template>
 

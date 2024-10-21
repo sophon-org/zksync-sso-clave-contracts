@@ -3,13 +3,25 @@ import { generatePrivateKey, privateKeyToAddress } from "viem/accounts";
 import { deployAccount } from "zksync-account/client";
 import { zksyncInMemoryNode } from "viem/chains";
 import { parseEther, toHex } from "viem";
+import { useAccountFetch } from "./useAccountFetch";
 
-export async function useAccountRegistration(username: Ref<string>) {
+export async function useAccountRegistration(_username: MaybeRef<string>) {
+  const username = toRef(_username);
   const { getRichWalletClient } = useClientStore();
   const chainId = zksyncInMemoryNode.id;
   const { login } = useAccountStore();
 
-  return await useAsyncData("account-registration", async () => {
+  const {
+    status: registerInProgress,
+    execute: createAccount,
+    error: registerError,
+  } = await useAsyncData(async () => {
+    const { accountData, fetchAccountData } = await useAccountFetch("registration", username, chainId);
+    await fetchAccountData();
+    if (accountData.value) {
+      throw new Error("Username is taken.");
+    }
+
     const { credentialPublicKey } = await registerNewPasskey({
       userName: username.value,
       userDisplayName: username.value,
@@ -17,11 +29,6 @@ export async function useAccountRegistration(username: Ref<string>) {
       throw new Error("Failed to register new passkey.");
     });
 
-    /* TODO: implement username check */
-    /* await fetchAccountData();
-    if (accountData.value) {
-      return; // username is taken
-    } */
     const deployerClient = getRichWalletClient({ chainId: chainId });
     const sessionKey = generatePrivateKey();
     const sessionPublicKey = privateKeyToAddress(sessionKey);
@@ -65,4 +72,10 @@ export async function useAccountRegistration(username: Ref<string>) {
   }, {
     immediate: false,
   });
+
+  return {
+    registerInProgress,
+    registerError,
+    createAccount,
+  };
 }
