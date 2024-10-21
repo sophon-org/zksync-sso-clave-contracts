@@ -3,9 +3,10 @@ pragma solidity ^0.8.23;
 
 import "../interfaces/IERC7579Module.sol";
 import { EnumerableMap } from "@openzeppelin/contracts/utils/structs/EnumerableMap.sol";
+import { IERC165 } from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 
 import { IModule } from "../interfaces/IModule.sol";
-import { IValidationHook, IExecutionHook } from "../interfaces/IHook.sol";
+import { IValidationHook } from "../interfaces/IHook.sol";
 import { IModuleValidator } from "../interfaces/IModuleValidator.sol";
 
 import { Transaction } from "@matterlabs/zksync-contracts/l2/system-contracts/libraries/TransactionHelper.sol";
@@ -244,7 +245,7 @@ library SessionLib {
   }
 }
 
-contract SessionKeyValidator is IHook, IValidationHook, IModuleValidator {
+contract SessionKeyValidator is IHook, IValidationHook, IModuleValidator, IModule {
   using SessionLib for SessionLib.SessionPolicy;
   using EnumerableMap for EnumerableMap.AddressToUintMap;
 
@@ -344,8 +345,12 @@ contract SessionKeyValidator is IHook, IValidationHook, IModuleValidator {
   }
 
   function supportsInterface(bytes4 interfaceId) external pure override returns (bool) {
-    // found by example
-    return interfaceId == 0x01ffc9a7 || interfaceId == 0xffffffff;
+    return interfaceId != 0xffffffff && (
+      interfaceId == type(IERC165).interfaceId ||
+      interfaceId == type(IValidationHook).interfaceId ||
+      interfaceId == type(IModuleValidator).interfaceId ||
+      interfaceId == type(IModule).interfaceId
+    );
   }
 
   function revokeKey(address sessionOwner) external returns (bool) {

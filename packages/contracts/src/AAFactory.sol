@@ -45,7 +45,7 @@ contract AAFactory {
     require(success, "Deployment failed");
 
     (accountAddress) = abi.decode(returnData, (address));
-    console.log("accountAddress %s", accountAddress);
+    console.log("account deployed to", accountAddress);
 
     // add session-key/spend-limit module (similar code)
     IClaveAccount(accountAddress).initialize(initialValidators, initialModules, initialK1Owners);

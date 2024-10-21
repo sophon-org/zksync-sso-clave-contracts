@@ -93,8 +93,14 @@ abstract contract ValidatorManager is IValidatorManager, Auth {
   }
 
   function _addModuleValidator(address validator, bytes memory accountValidationKey) internal {
+    if (!_supportsModuleValidator(validator)) {
+      revert Errors.VALIDATOR_ERC165_FAIL();
+    }
+
     _moduleValidatorsLinkedList().add(validator);
     IModuleValidator(validator).addValidationKey(accountValidationKey);
+
+    // emit AddModuleValidator(validator);
   }
 
   function _k1AddValidator(address validator) internal {
@@ -141,6 +147,10 @@ abstract contract ValidatorManager is IValidatorManager, Auth {
 
   function _supportsK1(address validator) internal view returns (bool) {
     return validator.supportsInterface(type(IK1Validator).interfaceId);
+  }
+
+  function _supportsModuleValidator(address validator) internal view returns (bool) {
+    return validator.supportsInterface(type(IModuleValidator).interfaceId);
   }
 
   function _r1ValidatorsLinkedList() private view returns (mapping(address => address) storage r1Validators) {
