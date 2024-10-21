@@ -239,7 +239,6 @@
 import { createPublicClient, formatEther, http, parseEther, type Address, type Chain } from "viem";
 import { createZksyncPasskeyClient } from "zksync-account/client/passkey";
 import OnRampCrypto from "~/components/app/OnRampCrypto.vue";
-import { useTimeoutPoll } from "@vueuse/core";
 
 const { appMeta, userDisplay, userRevTag, contracts, aaveAddress } = useAppMeta();
 const history = useHistory();
@@ -251,16 +250,16 @@ const tabSlot = ref<string | number>("tab1");
 
 const config = useRuntimeConfig();
 
-onMounted(() => {
-  const getBalance = async () => {
-    accountBalance.value = await publicClient.getBalance({
-      address: appMeta.value.cryptoAccountAddress! as Address,
-    });
-  };
-  const { resume } = useTimeoutPoll(getBalance, 1000);
+// onMounted(() => {
+//   const getBalance = async () => {
+//     accountBalance.value = await publicClient.getBalance({
+//       address: appMeta.value.cryptoAccountAddress! as Address,
+//     });
+//   };
+//   const { resume } = useTimeoutPoll(getBalance, 1000);
 
-  resume();
-});
+//   resume();
+// });
 
 const publicClient = createPublicClient({
   chain: config.public.network as Chain,

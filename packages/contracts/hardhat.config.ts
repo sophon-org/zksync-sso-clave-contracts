@@ -33,6 +33,11 @@ const config: HardhatUserConfig = {
       ethNetwork: "localhost", // in-memory node doesn't support eth node; removing this line will cause an error
       zksync: true,
     },
+    demoNode: {
+      url: "http://34.55.28.37:8011",
+      ethNetwork: "localhost", // in-memory node doesn't support eth node; removing this line will cause an error
+      zksync: true,
+    },
     hardhat: {
       zksync: true,
     },
