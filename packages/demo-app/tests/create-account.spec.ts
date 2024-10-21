@@ -63,14 +63,14 @@ test("Create account, session key, and send ETH", async ({ page }) => {
 
   // Enter username for new account
   // TODO: Check if error displays when name is taken
-  await expect(popup.getByText("Create account")).toBeVisible();
-  await popup.getByRole("button", { name: "Create account" }).click();
+  await expect(popup.getByText("Create new account")).toBeVisible();
+  await popup.getByRole("button", { name: "Create new account" }).click();
   const randomUsername = `zksync.me.${Math.floor(Math.random() * 100000)}`;
   console.log(`Username: ${randomUsername}`);
   await popup.getByPlaceholder("Username").fill(randomUsername);
   // TODO: Replace timeout that waits for name check to complete
   await popup.waitForTimeout(300);
-  await popup.getByRole("button", { name: "Create account" }).click();
+  await popup.getByRole("button", { name: "Create new account" }).click();
   // TODO: Replace timeout that waits for Account Creation transaction to complete
   await popup.waitForTimeout(3000);
 
