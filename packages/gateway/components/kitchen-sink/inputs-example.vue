@@ -16,6 +16,11 @@
     />
     <br>
     <ZkInput
+      placeholder="Loading"
+      :loading="true"
+    />
+    <br Z>
+    <ZkInput
       placeholder="Error"
       state="error"
       :messages="errorMessages"
