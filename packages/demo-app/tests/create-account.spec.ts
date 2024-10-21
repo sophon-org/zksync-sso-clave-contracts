@@ -42,7 +42,7 @@ test("Create account, session key, and send ETH", async ({ page }) => {
   // Ensure popup is displayed
   await page.waitForTimeout(2000);
   const popup = page.context().pages()[1];
-  await expect(popup.getByText("Create account")).toBeVisible();
+  await expect(popup.getByText("Create new account")).toBeVisible();
 
   // Setup webauthn a Chrome Devtools Protocol session
   // NOTE: This needs to be done for every page of every test that uses WebAuthn
