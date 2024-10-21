@@ -82,7 +82,7 @@ const cryptoList = [
   }
 ];
 
-const selectSymbol = (e: any) => {
+const selectSymbol = (e: unknown) => {
   console.log(e);
 };
 

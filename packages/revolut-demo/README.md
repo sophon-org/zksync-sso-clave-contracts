@@ -15,28 +15,28 @@ pnpm nx dev revolut-demo
 
 Account session and data is stored via the browser Local storage.
 
-1. When you need to restart the demo, delete the Local storage data via the Chrome
-browser's Debug Tool. Open the Debug Tool, navigate to Application, right click
-the Local storage entry for `http://localhost:3005` and click "Clear".
+1. When you need to restart the demo, delete the Local storage data via the
+   Chrome browser's Debug Tool. Open the Debug Tool, navigate to Application,
+   right click the Local storage entry for `http://localhost:3005` and click
+   "Clear".
 
 2. You will also need to delete the Passkey stored for the app. In the Chrome
-browser, navigate to `chrome://settings/passkeys`. Click the settings button for
-the entry for `localhost` and click "Delete".
+   browser, navigate to `chrome://settings/passkeys`. Click the settings button
+   for the entry for `localhost` and click "Delete".
 
 ## Deploying the Revolut demo to Firebase
 
-The Revolut demo app uses Sepolia testnet for staging.
+The Revolut demo app uses Demo Node (`https://node.nvillanueva.com`).
 
-1. Edit the `nuxt.config.ts` with `revolutDemoDeployerKey` for an address in
-Sepolia testnet that will be used for creating the demo crypto account.
+1. Deploy the latest contracts with
+   `pnpm nx deploy contracts -- --network demoNode`.
 
-2. Build the project with `pnpm nx build revolut-demo`.
+2. Update `nuxt.config.ts` contract addresses under `$production`.
 
-3. Deploy the project to a preview channel on Firebase.
+3. Build the project with `pnpm nx build revolut-demo`.
 
-    ```bash
-    npx firebase-tools@latest hosting:channel:deploy \
-    <NAME_OF_PREVIEW_CHANNEL> \
-    --only stake-demo-app  --expires 1d \
-    --project stake-demo-app --json
-    ```
+4. Deploy the project to Firebase.
+
+   ```bash
+   firebase deploy --only hosting:stake-demo-app --project stake-demo-app
+   ```

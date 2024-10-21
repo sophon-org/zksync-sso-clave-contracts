@@ -107,7 +107,6 @@ export const setSessionKeys = async <
   chain extends Chain,
   account extends Account,
 >(client: Client<transport, chain, account>, args: Prettify<SetSessionKeysArgs>): Promise<Prettify<SetSessionKeysReturnType>> => {
-  console.log({args});
   const callData = encodeFunctionData({
     abi: SessionPasskeySpendLimitModuleAbi,
     functionName: "setSessionKeys",

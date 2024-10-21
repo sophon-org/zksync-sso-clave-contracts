@@ -6,8 +6,8 @@
     <div class="flex gap-4 mb-4">
       <AppNavButton href="/">Accounts</AppNavButton>
       <AppNavButton href="/cards">Cards</AppNavButton>
-      <AppNavButton href="/crypto-account" v-if="appMeta.cryptoAccountAddress">Crypto Account</AppNavButton>
-      <AddCryptoButton v-else></AddCryptoButton>
+      <AppNavButton v-if="appMeta.cryptoAccountAddress" href="/crypto-account">Crypto Account</AppNavButton>
+      <AddCryptoButton v-else/>
     </div>
 
     <LayoutCard class="mb-8">
@@ -25,7 +25,7 @@
 </template>
 
 <script setup lang="ts">
-import AddCryptoButton from '~/components/app/AddCryptoButton.vue';
+import AddCryptoButton from "~/components/app/AddCryptoButton.vue";
 
 const { appMeta } = useAppMeta();
 </script>

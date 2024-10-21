@@ -39,14 +39,14 @@ export default defineNuxtConfig({
           ...zksyncInMemoryNode,
           rpcUrls: {
             default: {
-              http: ["http://34.55.28.37:8011"],
+              http: ["https://node.nvillanueva.com"],
             },
           },
         },
-        session: "0x514b521cAd6A66e14B4770514785d8A5C5fCDFB0",
-        passkey: "0x264E0D55d5E2a624a808C216ADE6C21bAb4A3A60",
+        session: "0x476F23ef274F244282252341792c8a610feF78ee",
+        passkey: "0x455e8d86DC6728396f8d3B740Fc893F4E20b25Dc",
         accountFactory: "0x23b13d016E973C9915c6252271fF06cCA2098885",
-        accountImplementation: "0x9Ef5f1B95D49340716f0cC2366a4b2718392DE08",
+        accountImplementation: "0x6cd5A2354Be0E656e7A1E94F1C0570E08EC4789B",
       }
     }
   }
