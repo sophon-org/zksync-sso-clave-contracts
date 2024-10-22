@@ -43,7 +43,7 @@ type PartialLimit = {
 type PartialSession = {
   expiry?: number;
   feeLimit?: PartialLimit;
-  policies?: {
+  callPolicies?: {
     target: string;
     selector?: string;
     maxValuePerUse?: ethers.BigNumberish;
@@ -55,6 +55,11 @@ type PartialSession = {
       limit?: PartialLimit;
     }[]
   }[];
+  transferPolicies?: {
+    target: string;
+    maxValuePerUse?: ethers.BigNumberish;
+    valueLimit?: PartialLimit;
+  }[]
 };
 
 class SessionTester {
@@ -147,7 +152,7 @@ class SessionTester {
       signer: this.sessionOwner.address,
       expiry: session.expiry ?? oneYearAway(),
       feeLimit: this.getLimit(session.feeLimit),
-      policies: session.policies?.map((policy) => ({
+      callPolicies: session.callPolicies?.map((policy) => ({
         target: policy.target,
         selector: policy.selector ?? "0x00000000",
         maxValuePerUse: policy.maxValuePerUse ?? 0,
@@ -158,6 +163,11 @@ class SessionTester {
           refValue: constraint.refValue ?? ethers.ZeroHash,
           limit: this.getLimit(constraint.limit),
         })) ?? []
+      })) ?? [],
+      transferPolicies: session.transferPolicies?.map((policy) => ({
+        target: policy.target,
+        maxValuePerUse: policy.maxValuePerUse ?? 0,
+        valueLimit: this.getLimit(policy.valueLimit),
       })) ?? []
     }
   }
@@ -226,7 +236,7 @@ describe.only("SessionKeyModule tests", function () {
     it("should create a session", async () => {
       tester = new SessionTester(proxyAccountAddress, await fixtures.getSessionKeyModuleAddress());
       await tester.createSession({
-        policies: [{
+        transferPolicies: [{
           target: sessionTarget,
           maxValuePerUse: parseEther("0.01")
         }]
@@ -264,7 +274,7 @@ describe.only("SessionKeyModule tests", function () {
     it("should create a session", async () => {
       tester = new SessionTester(proxyAccountAddress, await fixtures.getSessionKeyModuleAddress());
       await tester.createSession({
-        policies: [{
+        callPolicies: [{
           target: await erc20.getAddress(),
           selector: erc20.interface.getFunction("transfer").selector,
           constraints: [
