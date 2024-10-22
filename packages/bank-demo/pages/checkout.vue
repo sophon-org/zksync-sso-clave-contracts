@@ -20,11 +20,11 @@
       <div class="grow flex justify-stretch">
         <div class="grow">
           <div>Ethereum</div>
-          <div class="text-sm text-neutral-600">{{transferAmount}} ETH</div>
+          <div class="text-sm text-neutral-600">{{(cart.amount / cart.priceOfEth).toLocaleString(undefined, {maximumFractionDigits: 4})}} ETH</div>
         </div>
       </div>
       <div class="flex gap-2">
-        <p class="text-sm font-medium">£{{(transferAmount * cart.priceOfEth).toLocaleString(undefined, {maximumFractionDigits: 2})}}</p>
+        <p class="text-sm font-medium">£{{(cart.amount).toLocaleString(undefined, {maximumFractionDigits: 2})}}</p>
       </div>
     </div>
     </div>
@@ -56,7 +56,7 @@
     <div class="rounded-zk p-4 bg-white mt-4">
       <div class="flex justify-between">
         <div class="text-neutral-500">Total</div>
-        <div class="font-bold">£{{(transferAmount * cart.priceOfEth).toLocaleString(undefined, {maximumFractionDigits: 2})}}</div>
+        <div class="font-bold">£{{(cart.amount).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}}</div>
       </div>
     </div>
 
@@ -68,7 +68,7 @@
       <ZkButton type="primary" class="mt-4" :disabled="isLoading" :ui="{base: 'py-0'}" @click="onClickConfirm">
         <div class="flex gap-2 align-center">
           <span class="py-3">
-            Pay £{{(transferAmount * cart.priceOfEth).toLocaleString(undefined, {maximumFractionDigits: 2})}}
+            Pay £{{(cart.amount).toLocaleString(undefined, {maximumFractionDigits: 2})}}
           </span>
           <CommonSpinner v-if="isLoading" class="h-6 mt-1" />
         </div>
@@ -83,7 +83,6 @@ import { privateKeyToAccount } from "viem/accounts";
 
 const history = useHistory();
 
-const transferAmount = ref(1);
 const isLoading = ref(false);
 const cart = useCart();
 
@@ -111,9 +110,11 @@ const continueToTransferConfirmation = async () => {
     transport: http(),
   });
 
+  const transferAmount = (cart.value.amount / cart.value.priceOfEth).toString();
+
   await deployerClient.sendTransaction({
     to: appMeta.value.cryptoAccountAddress!,
-    value: parseEther(transferAmount.value.toString())
+    value: parseEther(transferAmount)
   });
 
   const publicClient = createPublicClient({
@@ -125,21 +126,20 @@ const continueToTransferConfirmation = async () => {
     address: appMeta.value.cryptoAccountAddress!
   });
 
-  console.log(`balance after transfer of ${transferAmount.value} ETH`);
-  console.log(`${formatEther(balance)} ETH`);
-
+  console.log(`balance after successful transfer: ${formatEther(balance)} ETH`);
 
   history.value.mainAccount.unshift({
     description: "www.exchange.com/*London",
     time: "Pending - A few minutes ago",
-    amount: "- £1,786.79",
+    amount: `- £${(cart.value.amount).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`,
+    value: -cart.value.amount,
     icon: "currency_bitcoin",
   });
 
   history.value.cryptoAccount.unshift({
     description: "Received from Main account",
     time: "Pending - A few minutes ago",
-    amount: "+ 1.0000 ETH",
+    amount: `+ ${(cart.value.amount / cart.value.priceOfEth).toFixed(4)} ETH`,
     icon: "add",
   });
   // Update UI to show completed transfer of 1 ETH

@@ -24,7 +24,7 @@
             <p class="text-4xl font-bold">£{{transferAmount.toLocaleString()}}</p>
             <ZkButtonIcon type="secondary" icon="swap_vert" class="h-8 w-8 ml-2" @click="swapTransferCurrency"/>
           </div>
-          <p class="text-sm font-medium text-neutral-400">{{(transferAmount / priceOfEth).toFixed(4)}} ETH</p>
+          <p class="text-sm font-medium text-neutral-400">{{(transferAmount / cart.priceOfEth).toFixed(4)}} ETH</p>
         </div>
       </div>
 
@@ -42,7 +42,7 @@
             <p class="text-4xl font-bold">{{transferAmount}} ETH</p>
             <ZkButtonIcon type="secondary" icon="swap_vert" class="h-8 w-8 ml-2" @click="swapTransferCurrency"/>
           </div>
-          <p class="text-sm font-medium text-neutral-400">£{{(transferAmount * priceOfEth).toLocaleString(undefined, {maximumFractionDigits: 2})}}</p>
+          <p class="text-sm font-medium text-neutral-400">£{{(transferAmount * cart.priceOfEth).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}}</p>
         </div>
       </div>
 
@@ -76,21 +76,25 @@
 </template>
 
 <script setup lang="ts">
-
 const transferAmount = ref(10);
 const transferEthAsCurrency = ref(false);
-const priceOfEth = 1786.79;
+const cart = useCart();
 
 const swapTransferCurrency = () => {
   transferEthAsCurrency.value = !transferEthAsCurrency.value;
   if (transferEthAsCurrency.value) {
-    transferAmount.value = +(transferAmount.value / priceOfEth).toFixed(4);
+    transferAmount.value = +(transferAmount.value / cart.value.priceOfEth).toFixed(4);
   } else {
-    transferAmount.value = +(transferAmount.value * priceOfEth).toFixed(2);
+    transferAmount.value = +(transferAmount.value * cart.value.priceOfEth).toFixed(2);
   }
 };
 
 const continueToTransferConfirmation = async () => {
+  if (transferEthAsCurrency.value) {
+    cart.value.amount = +(transferAmount.value * cart.value.priceOfEth).toFixed(2);
+  } else {
+    cart.value.amount = transferAmount.value;
+  }
   navigateTo("/checkout");
 };
 </script>

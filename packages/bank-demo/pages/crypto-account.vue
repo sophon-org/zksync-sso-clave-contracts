@@ -153,7 +153,7 @@
               </div>
               <div class="relative">
                 <input v-model="stakeAmount" class="w-full text-neutral-800 rounded-zk p-4 pb-8 mt-2 border border-neutral-800" type="text" placeholder="0.1">
-                <div class="absolute bottom-1 left-4 text-neutral-600">£{{(stakeAmount * cart.priceOfEth).toFixed(2)}}</div>
+                <div class="absolute bottom-1 left-4 text-neutral-600">£{{(stakeAmount * cart.priceOfEth).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}}</div>
               </div>
             </div>
             <p class="text-sm font-bold text-neutral-700">Transaction overview</p>
@@ -168,7 +168,7 @@
               </div>
             </div>
             <div class="flex items-center py-1">
-              <ZkIcon icon="local_gas_station"/> $0.03
+              <ZkIcon icon="local_gas_station"/> £0.03
             </div>
             <div class="flex justify-center">
               <ZkButton type="primary" class="w-full py-0 text-l" :disabled="isLoading" :ui="{base: 'py-0'}" @click="onClickSupplyEth">
@@ -193,7 +193,7 @@
             <h3 class="text-3xl font-bold">All done!</h3>
             </div>
             <div class="text-center">
-              <p class="text-lg text-neutral-700">You supplied 0.1 ETH</p>
+              <p class="text-lg text-neutral-700">You supplied {{stakeAmount}} ETH</p>
               <a href="#" class="text-neutral-700 underline">Review tx details</a>
             </div>
           </div>
@@ -203,7 +203,7 @@
             <span class="mr-2 text-neutral-600">APY</span>
             <span class="mr-6">0.47 %</span>
             <span class="mr-2 text-neutral-600">Collateral</span>
-            <span>£{{(stakeAmount * cart.priceOfEth).toFixed(2)}}</span>
+            <span>£{{(stakeAmount * cart.priceOfEth).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}}</span>
           </div>
           <div class="rounded-zk bg-neutral-100 p-4 mt-4">
             <div class="mb-2 flex items-center">
@@ -220,7 +220,7 @@
             <hr class="border-neutral-200">
             <div class="flex mt-2 gap-4">
               <div>
-                <span>0.1</span> <span class="text-xs text-neutral-600">£{{(stakeAmount * cart.priceOfEth).toFixed(2)}}</span>
+                <span>0.1</span> <span class="text-xs text-neutral-600">£{{(stakeAmount * cart.priceOfEth).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}}</span>
                 <div class="text-sm text-neutral-600">Balance</div>
               </div>
               <div>
@@ -299,9 +299,14 @@ const onClickSupplyEth = async () => {
     await supplyEthToAave();
   } catch (error) {
     if (error instanceof TransactionExecutionError) {
-      errorMessage.value = error.details;
+      if (error.details.includes("function_selector = 0xe7931438")) {
+        errorMessage.value = "Insufficient Funds";
+      } else {
+        errorMessage.value = error.details;
+      }
     } else {
       errorMessage.value = "Error occurred, please check console logs for more information.";
+      console.error(error);
     }
   } finally {
     isLoading.value = false;
@@ -321,10 +326,10 @@ const supplyEthToAave = async () => {
   });
 
   console.log("contracts", contracts);
-  console.log("Sending 0.1 ETH to AAVE Address", aaveAddress);
+  console.log(`Sending ${stakeAmount.value} ETH to AAVE Address`, aaveAddress);
   await passkeyClient.sendTransaction({
     to: aaveAddress as Address,
-    value: parseEther("0.1"),
+    value: parseEther(stakeAmount.value.toString()),
   });
 
 
@@ -333,7 +338,7 @@ const supplyEthToAave = async () => {
     description: "Staked on AAVE",
     time: "Just now",
     icon: "savings",
-    amount: "- 0.1000 ETH"
+    amount: `- ${stakeAmount.value} ETH`
   });
   appMeta.value = {
     ...appMeta.value,

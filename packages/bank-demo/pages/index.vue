@@ -14,7 +14,7 @@
       <div class="flex">
         <div class="grow mb-4">
           <p v-if="!appMeta.hasCompletedInitialTransfer" class="text-4xl font-bold">£ 2,000</p>
-          <p v-else class="text-4xl font-bold">£213.21</p>
+          <p v-else class="text-4xl font-bold">£{{(history.mainAccount.reduce((acc, cv) => acc + cv.value, 0)).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) }}</p>
           <p class="text-lg font-medium text-neutral-400">British Pound</p>
         </div>
         <div>
