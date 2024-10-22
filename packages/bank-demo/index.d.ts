@@ -2,7 +2,7 @@
 declare module "nuxt/schema" {
   interface PublicRuntimeConfig {
     aaveAddress: `0x${string}`;
-    revolutDemoDeployerKey: `0x${string}`;
+    bankDemoDeployerKey: `0x${string}`;
     network: zksyncInMemoryNode | zksyncSepoliaTestnet;
     accountFactory: `0x${string}`;
     accountImplementation: `0x${string}`;

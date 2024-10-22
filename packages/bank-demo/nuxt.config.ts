@@ -22,7 +22,7 @@ export default defineNuxtConfig({
   runtimeConfig: {
     public: {
       aaveAddress: "0xBC989fDe9e54cAd2aB4392Af6dF60f04873A033A", // Rich Account 0
-      revolutDemoDeployerKey: "0x3d3cbc973389cb26f657686445bcc75662b415b656078503592ac8c1abb8810e", // Rich Account 0
+      bankDemoDeployerKey: "0x3d3cbc973389cb26f657686445bcc75662b415b656078503592ac8c1abb8810e", // Rich Account 0
       network: zksyncInMemoryNode,
       session: "0x476F23ef274F244282252341792c8a610feF78ee",
       passkey: "0x455e8d86DC6728396f8d3B740Fc893F4E20b25Dc",
@@ -34,7 +34,7 @@ export default defineNuxtConfig({
     runtimeConfig: {
       public: {
         aaveAddress: "0xBC989fDe9e54cAd2aB4392Af6dF60f04873A033A", // Rich Account 0
-        revolutDemoDeployerKey: "0x3d3cbc973389cb26f657686445bcc75662b415b656078503592ac8c1abb8810e", // Rich Account 0
+        bankDemoDeployerKey: "0x3d3cbc973389cb26f657686445bcc75662b415b656078503592ac8c1abb8810e", // Rich Account 0
         network: {
           ...zksyncInMemoryNode,
           rpcUrls: {

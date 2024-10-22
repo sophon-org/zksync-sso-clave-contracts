@@ -13,9 +13,6 @@ export default {
       },
       colors: {
         khaki: "#F6F6F6",
-        // purple: "#EAEBFD", 300
-        // lavender: "#9896FF", 400
-        // grape: "#4F55F1", 500
         neutral: {
           50: "#F7F7F7",
           100: "#EBEBEB",

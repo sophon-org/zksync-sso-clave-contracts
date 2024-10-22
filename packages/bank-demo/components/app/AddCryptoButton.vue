@@ -8,12 +8,11 @@ import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
 import { deployAccount } from "zksync-account/client";
 import { registerNewPasskey } from "zksync-account/client/passkey";
 
-const { appMeta, userDisplay, userRevTag, contracts, deployerKey } = useAppMeta();
+const { appMeta, userDisplay, userId, contracts, deployerKey } = useAppMeta();
 
+// Convert Uin8Array to string
 const u8ToString = (input: Uint8Array): string => {
   const str = JSON.stringify(Array.from ? Array.from(input) : [].map.call(input, (v => v)));
-  // console.log("String version");
-  // console.log(str);
   return str;
 };
 
@@ -25,27 +24,30 @@ const createCryptoAccount = async () => {
     try {
       const { newCredentialPublicKey } = await registerNewPasskey({
         userDisplayName: userDisplay, // Display name of the user
-        userName: userRevTag, // User's Revtag
+        userName: userId, // User's unique ID
       });
       appMeta.value = {
-        ...appMeta.value, // Preserve existing metadata like name/icon
+        ...appMeta.value,
         credentialPublicKey: u8ToString(newCredentialPublicKey),
       };
       credentialPublicKey = newCredentialPublicKey;
     } catch (error) {
-      // eslint-disable-next-line no-console
       console.error("Passkey registration failed:", error);
       return;
     }
   } else {
     credentialPublicKey = new Uint8Array(JSON.parse(appMeta.value.credentialPublicKey));
   }
+
+  // Configure deployer account to pay for Account creation
   const config = useRuntimeConfig();
   const deployerClient = createWalletClient({
     account: privateKeyToAccount(deployerKey as Address),
     chain: config.public.network as Chain,
     transport: http()
   });
+
+  // Generate session key
   const sessionKey = generatePrivateKey();
   const sessionPublicKey = privateKeyToAccount(sessionKey).address;
 
@@ -61,19 +63,19 @@ const createCryptoAccount = async () => {
             },
           },
       ],
-      contracts: contracts,
+      contracts,
     });
 
     appMeta.value = {
       ...appMeta.value,
       cryptoAccountAddress: address,
     };
+    console.log(`Successfully created account: ${address}`);
   } catch (error) {
     console.error(error);
     return;
   }
 
-  console.log("Successfully created the account");
   navigateTo("/crypto-account");
 };
 </script>

@@ -9,7 +9,7 @@
     {
       "target": "stake-demo-app",
       "trailingSlash": false,
-      "public": "packages/revolut-demo/.output/public",
+      "public": "packages/bank-demo/.output/public",
       "ignore": ["firebase.json", "**/.*", "**/node_modules/**"]
     }
   ]

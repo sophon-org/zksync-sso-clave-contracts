@@ -240,7 +240,7 @@ import { createPublicClient, formatEther, http, parseEther, type Address, type C
 import { createZksyncPasskeyClient } from "zksync-account/client/passkey";
 import OnRampCrypto from "~/components/app/OnRampCrypto.vue";
 
-const { appMeta, userDisplay, userRevTag, contracts, aaveAddress } = useAppMeta();
+const { appMeta, userDisplay, userId, contracts, aaveAddress } = useAppMeta();
 const history = useHistory();
 const accountBalance = ref(0n);
 const isAaveSupplyClicked = ref(false);
@@ -287,7 +287,7 @@ const supplyEthToAave = async () => {
     address: appMeta.value.cryptoAccountAddress! as Address,
     credentialPublicKey: new Uint8Array(JSON.parse(appMeta.value.credentialPublicKey!)),
     userDisplayName: userDisplay,
-    userName: userRevTag,
+    userName: userId,
     contracts,
     chain: config.public.network as Chain,
     transport: http(),

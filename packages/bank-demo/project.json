@@ -1,11 +1,11 @@
 {
-  "name": "revolut-demo",
+  "name": "bank-demo",
   "implicitDependencies": ["sdk"],
   "targets": {
     "dev": {
       "executor": "nx:run-commands",
       "options": {
-        "cwd": "packages/revolut-demo",
+        "cwd": "packages/bank-demo",
         "command": "PORT=3005 nuxt dev"
       },
       "dependsOn": ["^build"]
@@ -13,7 +13,7 @@
     "build": {
       "executor": "nx:run-commands",
       "options": {
-        "cwd": "packages/revolut-demo",
+        "cwd": "packages/bank-demo",
         "command": "nuxt generate"
       },
       "dependsOn": ["^build"]
@@ -21,7 +21,7 @@
     "preview": {
       "executor": "nx:run-commands",
       "options": {
-        "cwd": "packages/revolut-demo",
+        "cwd": "packages/bank-demo",
         "command": "nuxt preview"
       },
       "dependsOn": ["^build", "build"]

@@ -8,37 +8,34 @@ export interface AppMetadata {
   cryptoAccountAddress: `0x${string}` | null;
   hasCompletedInitialTransfer: boolean;
   hasCompletedAaveStake: boolean;
-  cryptoBalance: string;
 }
 
 export const useAppMeta = () => {
   const appMetaStorage = useStorage<AppMetadata>("app-meta", {
     name: "",
     icon: null,
-    // uint8 array
+    // Uint8Array from your Passkey
     credentialPublicKey: null,
-    // account address that got created
+    // Account address that got created
     cryptoAccountAddress: null,
-    // have you purchased any ETH
+    // Have you purchased any ETH?
     hasCompletedInitialTransfer: false,
-    // have you staked any ETH
+    // Have you staked any ETH?
     hasCompletedAaveStake: false,
-    // not using it
-    cryptoBalance: "0",
   });
 
   const config = useRuntimeConfig();
   return {
     appMeta: appMetaStorage,
     userDisplay: "Jane Doe",
-    userRevTag: "jdoe",
+    userId: "jdoe",
     contracts: {
       accountFactory: config.public.accountFactory as Address,
       accountImplementation: config.public.accountImplementation as Address,
       passkey: config.public.passkey as Address,
       session: config.public.session as Address,
     },
-    deployerKey: config.public.revolutDemoDeployerKey,
+    deployerKey: config.public.bankDemoDeployerKey,
     aaveAddress: config.public.aaveAddress as Address
   };
 };
