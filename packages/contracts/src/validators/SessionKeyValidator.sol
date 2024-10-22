@@ -184,6 +184,7 @@ library SessionLib {
     // }
 
     console.log("fee validation");
+    // TODO: update fee allowance with the gasleft/refund at the end of execution
     uint256 fee = transaction.maxFeePerGas * transaction.gasLimit;
     if (!policy.feeLimit.checkAndUpdate(policy.feeTracker, fee)) {
       return false;
@@ -339,7 +340,7 @@ contract SessionKeyValidator is IHook, IValidationHook, IModuleValidator, IModul
     console.log("createSession");
     require(_isInitialized(msg.sender), "Account not initialized");
     require(newSession.signer != address(0), "Invalid signer");
-    // require(newSession.feeLimit.limitType != SessionLib.LimitType.Unlimited, "Unlimited fee allowance is not safe");
+    require(newSession.feeLimit.limitType != SessionLib.LimitType.Unlimited, "Unlimited fee allowance is not safe");
     console.log("passed requies");
     uint256 sessionId = sessions[msg.sender].nextSessionId++;
     sessions[msg.sender].sessionsBySigner.set(newSession.signer, sessionId);
@@ -372,7 +373,6 @@ contract SessionKeyValidator is IHook, IValidationHook, IModuleValidator, IModul
     _uninstall();
   }
 
-  // FIXME should also revoke all active session keys somehow
   function disable() external {
     if (_isInitialized(msg.sender)) {
       _uninstall();
@@ -458,15 +458,6 @@ contract SessionKeyValidator is IHook, IValidationHook, IModuleValidator, IModul
     }
     require(sessions[msg.sender].sessionsById[sessionId].validate(transaction), "Transaction rejected by session policy");
   }
-
-  // check the spending limit of the target for the transaction
-  // function onExecute(
-  //   address account,
-  //   address msgSender,
-  //   address target,
-  //   uint256 value,
-  //   bytes calldata callData
-  // ) internal virtual returns (bytes memory hookData) {}
 
   /**
    * The name of the module

@@ -151,7 +151,8 @@ class SessionTester {
     return {
       signer: this.sessionOwner.address,
       expiry: session.expiry ?? oneYearAway(),
-      feeLimit: this.getLimit(session.feeLimit),
+      // unlimited fees are not safe
+      feeLimit: session.feeLimit ? this.getLimit(session.feeLimit) : this.getLimit({ limit: parseEther("0.1") }),
       callPolicies: session.callPolicies?.map((policy) => ({
         target: policy.target,
         selector: policy.selector ?? "0x00000000",
@@ -247,7 +248,7 @@ describe.only("SessionKeyModule tests", function () {
       await tester.sendTxSuccess({
         to: sessionTarget,
         value: parseEther("0.01"),
-        gasLimit: 100_000_000n,
+        gasLimit: 10_000_000n,
       });
       expect(await provider.getBalance(sessionTarget))
         .to.equal(parseEther("0.01"), "session target should have received the funds");
@@ -315,7 +316,7 @@ describe.only("SessionKeyModule tests", function () {
       await tester.sendTxSuccess({
         to: await erc20.getAddress(),
         data: erc20.interface.encodeFunctionData("transfer", [sessionTarget, 1000n]),
-        gasLimit: 100_000_000n,
+        gasLimit: 10_000_000n,
       });
       expect(await erc20.balanceOf(sessionTarget))
         .to.equal(1000n, "session target should have received the tokens");
