@@ -1,0 +1,22 @@
+{
+  "name": "nft-quest",
+  "targets": {
+    "dev": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "packages/nft-quest",
+        "commands": [
+          {
+            "command": "pnpm nx dev gateway",
+            "prefix": "Gateway:"
+          },
+
+          {
+            "command": "PORT=3006 nuxt dev",
+            "prefix": "NFT-Quest:"
+          }
+        ]
+      }
+    }
+  }
+}

@@ -1,11 +1,12 @@
 alice
+clsx
 COSEALG
 COSEKTY
+ctap
 lintstagedrc
 nuxt
 Nuxt
 nuxtjs
 verdaccio
 vueuse
-ctap
 wght
