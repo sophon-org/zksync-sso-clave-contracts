@@ -24,7 +24,7 @@
             <p class="text-4xl font-bold">£{{transferAmount.toLocaleString()}}</p>
             <ZkButtonIcon type="secondary" icon="swap_vert" class="h-8 w-8 ml-2" @click="swapTransferCurrency"/>
           </div>
-          <p class="text-sm font-medium text-neutral-400">{{(transferAmount / priceOfEth).toFixed(6)}} ETH</p>
+          <p class="text-sm font-medium text-neutral-400">{{(transferAmount / priceOfEth).toFixed(4)}} ETH</p>
         </div>
       </div>
 

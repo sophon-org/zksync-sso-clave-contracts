@@ -45,14 +45,16 @@
         </ZkButton>
 
 
-        <ZkDropdown :hide-toggle="true" :menu="dropdownMenu" type="secondary" @select="itemSelected"><ZkIcon icon="more_horiz" ui="px-2"/></ZkDropdown>
+        <ZkDropdown :hide-toggle="true" :menu="dropdownMenu" align="end" type="secondary" @select="itemSelected">
+          <ZkIcon icon="more_horiz" ui="px-2"/>
+        </ZkDropdown>
       </div>
 
       <p class="mt-6 text-neutral-500">Transactions</p>
       <div v-for="(item, index) in history.mainAccount" :key="index" class="flex gap-2 mt-6">
         <ZkIconThumbnail :icon="item.icon" />
         <div class="grow">
-          <p>{{ item.description  }}</p>
+          <p>{{ item.description }}</p>
           <p class="text-sm text-neutral-600">{{ item.time }}</p>
         </div>
         <div class="text-2xl font-light">

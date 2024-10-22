@@ -29,7 +29,7 @@
     <LayoutCard v-else class="mb-8">
       <div class="flex">
         <div class="grow mb-4">
-          <p class="text-4xl font-bold">{{ (+formatEther(accountBalance)).toFixed(6) }} ETH</p>
+          <p class="text-4xl font-bold">{{ (+formatEther(accountBalance)).toFixed(4) }} ETH</p>
           <p class="text-lg font-medium text-neutral-400">ZKsync</p>
         </div>
         <div>
@@ -149,7 +149,7 @@
             <div class="flex flex-col justify-stretch py-8 pb-2">
               <div class="flex grow">
                 <div class="grow text-neutral-700 text-sm font-bold">Amount</div>
-                <div>Balance: {{ (+formatEther(accountBalance)).toFixed(6) }}</div>
+                <div>Balance: {{ (+formatEther(accountBalance)).toFixed(4) }}</div>
               </div>
               <div class="relative">
                 <input v-model="stakeAmount" class="w-full text-neutral-800 rounded-zk p-4 pb-8 mt-2 border border-neutral-800" type="text" placeholder="0.1">
@@ -171,7 +171,15 @@
               <ZkIcon icon="local_gas_station"/> $0.03
             </div>
             <div class="flex justify-center">
-              <ZkButton type="primary" class="w-full py-0 text-l" @click="supplyEthToAave">Supply ETH</ZkButton>
+              <ZkButton type="primary" class="w-full py-0 text-l" :disabled="isLoading" :ui="{base: 'py-0'}" @click="onClickSupplyEth">
+                <div class="flex gap-2 align-center">
+                  <span class="py-3">Supply ETH</span>
+                  <CommonSpinner v-if="isLoading" class="h-6 mt-1"/>
+                </div>
+              </ZkButton>
+            </div>
+            <div v-if="errorMessage" class="flex items-center justify-center py-1 text-red-500">
+              {{ errorMessage }}
             </div>
           </div>
         </template>
@@ -236,7 +244,7 @@
 </template>
 
 <script setup lang="ts">
-import { createPublicClient, formatEther, http, parseEther, type Address, type Chain } from "viem";
+import { createPublicClient, formatEther, http, parseEther, TransactionExecutionError, type Address, type Chain } from "viem";
 import { createZksyncPasskeyClient } from "zksync-account/client/passkey";
 import OnRampCrypto from "~/components/app/OnRampCrypto.vue";
 
@@ -247,6 +255,8 @@ const isAaveSupplyClicked = ref(false);
 const cart = useCart();
 const stakeAmount = ref(0.1);
 const tabSlot = ref<string | number>("tab1");
+const isLoading = ref(false);
+const errorMessage = ref("");
 
 const config = useRuntimeConfig();
 
@@ -280,6 +290,23 @@ watch(appMeta, async (newValue) => {
     address: newValue.cryptoAccountAddress! as Address,
   });
 });
+
+const onClickSupplyEth = async () => {
+  isLoading.value = true;
+  errorMessage.value = "";
+
+  try {
+    await supplyEthToAave();
+  } catch (error) {
+    if (error instanceof TransactionExecutionError) {
+      errorMessage.value = error.details;
+    } else {
+      errorMessage.value = "Error occurred, please check console logs for more information.";
+    }
+  } finally {
+    isLoading.value = false;
+  }
+};
 
 const supplyEthToAave = async () => {
   // Send 0.1 ETH to the AAVE address

@@ -1,5 +1,14 @@
 <template>
-  <ZkButton type="primary" @click="createCryptoAccount">Add Crypto account</ZkButton>
+  <ZkButton
+    type="primary"
+    class="w-52"
+    :ui="{base: 'py-0'}"
+    :disabled="isLoading"
+    @click="onClickAddCrypto"
+  >
+    <span v-if="!isLoading">Add Crypto account</span>
+    <CommonSpinner v-else class="h-6"/>
+  </ZkButton>
 </template>
 
 <script setup lang="ts">
@@ -9,11 +18,18 @@ import { deployAccount } from "zksync-account/client";
 import { registerNewPasskey } from "zksync-account/client/passkey";
 
 const { appMeta, userDisplay, userId, contracts, deployerKey } = useAppMeta();
+const isLoading = ref(false);
 
 // Convert Uin8Array to string
 const u8ToString = (input: Uint8Array): string => {
   const str = JSON.stringify(Array.from ? Array.from(input) : [].map.call(input, (v => v)));
   return str;
+};
+
+const onClickAddCrypto = async () => {
+  isLoading.value = true;
+  await createCryptoAccount();
+  isLoading.value = false;
 };
 
 const createCryptoAccount = async () => {

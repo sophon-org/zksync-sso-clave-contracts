@@ -65,8 +65,13 @@
     </p>
 
     <div class="flex justify-center pb-12">
-      <ZkButton type="primary" class="mt-4" @click="continueToTransferConfirmation">
-        Pay £{{(transferAmount * cart.priceOfEth).toLocaleString(undefined, {maximumFractionDigits: 2})}}
+      <ZkButton type="primary" class="mt-4" :disabled="isLoading" :ui="{base: 'py-0'}" @click="onClickConfirm">
+        <div class="flex gap-2 align-center">
+          <span class="py-3">
+            Pay £{{(transferAmount * cart.priceOfEth).toLocaleString(undefined, {maximumFractionDigits: 2})}}
+          </span>
+          <CommonSpinner v-if="isLoading" class="h-6 mt-1" />
+        </div>
       </ZkButton>
     </div>
   </div>
@@ -79,6 +84,7 @@ import { privateKeyToAccount } from "viem/accounts";
 const history = useHistory();
 
 const transferAmount = ref(1);
+const isLoading = ref(false);
 const cart = useCart();
 
 const { appMeta, deployerKey } = useAppMeta();
@@ -86,6 +92,15 @@ const config = useRuntimeConfig();
 
 const cancelTransaction = () => {
   navigateTo("/crypto-account");
+};
+
+const onClickConfirm = async() => {
+  isLoading.value = true;
+  try {
+    await continueToTransferConfirmation();
+  } catch {
+    isLoading.value = false;
+  }
 };
 
 const continueToTransferConfirmation = async () => {
