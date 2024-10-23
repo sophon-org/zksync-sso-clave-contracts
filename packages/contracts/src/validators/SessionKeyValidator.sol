@@ -123,72 +123,51 @@ library SessionLib {
     UsageLimit valueLimit;
   }
 
-  function checkAndUpdate(UsageLimit storage limit, UsageTracker storage tracker, uint256 value) internal returns (bool) {
+  function checkAndUpdate(UsageLimit storage limit, UsageTracker storage tracker, uint256 value) internal {
     if (limit.limitType == LimitType.Lifetime) {
-      if (tracker.lifetimeUsage + value > limit.limit) {
-        return false;
-      }
+      require(tracker.lifetimeUsage + value <= limit.limit, "Lifetime limit exceeded");
       tracker.lifetimeUsage += value;
     }
     // TODO: uncomment when it's possible to check timestamps during validation
     // if (limit.limitType == LimitType.Allowance) {
     //   uint256 period = block.timestamp / limit.period;
-    //   if (tracker.allowanceUsage[period] + value > limit.limit) {
-    //     return false;
-    //   }
+    //   require(tracker.allowanceUsage[period] + value <= limit.limit);
     //   tracker.allowanceUsage[period] += value;
     // }
-    return true;
   }
 
-  function checkAndUpdate(Constraint storage constraint, UsageTracker storage tracker, bytes calldata data) internal returns (bool) {
-    console.log("param validation started");
+  function checkAndUpdate(Constraint storage constraint, UsageTracker storage tracker, bytes calldata data) internal {
     uint256 offset = 4 + constraint.offset * 32;
     bytes32 param = bytes32(data[offset:offset + 32]);
     Condition condition = constraint.condition;
     bytes32 refValue = constraint.refValue;
 
-    if (condition == Condition.EQUAL && param != refValue) {
-        return false;
-    } else if (condition == Condition.GREATER_THAN && param <= refValue) {
-        return false;
-    } else if (condition == Condition.LESS_THAN && param >= refValue) {
-        return false;
-    } else if (condition == Condition.GREATER_THAN_OR_EQUAL && param < refValue) {
-        return false;
-    } else if (condition == Condition.LESS_THAN_OR_EQUAL && param > refValue) {
-        return false;
-    } else if (condition == Condition.NOT_EQUAL && param == refValue) {
-        return false;
+    if (condition == Condition.EQUAL) {
+      require(param == refValue, "EQUAL constraint not met");
+    } else if (condition == Condition.GREATER_THAN) {
+      require(param > refValue, "GREATER constraint not met");
+    } else if (condition == Condition.LESS_THAN) {
+      require(param < refValue, "LESS constraint not met");
+    } else if (condition == Condition.GREATER_THAN_OR_EQUAL) {
+      require(param >= refValue, "GREATER_OR_EQUAL constraint not met");
+    } else if (condition == Condition.LESS_THAN_OR_EQUAL) {
+      require(param <= refValue, "LESS_OR_EQUAL constraint not met");
+    } else if (condition == Condition.NOT_EQUAL) {
+      require(param != refValue, "NOT_EQUAL constraint not met");
     }
 
-    console.log("condition validated");
-    if (!constraint.limit.checkAndUpdate(tracker, uint256(param))) {
-      return false;
-    }
-    console.log("limit validated");
-
-    return true;
+    constraint.limit.checkAndUpdate(tracker, uint256(param));
   }
 
-  function validate(SessionPolicy storage policy, Transaction calldata transaction) internal returns (bool) {
-    console.log("validation started");
-    if (!policy.isOpen) {
-      return false;
-    }
+  function validate(SessionPolicy storage policy, Transaction calldata transaction) internal {
+    require(policy.isOpen, "Session is closed");
 
     // TODO uncomment when it's possible to check timestamps during validation
-    // if (block.timestamp > policy.expiry) {
-    //   policy.isOpen = false;
-    //   return false;
-    // }
+    // require(block.timestamp <= policy.expiry);
 
-    console.log("fee validation");
     // TODO: update fee allowance with the gasleft/refund at the end of execution
     uint256 fee = transaction.maxFeePerGas * transaction.gasLimit;
-    if (!policy.feeLimit.checkAndUpdate(policy.feeTracker, fee)) {
-      return false;
-    }
+    policy.feeLimit.checkAndUpdate(policy.feeTracker, fee);
 
     address target = address(uint160(transaction.to));
 
@@ -196,39 +175,19 @@ library SessionLib {
       bytes4 selector = bytes4(transaction.data[:4]);
       CallPolicy storage callPolicy = policy.callPolicy[target][selector];
 
-      console.log("function validation");
-      if (!callPolicy.isAllowed) {
-        return false;
-      }
-      console.log("value validation");
-      if (transaction.value > callPolicy.maxValuePerUse) {
-        return false;
-      }
-      console.log("value limit check");
-      if (!callPolicy.valueLimit.checkAndUpdate(callPolicy.valueTracker, transaction.value)) {
-        return false;
-      }
+      require(callPolicy.isAllowed, "Call not allowed");
+      require(transaction.value <= callPolicy.maxValuePerUse, "Value exceeds limit");
+      callPolicy.valueLimit.checkAndUpdate(callPolicy.valueTracker, transaction.value);
 
       for (uint256 i = 0; i < callPolicy.constraints.length; i++) {
-        console.log("param validation", i);
-        if (!callPolicy.constraints[i].checkAndUpdate(callPolicy.paramTracker[i], transaction.data)) {
-          return false;
-        }
+        callPolicy.constraints[i].checkAndUpdate(callPolicy.paramTracker[i], transaction.data);
       }
     } else {
       TransferPolicy storage transferPolicy = policy.transferPolicy[target];
-      if (!transferPolicy.isAllowed) {
-        return false;
-      }
-      if (transaction.value > transferPolicy.maxValuePerUse) {
-        return false;
-      }
-      if (!transferPolicy.valueLimit.checkAndUpdate(transferPolicy.valueTracker, transaction.value)) {
-        return false;
-      }
+      require(transferPolicy.isAllowed, "Transfer not allowed");
+      require(transaction.value <= transferPolicy.maxValuePerUse, "Value exceeds limit");
+      transferPolicy.valueLimit.checkAndUpdate(transferPolicy.valueTracker, transaction.value);
     }
-
-    return true;
   }
 
   function fill(SessionPolicy storage session, SessionSpec memory newSession) internal {
@@ -337,14 +296,11 @@ contract SessionKeyValidator is IHook, IValidationHook, IModuleValidator, IModul
   }
 
   function createSession(SessionLib.SessionSpec memory newSession) public {
-    console.log("createSession");
     require(_isInitialized(msg.sender), "Account not initialized");
     require(newSession.signer != address(0), "Invalid signer");
     require(newSession.feeLimit.limitType != SessionLib.LimitType.Unlimited, "Unlimited fee allowance is not safe");
-    console.log("passed requies");
     uint256 sessionId = sessions[msg.sender].nextSessionId++;
     sessions[msg.sender].sessionsBySigner.set(newSession.signer, sessionId);
-    console.log("set session id", sessionId);
     SessionLib.SessionPolicy storage session = sessions[msg.sender].sessionsById[sessionId];
     session.fill(newSession);
   }
@@ -429,16 +385,10 @@ contract SessionKeyValidator is IHook, IValidationHook, IModuleValidator, IModul
    */
   function isValidSignature(bytes32 hash, bytes memory signature) public view returns (bytes4 magic) {
     magic = EIP1271_SUCCESS_RETURN_VALUE;
-
     (address recoveredAddress, ) = ECDSA.tryRecover(hash, signature);
-    console.log("recoveredAddress sessionKey");
-    console.logAddress(recoveredAddress);
-
     uint256 sessionId = sessions[msg.sender].sessionsBySigner.get(recoveredAddress);
-
     if (!sessions[msg.sender].sessionsById[sessionId].isOpen) {
       magic = bytes4(0);
-      console.log("invalid session key");
     }
   }
 
@@ -447,16 +397,15 @@ contract SessionKeyValidator is IHook, IValidationHook, IModuleValidator, IModul
     Transaction calldata transaction,
     bytes calldata _hookData
   ) external {
-    (bytes memory signature, , ) = abi.decode(transaction.signature, (bytes, address, bytes[]));
-    (address recoveredAddress, ) = ECDSA.tryRecover(signedHash, signature);
-    (bool exists, uint256 sessionId) = sessions[msg.sender].sessionsBySigner.tryGet(recoveredAddress);
-    if (!exists) {
-      // This transaction was not signed by a session key,
-      // and will either be rejected on the signature validation step,
-      // or does not use session key validator, in which case we don't care.
+    (bytes memory signature, address validator, ) = abi.decode(transaction.signature, (bytes, address, bytes[]));
+    if (validator != address(this)) {
+      // This transaction is not meant to be validated by this module
       return;
     }
-    require(sessions[msg.sender].sessionsById[sessionId].validate(transaction), "Transaction rejected by session policy");
+    (address recoveredAddress, ) = ECDSA.tryRecover(signedHash, signature);
+    (bool exists, uint256 sessionId) = sessions[msg.sender].sessionsBySigner.tryGet(recoveredAddress);
+    require(exists, "Invalid signer");
+    sessions[msg.sender].sessionsById[sessionId].validate(transaction);
   }
 
   /**
