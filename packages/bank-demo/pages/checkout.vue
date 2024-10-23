@@ -112,7 +112,7 @@ const continueToTransferConfirmation = async () => {
 
   const transferAmount = (cart.value.amount / cart.value.priceOfEth).toString();
 
-  await deployerClient.sendTransaction({
+  const transactionReceipt = await deployerClient.sendTransaction({
     to: appMeta.value.cryptoAccountAddress!,
     value: parseEther(transferAmount)
   });
@@ -141,6 +141,7 @@ const continueToTransferConfirmation = async () => {
     time: "Pending - A few minutes ago",
     amount: `+ ${(cart.value.amount / cart.value.priceOfEth).toFixed(4)} ETH`,
     icon: "add",
+    transactionHash: transactionReceipt,
   });
   // Update UI to show completed transfer of 1 ETH
   appMeta.value = {

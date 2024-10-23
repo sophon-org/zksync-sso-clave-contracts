@@ -4,7 +4,7 @@ import { useStorage } from "@vueuse/core";
 
 export interface HistoryData {
   mainAccount: Array<{ icon: string; description: string; amount: string; time: string; value: number; }>;
-  cryptoAccount: Array<{ icon: string; description: string; amount: string; time: string; }>;
+  cryptoAccount: Array<{ icon: string; description: string; amount: string; time: string; transactionHash: string; }>;
 }
 
 export const useHistory = () => {

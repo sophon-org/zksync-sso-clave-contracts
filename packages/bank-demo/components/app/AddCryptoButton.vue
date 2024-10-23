@@ -68,7 +68,7 @@ const createCryptoAccount = async () => {
   const sessionPublicKey = privateKeyToAccount(sessionKey).address;
 
   try {
-    const { address } = await deployAccount(deployerClient, {
+    const { address, transactionReceipt } = await deployAccount(deployerClient, {
       credentialPublicKey,
       initialSessions: [
           {
@@ -87,6 +87,7 @@ const createCryptoAccount = async () => {
       cryptoAccountAddress: address,
     };
     console.log(`Successfully created account: ${address}`);
+    console.log(`Transaction receipt: ${transactionReceipt.transactionHash}`);
   } catch (error) {
     console.error(error);
     return;

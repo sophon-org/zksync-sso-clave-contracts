@@ -36,6 +36,7 @@ export const useAppMeta = () => {
       session: config.public.session as Address,
     },
     deployerKey: config.public.bankDemoDeployerKey,
-    aaveAddress: config.public.aaveAddress as Address
+    aaveAddress: config.public.aaveAddress as Address,
+    explorerUrl: config.public.explorerUrl,
   };
 };

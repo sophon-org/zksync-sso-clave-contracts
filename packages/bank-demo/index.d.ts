@@ -8,6 +8,7 @@ declare module "nuxt/schema" {
     accountImplementation: `0x${string}`;
     passkey: `0x${string}`;
     session: `0x${string}`;
+    explorerUrl: string;
   }
 }
 

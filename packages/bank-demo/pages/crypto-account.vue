@@ -19,7 +19,9 @@
     <LayoutCard class="flex gap-8 items-center justify-between mb-8 !py-2 !px-4" >
         <span class="text-l font-bold">Crypto Account Address</span>
         <div>
-          <span>{{ appMeta.cryptoAccountAddress?.slice(0,5) + '...' + appMeta.cryptoAccountAddress?.slice(-3)  }}</span>
+          <a :href="`${explorerUrl}address/${appMeta.cryptoAccountAddress}`" target="_blank" class="italic text-blue-500">
+            {{ appMeta.cryptoAccountAddress?.slice(0,5) + '...' + appMeta.cryptoAccountAddress?.slice(-3)  }}
+          </a>
           <ZkCopy :content="appMeta.cryptoAccountAddress! as string" />
         </div>
     </LayoutCard>
@@ -76,7 +78,12 @@
       <div v-for="(item, index) in history.cryptoAccount" :key="index" class="flex gap-2 mt-4">
         <ZkIconThumbnail :icon="item.icon" />
         <div class="grow">
-          <p>{{ item.description }}</p>
+          <a :href="`${explorerUrl}tx/${item.transactionHash}`" target="_blank" class="hover:text-blue-500">
+            <div class="flex align-center">
+              {{ item.description }}
+              <ZkIcon type="secondary" icon="open_in_new" class="!text-[1.25rem] flex align-center ml-1 mt-0.5"/>
+            </div>
+          </a>
           <p class="text-sm text-neutral-600">{{ item.time }}</p>
         </div>
         <div class="text-2xl font-light">
@@ -194,7 +201,7 @@
             </div>
             <div class="text-center">
               <p class="text-lg text-neutral-700">You supplied {{stakeAmount}} ETH</p>
-              <a href="#" class="text-neutral-700 underline">Review tx details</a>
+              <a :href="`${explorerUrl}tx/${history.cryptoAccount[0]?.transactionHash}`" target="_blank" class="text-neutral-700 underline">Review tx details</a>
             </div>
           </div>
           <div class="rounded-zk bg-neutral-100 p-4">
@@ -248,7 +255,7 @@ import { createPublicClient, formatEther, http, parseEther, TransactionExecution
 import { createZksyncPasskeyClient } from "zksync-account/client/passkey";
 import OnRampCrypto from "~/components/app/OnRampCrypto.vue";
 
-const { appMeta, userDisplay, userId, contracts, aaveAddress } = useAppMeta();
+const { appMeta, userDisplay, userId, contracts, aaveAddress, explorerUrl } = useAppMeta();
 const history = useHistory();
 const accountBalance = ref(0n);
 const isAaveSupplyClicked = ref(false);
@@ -327,18 +334,18 @@ const supplyEthToAave = async () => {
 
   console.log("contracts", contracts);
   console.log(`Sending ${stakeAmount.value} ETH to AAVE Address`, aaveAddress);
-  await passkeyClient.sendTransaction({
+  const transactionReceipt = await passkeyClient.sendTransaction({
     to: aaveAddress as Address,
     value: parseEther(stakeAmount.value.toString()),
   });
-
 
   // Update that Aave Staking is completed
   history.value.cryptoAccount.unshift({
     description: "Staked on AAVE",
     time: "Just now",
     icon: "savings",
-    amount: `- ${stakeAmount.value} ETH`
+    amount: `- ${stakeAmount.value} ETH`,
+    transactionHash: transactionReceipt,
   });
   appMeta.value = {
     ...appMeta.value,
