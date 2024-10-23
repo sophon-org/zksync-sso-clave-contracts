@@ -5,7 +5,7 @@
 
   <LayoutCard class="mb-8 rounded-t-none">
     <div class="flex gap-2 mb-12">
-      <TokenEth :height="48"/>
+      <TokenEth :height="3"/>
       <div class="grow flex justify-stretch">
         <div class="grow">
           <div>ETH</div>

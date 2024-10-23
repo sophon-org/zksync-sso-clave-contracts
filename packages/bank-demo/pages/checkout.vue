@@ -16,7 +16,7 @@
     <div class="rounded-zk p-1 bg-white">
       <div class="rounded-zk bg-primary-100/50 font-bold p-4">Purchasing</div>
       <div class="flex p-4 gap-2">
-      <TokenEth :height="48"/>
+      <TokenEth :height="3"/>
       <div class="grow flex justify-stretch">
         <div class="grow">
           <div>Ethereum</div>

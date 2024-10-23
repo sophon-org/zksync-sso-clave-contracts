@@ -21,7 +21,7 @@
           <TokenGbp :height="48"/>
         </div>
       </div>
-      <div class="flex gap-2">
+      <div class="flex gap-2 text-xs sm:text-base">
 
         <ZkButton type="secondary">
           <template #prefix>

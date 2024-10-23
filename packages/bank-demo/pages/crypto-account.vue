@@ -3,15 +3,15 @@
     <LayoutHeader>
       Home
     </LayoutHeader>
-    <div class="flex gap-4 mb-4">
+    <div class="flex gap-4 mb-4 text-xs sm:text-base">
       <AppNavButton href="/">Accounts</AppNavButton>
       <AppNavButton href="/cards">Cards</AppNavButton>
       <AppNavButton href="/crypto-account">Crypto Account</AppNavButton>
     </div>
 
     <div v-if="!appMeta.hasCompletedInitialTransfer" class="flex flex-col justify-center items-center mb-6">
-      <div class="bg-green-500 text-neutral-700 dark:text-neutral-300 dark:bg-neutral-800 w-[44px] h-[44px] p-2 rounded-full text-center">
-        <ZkIcon icon="check" :ui="'text-white'"/>
+      <div class="bg-green-500 text-neutral-700 dark:text-neutral-300 dark:bg-neutral-800 w-[2.75rem] h-[2.75rem] p-2 rounded-full text-center">
+        <ZkIcon icon="check" :ui="'text-white !text-2xl'"/>
       </div>
       <p class="text-lg text-neutral-700">Crypto account created.</p>
     </div>
@@ -33,7 +33,7 @@
           <p class="text-lg font-medium text-neutral-400">ZKsync</p>
         </div>
         <div>
-          <TokenEth :height="48"/>
+          <TokenEth :height="3"/>
         </div>
       </div>
       <div class="flex gap-2">
@@ -95,7 +95,7 @@
       <span class="grow text-right">5 USDC</span>
     </LayoutCard> -->
     <!-- <LayoutCard class="flex gap-2 items-center mb-8 py-4" v-if="appMeta.hasCompletedInitialTransfer">
-      <TokenEth :height="48" />
+      <TokenEth :height="3" />
       <div class="flex flex-col">
         <span>ETH</span>
         <span class="text-neutral-700 text-sm">ZKsync</span>
@@ -107,7 +107,7 @@
 
     <div v-if="appMeta.hasCompletedInitialTransfer">
       <div class="bg-primary-200 rounded-t-zk flex items-center justify-center gap-2 py-4">
-        <img src="/aave-logo.png" class="rounded-lg h-[32px]"  >
+        <img src="/aave-logo.png" class="rounded-lg h-[2rem]"  >
         <span class="text-white">AAVE</span>
       </div>
       <div class="bg-white rounded-b-zk pt-4 px-8 pb-8">
@@ -120,7 +120,7 @@
         >
         <template #tab1>
           <div v-if="!isAaveSupplyClicked" class="flex gap-2">
-            <TokenEth :height="48"/>
+            <TokenEth :height="3"/>
             <div class="grow flex justify-stretch">
               <div class="grow">
                 <div>ETH</div>
@@ -144,7 +144,7 @@
             <div class="flex items-center gap-2">
               <ZkButtonIcon type="ghost" icon="arrow_back" @click="isAaveSupplyClicked = false"/>
               <span>Supply ETH</span>
-              <TokenEth :height="26"/>
+              <TokenEth :height="1.5"/>
             </div>
             <div class="flex flex-col justify-stretch py-8 pb-2">
               <div class="flex grow">
@@ -187,8 +187,8 @@
           <div v-if="appMeta.hasCompletedAaveStake">
             <div class="flex gap-4 mb-2">
             <div class="flex grow gap-4">
-              <div class="bg-green-500 text-neutral-700 dark:text-neutral-300 dark:bg-neutral-800 w-[44px] h-[44px] p-2 rounded-full text-center">
-              <ZkIcon icon="check" :ui="'text-white'"/>
+              <div class="bg-green-500 text-neutral-700 dark:text-neutral-300 dark:bg-neutral-800 w-[2.75rem] h-[2.75rem] p-2 rounded-full text-center">
+              <ZkIcon icon="check" :ui="'text-white !text-2xl'"/>
             </div>
             <h3 class="text-3xl font-bold">All done!</h3>
             </div>
@@ -208,7 +208,7 @@
           <div class="rounded-zk bg-neutral-100 p-4 mt-4">
             <div class="mb-2 flex items-center">
               <div class="grow flex items-center">
-                <TokenEth :height="48"/>
+                <TokenEth :height="3"/>
                 <div class="ml-2">
                   <div>ETH</div>
                   <div class="text-xs text-neutral-600">Asset</div>

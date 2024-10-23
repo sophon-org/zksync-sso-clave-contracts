@@ -27,7 +27,7 @@ const currentTabSlot = defineModel<string | number>();
         v-for="(tab, index) of tabs"
         :key="index"
         :value="tab.slot"
-        class="grow relative z-2 bg-transparent px-5 h-[45px] flex items-center justify-center text-[15px] leading-none data-[state=active]:font-semibold data-[state=active]:text-neutral-950 text-neutral-500 outline-none cursor-pointer hover:text-neutral-950 border-b border-transparent focus-visible:ring-2 focus-visible:text-neutral-950 dark:text-neutral-300 dark:data-[state=active]:text-neutral-100 dark:hover:text-neutral-200 dark:hover:border-neutral-300"
+        class="grow relative z-2 bg-transparent px-5 h-[2.8rem] flex items-center justify-center text-[1rem] leading-none data-[state=active]:font-semibold data-[state=active]:text-neutral-950 text-neutral-500 outline-none cursor-pointer hover:text-neutral-950 border-b border-transparent focus-visible:ring-2 focus-visible:text-neutral-950 dark:text-neutral-300 dark:data-[state=active]:text-neutral-100 dark:hover:text-neutral-200 dark:hover:border-neutral-300"
       >
         <ZkIcon v-if="tab.icon" :icon="tab.icon" class="mr-1" />
         {{ tab.label }}

@@ -38,7 +38,7 @@ const iconTypes: Record<ButtonTypes, string> = {
 
 const buttonUI = {
   button: twMerge(
-    "w-[46px] h-[46px] p-0 leading-3 align-middle text-neutral-700",
+    "w-[2.75rem] h-[2.75rem] p-0 leading-3 align-middle text-neutral-700",
     buttonTypes[type],
     ui.button?.button
   ),

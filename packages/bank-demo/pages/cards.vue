@@ -3,7 +3,7 @@
     <LayoutHeader>
       Home
     </LayoutHeader>
-    <div class="flex gap-4 mb-4">
+    <div class="flex gap-4 mb-4 text-xs sm:text-base">
       <AppNavButton href="/">Accounts</AppNavButton>
       <AppNavButton href="/cards">Cards</AppNavButton>
       <AppNavButton v-if="appMeta.cryptoAccountAddress" href="/crypto-account">Crypto Account</AppNavButton>
