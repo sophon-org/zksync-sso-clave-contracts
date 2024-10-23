@@ -2,7 +2,7 @@
 pragma solidity ^0.8.23;
 
 import "../interfaces/IERC7579Module.sol";
-import { EnumerableMap } from "@openzeppelin/contracts/utils/structs/EnumerableMap.sol";
+import { EnumerableSet } from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import { IERC165 } from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 
 import { IModule } from "../interfaces/IModule.sol";
@@ -22,22 +22,34 @@ library SessionLib {
   using SessionLib for SessionLib.Constraint;
   using SessionLib for SessionLib.UsageLimit;
 
-  struct SessionPolicy {
-    // FIXME: add ability to call without a selector
+  enum Status {
+    NotInitialized,
+    Active,
+    Closed
+  }
+
+  struct UsageTrackers {
+    UsageTracker fee;
+    mapping(address => UsageTracker) transferValue;
+    mapping(address => mapping(bytes4 => UsageTracker)) callValue;
+    mapping(address => mapping(bytes4 => mapping(uint256 => UsageTracker))) params;
+  }
+
+  // This struct has weird layout because of the AA storage access restrictions for validation
+  struct SessionStorage {
     // (target, selector) => call policy
-    mapping(address => mapping(bytes4 => CallPolicy)) callPolicy;
+    mapping(address => mapping(bytes4 => mapping(address => CallPolicy))) callPolicy;
     // (target) => empty (no selector) call policy
-    mapping(address => TransferPolicy) transferPolicy;
-    // timestamp when this session expires
-    uint256 expiry;
-    // to close the session early, flip this flag
-    bool isOpen;
-    // fee limit for the session
-    UsageLimit feeLimit;
-    UsageTracker feeTracker;
-    // only used in getters / view functions
-    CallTarget[] callTargets;
-    address[] transferTargets;
+    mapping(address => mapping(address => TransferPolicy)) transferPolicy;
+    mapping(address => Status) status;
+    mapping(address => uint256) expiry;
+    mapping(address => UsageLimit) feeLimit;
+
+    UsageTrackers trackers;
+
+    // only used in getters / view functions, not used during validation
+    mapping(address => CallTarget[]) callTargets;
+    mapping(address => address[]) transferTargets;
   }
 
   struct CallPolicy {
@@ -45,12 +57,8 @@ library SessionLib {
     // would mean no constraints
     bool isAllowed;
     uint256 maxValuePerUse;
-
     UsageLimit valueLimit;
-    UsageTracker valueTracker;
-
-    Constraint[] constraints;
-    mapping(uint256 => UsageTracker) paramTracker;
+    Constraint[16] constraints;
   }
 
   // for transfers, i.e. calls without a selector
@@ -58,7 +66,6 @@ library SessionLib {
     bool isAllowed;
     uint256 maxValuePerUse;
     UsageLimit valueLimit;
-    UsageTracker valueTracker;
   }
 
   struct Constraint {
@@ -69,9 +76,9 @@ library SessionLib {
   }
 
   struct UsageTracker {
-    uint256 lifetimeUsage;
+    mapping(address => uint256) lifetimeUsage;
     // period => used that period
-    mapping(uint256 => uint256) allowanceUsage;
+    mapping(uint256 => mapping(address => uint256)) allowanceUsage;
   }
 
   struct UsageLimit {
@@ -87,13 +94,13 @@ library SessionLib {
   }
 
   enum Condition {
-    UNCONSTRAINED,
-    EQUAL,
-    GREATER_THAN,
-    LESS_THAN,
-    GREATER_THAN_OR_EQUAL,
-    LESS_THAN_OR_EQUAL,
-    NOT_EQUAL
+    Unconstrained,
+    Equal,
+    Greater,
+    Less,
+    GreaterOrEqual,
+    LessOrEqual,
+    NotEqual
   }
 
   struct CallTarget {
@@ -115,6 +122,8 @@ library SessionLib {
     uint256 maxValuePerUse;
     UsageLimit valueLimit;
     Constraint[] constraints;
+    // add max data length restriction?
+    // add max number of calls restriction?
   }
 
   struct TransferSpec {
@@ -125,8 +134,8 @@ library SessionLib {
 
   function checkAndUpdate(UsageLimit storage limit, UsageTracker storage tracker, uint256 value) internal {
     if (limit.limitType == LimitType.Lifetime) {
-      require(tracker.lifetimeUsage + value <= limit.limit, "Lifetime limit exceeded");
-      tracker.lifetimeUsage += value;
+      require(tracker.lifetimeUsage[msg.sender] + value <= limit.limit, "Lifetime limit exceeded");
+      tracker.lifetimeUsage[msg.sender] += value;
     }
     // TODO: uncomment when it's possible to check timestamps during validation
     // if (limit.limitType == LimitType.Allowance) {
@@ -137,102 +146,113 @@ library SessionLib {
   }
 
   function checkAndUpdate(Constraint storage constraint, UsageTracker storage tracker, bytes calldata data) internal {
+    if (constraint.condition == Condition.Unconstrained && constraint.limit.limitType == LimitType.Unlimited) {
+      return;
+    }
+
     uint256 offset = 4 + constraint.offset * 32;
     bytes32 param = bytes32(data[offset:offset + 32]);
     Condition condition = constraint.condition;
     bytes32 refValue = constraint.refValue;
 
-    if (condition == Condition.EQUAL) {
+    if (condition == Condition.Equal) {
       require(param == refValue, "EQUAL constraint not met");
-    } else if (condition == Condition.GREATER_THAN) {
+    } else if (condition == Condition.Greater) {
       require(param > refValue, "GREATER constraint not met");
-    } else if (condition == Condition.LESS_THAN) {
+    } else if (condition == Condition.Less) {
       require(param < refValue, "LESS constraint not met");
-    } else if (condition == Condition.GREATER_THAN_OR_EQUAL) {
+    } else if (condition == Condition.GreaterOrEqual) {
       require(param >= refValue, "GREATER_OR_EQUAL constraint not met");
-    } else if (condition == Condition.LESS_THAN_OR_EQUAL) {
+    } else if (condition == Condition.LessOrEqual) {
       require(param <= refValue, "LESS_OR_EQUAL constraint not met");
-    } else if (condition == Condition.NOT_EQUAL) {
+    } else if (condition == Condition.NotEqual) {
       require(param != refValue, "NOT_EQUAL constraint not met");
     }
 
     constraint.limit.checkAndUpdate(tracker, uint256(param));
   }
 
-  function validate(SessionPolicy storage policy, Transaction calldata transaction) internal {
-    require(policy.isOpen, "Session is closed");
+  function validate(SessionStorage storage session, Transaction calldata transaction) internal {
+    require(session.status[msg.sender] == Status.Active, "Session is not active");
 
     // TODO uncomment when it's possible to check timestamps during validation
-    // require(block.timestamp <= policy.expiry);
+    // require(block.timestamp <= session.expiry);
 
     // TODO: update fee allowance with the gasleft/refund at the end of execution
     uint256 fee = transaction.maxFeePerGas * transaction.gasLimit;
-    policy.feeLimit.checkAndUpdate(policy.feeTracker, fee);
+    session.feeLimit[msg.sender].checkAndUpdate(session.trackers.fee, fee);
 
     address target = address(uint160(transaction.to));
 
     if (transaction.data.length >= 4) {
       bytes4 selector = bytes4(transaction.data[:4]);
-      CallPolicy storage callPolicy = policy.callPolicy[target][selector];
+      CallPolicy storage callPolicy = session.callPolicy[target][selector][msg.sender];
 
       require(callPolicy.isAllowed, "Call not allowed");
       require(transaction.value <= callPolicy.maxValuePerUse, "Value exceeds limit");
-      callPolicy.valueLimit.checkAndUpdate(callPolicy.valueTracker, transaction.value);
+      callPolicy.valueLimit.checkAndUpdate(session.trackers.callValue[target][selector], transaction.value);
 
       for (uint256 i = 0; i < callPolicy.constraints.length; i++) {
-        callPolicy.constraints[i].checkAndUpdate(callPolicy.paramTracker[i], transaction.data);
+        callPolicy.constraints[i].checkAndUpdate(session.trackers.params[target][selector][i], transaction.data);
       }
     } else {
-      TransferPolicy storage transferPolicy = policy.transferPolicy[target];
+      TransferPolicy storage transferPolicy = session.transferPolicy[target][msg.sender];
       require(transferPolicy.isAllowed, "Transfer not allowed");
       require(transaction.value <= transferPolicy.maxValuePerUse, "Value exceeds limit");
-      transferPolicy.valueLimit.checkAndUpdate(transferPolicy.valueTracker, transaction.value);
+      transferPolicy.valueLimit.checkAndUpdate(session.trackers.transferValue[target], transaction.value);
     }
   }
 
-  function fill(SessionPolicy storage session, SessionSpec memory newSession) internal {
-    session.isOpen = true;
-    session.expiry = newSession.expiry;
-    session.feeLimit = newSession.feeLimit;
+  function fill(SessionStorage storage session, SessionSpec memory newSession) internal {
+    session.status[msg.sender] = Status.Active;
+    session.expiry[msg.sender] = newSession.expiry;
+    session.feeLimit[msg.sender] = newSession.feeLimit;
     for (uint256 i = 0; i < newSession.callPolicies.length; i++) {
       CallSpec memory newPolicy = newSession.callPolicies[i];
-      session.callTargets.push(CallTarget({
+      session.callTargets[msg.sender].push(CallTarget({
         target: newPolicy.target,
         selector: newPolicy.selector
       }));
-      CallPolicy storage callPolicy = session.callPolicy[newPolicy.target][newPolicy.selector];
+      CallPolicy storage callPolicy = session.callPolicy[newPolicy.target][newPolicy.selector][msg.sender];
       callPolicy.isAllowed = true;
       callPolicy.maxValuePerUse = newPolicy.maxValuePerUse;
       callPolicy.valueLimit = newPolicy.valueLimit;
-      callPolicy.constraints = newPolicy.constraints;
+      require(newPolicy.constraints.length <= 16, "Too many constraints");
+      for (uint256 j = 0; j < newPolicy.constraints.length; j++) {
+        callPolicy.constraints[j] = newPolicy.constraints[j];
+      }
     }
     for (uint256 i = 0; i < newSession.transferPolicies.length; i++) {
       TransferSpec memory newPolicy = newSession.transferPolicies[i];
-      session.transferTargets.push(newPolicy.target);
-      TransferPolicy storage transferPolicy = session.transferPolicy[newPolicy.target];
+      session.transferTargets[msg.sender].push(newPolicy.target);
+      TransferPolicy storage transferPolicy = session.transferPolicy[newPolicy.target][msg.sender];
       transferPolicy.isAllowed = true;
       transferPolicy.maxValuePerUse = newPolicy.maxValuePerUse;
       transferPolicy.valueLimit = newPolicy.valueLimit;
     }
   }
 
-  function getSpec(SessionPolicy storage session) internal view returns (SessionSpec memory) {
-    CallSpec[] memory callPolicies = new CallSpec[](session.callTargets.length);
-    TransferSpec[] memory transferPolicies = new TransferSpec[](session.transferTargets.length);
-    for (uint256 i = 0; i < session.callTargets.length; i++) {
-      CallTarget memory target = session.callTargets[i];
-      CallPolicy storage callPolicy = session.callPolicy[target.target][target.selector];
+  function getSpec(SessionStorage storage session, address account) internal view returns (SessionSpec memory) {
+    CallSpec[] memory callPolicies = new CallSpec[](session.callTargets[account].length);
+    TransferSpec[] memory transferPolicies = new TransferSpec[](session.transferTargets[account].length);
+    for (uint256 i = 0; i < session.callTargets[account].length; i++) {
+      CallTarget memory target = session.callTargets[account][i];
+      CallPolicy storage callPolicy = session.callPolicy[target.target][target.selector][account];
+      Constraint[] memory constraints = new Constraint[](16);
+      for (uint256 j = 0; j < 16; j++) {
+        constraints[j] = callPolicy.constraints[j];
+      }
       callPolicies[i] = CallSpec({
         target: target.target,
         selector: target.selector,
         maxValuePerUse: callPolicy.maxValuePerUse,
         valueLimit: callPolicy.valueLimit,
-        constraints: callPolicy.constraints
+        constraints: constraints
       });
     }
-    for (uint256 i = 0; i < session.transferTargets.length; i++) {
-      address target = session.transferTargets[i];
-      TransferPolicy storage transferPolicy = session.transferPolicy[target];
+    for (uint256 i = 0; i < session.transferTargets[account].length; i++) {
+      address target = session.transferTargets[account][i];
+      TransferPolicy storage transferPolicy = session.transferPolicy[target][account];
       transferPolicies[i] = TransferSpec({
         target: target,
         maxValuePerUse: transferPolicy.maxValuePerUse,
@@ -241,8 +261,8 @@ library SessionLib {
     }
     return SessionSpec({
       signer: address(0),
-      expiry: session.expiry,
-      feeLimit: session.feeLimit,
+      expiry: session.expiry[account],
+      feeLimit: session.feeLimit[account],
       callPolicies: callPolicies,
       transferPolicies: transferPolicies
     });
@@ -250,32 +270,25 @@ library SessionLib {
 }
 
 contract SessionKeyValidator is IHook, IValidationHook, IModuleValidator, IModule {
-  using SessionLib for SessionLib.SessionPolicy;
-  using EnumerableMap for EnumerableMap.AddressToUintMap;
+  using SessionLib for SessionLib.SessionStorage;
+  using EnumerableSet for EnumerableSet.AddressSet;
 
   bytes4 constant EIP1271_SUCCESS_RETURN_VALUE = 0x1626ba7e;
 
-  struct AccountSessions {
-    // id => session
-    mapping(uint256 => SessionLib.SessionPolicy) sessionsById;
-    // signer => id
-    EnumerableMap.AddressToUintMap sessionsBySigner;
-    // should start with 1
-    uint256 nextSessionId;
-  }
-
-  mapping(address => AccountSessions) private sessions;
+  // signer => session storage
+  mapping(address => SessionLib.SessionStorage) private sessions;
+  // account => owners
+  mapping(address => EnumerableSet.AddressSet) sessionOwners;
 
   function sessionBySigner(address account, address signer) public view returns (SessionLib.SessionSpec memory spec) {
-    uint256 id = sessions[account].sessionsBySigner.get(signer);
-    spec = sessions[account].sessionsById[id].getSpec();
+    spec = sessions[signer].getSpec(account);
     spec.signer = signer;
   }
 
   function sessionsList(address account) external view returns (SessionLib.SessionSpec[] memory specs) {
-    specs = new SessionLib.SessionSpec[](sessions[account].sessionsBySigner.length());
+    specs = new SessionLib.SessionSpec[](sessionOwners[account].length());
     for (uint256 i = 0; i < specs.length; i++) {
-      (address signer, ) = sessions[account].sessionsBySigner.at(i);
+      address signer = sessionOwners[account].at(i);
       specs[i] = sessionBySigner(account, signer);
     }
   }
@@ -298,17 +311,15 @@ contract SessionKeyValidator is IHook, IValidationHook, IModuleValidator, IModul
   function createSession(SessionLib.SessionSpec memory newSession) public {
     require(_isInitialized(msg.sender), "Account not initialized");
     require(newSession.signer != address(0), "Invalid signer");
+    require(sessions[newSession.signer].status[msg.sender] == SessionLib.Status.NotInitialized, "Session already exists");
     require(newSession.feeLimit.limitType != SessionLib.LimitType.Unlimited, "Unlimited fee allowance is not safe");
-    uint256 sessionId = sessions[msg.sender].nextSessionId++;
-    sessions[msg.sender].sessionsBySigner.set(newSession.signer, sessionId);
-    SessionLib.SessionPolicy storage session = sessions[msg.sender].sessionsById[sessionId];
-    session.fill(newSession);
+    sessionOwners[msg.sender].add(newSession.signer);
+    sessions[newSession.signer].fill(newSession);
   }
 
   function init(bytes calldata data) external {
     // to prevent recursion, since addHook also calls init
     if (!_isInitialized(msg.sender)) {
-      _install(data);
       IValidatorManager(msg.sender).addModuleValidator(address(this), data);
       IHookManager(msg.sender).addHook(abi.encodePacked(address(this)), true);
     }
@@ -316,16 +327,11 @@ contract SessionKeyValidator is IHook, IValidationHook, IModuleValidator, IModul
 
   function onInstall(bytes calldata data) external override {
     // TODO
-    _install(data);
   }
 
-  function _install(bytes calldata data) internal {
-    if (sessions[msg.sender].nextSessionId == 0) {
-      sessions[msg.sender].nextSessionId = 1;
-    }
-  }
 
   function onUninstall(bytes calldata) external override {
+    // TODO
     _uninstall();
   }
 
@@ -342,7 +348,7 @@ contract SessionKeyValidator is IHook, IValidationHook, IModuleValidator, IModul
     // is installed again later, there will be no active sessions from the past.
     // Problem: if there are too many keys, this will run out of gas.
     // Solution: before uninstalling, require that all keys are revoked manually.
-    require(sessions[msg.sender].sessionsBySigner.length() == 0, "Revoke all keys first");
+    require(sessionOwners[msg.sender].length() == 0, "Revoke all keys first");
   }
 
   function supportsInterface(bytes4 interfaceId) external pure override returns (bool) {
@@ -354,15 +360,15 @@ contract SessionKeyValidator is IHook, IValidationHook, IModuleValidator, IModul
     );
   }
 
-  function revokeKey(address sessionOwner) external returns (bool) {
-    require(_isInitialized(msg.sender), "Account not initialized");
-    return sessions[msg.sender].sessionsBySigner.remove(sessionOwner);
+  function revokeKey(address sessionOwner) public {
+    require(sessions[sessionOwner].status[msg.sender] == SessionLib.Status.Active, "Nothing to revoke");
+    sessions[sessionOwner].status[msg.sender] = SessionLib.Status.Closed;
+    sessionOwners[msg.sender].remove(sessionOwner);
   }
 
-  function revokeKeys(address[] calldata sessionOwners) external {
-    require(_isInitialized(msg.sender), "Account not initialized");
-    for (uint256 i = 0; i < sessionOwners.length; i++) {
-      sessions[msg.sender].sessionsBySigner.remove(sessionOwners[i]);
+  function revokeKeys(address[] calldata owners) external {
+    for (uint256 i = 0; i < owners.length; i++) {
+      revokeKey(owners[i]);
     }
   }
 
@@ -386,8 +392,8 @@ contract SessionKeyValidator is IHook, IValidationHook, IModuleValidator, IModul
   function isValidSignature(bytes32 hash, bytes memory signature) public view returns (bytes4 magic) {
     magic = EIP1271_SUCCESS_RETURN_VALUE;
     (address recoveredAddress, ) = ECDSA.tryRecover(hash, signature);
-    uint256 sessionId = sessions[msg.sender].sessionsBySigner.get(recoveredAddress);
-    if (!sessions[msg.sender].sessionsById[sessionId].isOpen) {
+    SessionLib.Status status = sessions[recoveredAddress].status[msg.sender];
+    if (status != SessionLib.Status.Active) {
       magic = bytes4(0);
     }
   }
@@ -403,9 +409,8 @@ contract SessionKeyValidator is IHook, IValidationHook, IModuleValidator, IModul
       return;
     }
     (address recoveredAddress, ) = ECDSA.tryRecover(signedHash, signature);
-    (bool exists, uint256 sessionId) = sessions[msg.sender].sessionsBySigner.tryGet(recoveredAddress);
-    require(exists, "Invalid signer");
-    sessions[msg.sender].sessionsById[sessionId].validate(transaction);
+    require(recoveredAddress != address(0), "Invalid signer");
+    sessions[recoveredAddress].validate(transaction);
   }
 
   /**
