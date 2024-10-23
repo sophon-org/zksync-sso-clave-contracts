@@ -1,42 +1,61 @@
-import { StorageSerializers, useStorage } from "@vueuse/core";
-import { type Address, type Hash, toBytes } from "viem";
+import { useStorage } from "@vueuse/core";
+import { type Config, type GetAccountReturnType, getBalance } from "@wagmi/core";
+import type { Chain } from "viem";
 
-type SmartAccount = {
-  username: string;
-  address: Address;
-  passkey: Hash;
-  sessionKey?: Hash;
+type AccountData = {
+  address: `0x${string}` | undefined;
+  addresses: readonly `0x${string}`[] | undefined;
+  chain: Chain | undefined;
+  chainId: number | undefined;
+  status: "connected" | "disconnected";
 };
 
 export const useAccountStore = defineStore("account", () => {
-  const accountData = useStorage<SmartAccount | null>("account", null, undefined, {
-    serializer: StorageSerializers.object,
+  const { config } = useConfig();
+  const accountData = useStorage<AccountData>("account", {
+    address: undefined,
+    addresses: undefined,
+    chain: undefined,
+    chainId: undefined,
+    status: "disconnected",
+  }, undefined, {
+    mergeDefaults: true,
   });
   const address = computed(() => accountData.value?.address || null);
-  const passkey = computed(() => accountData.value?.passkey ? toBytes(accountData.value?.passkey) : null);
-  const sessionKey = computed(() => accountData.value?.sessionKey ? accountData.value?.sessionKey : null);
-  const username = computed(() => accountData.value?.username || null);
-  const isLoggedIn = computed(() => !!address.value);
-  const login = (data: SmartAccount) => {
-    accountData.value = data;
-  };
-  const logout = () => {
-    accountData.value = null;
+  const isLoggedIn = computed(() => !!address.value && accountData.value?.status === "connected");
+  const updateAccount = (data: Partial<GetAccountReturnType<Config>>) => {
+    accountData.value = {
+      address: data.address,
+      addresses: data.addresses,
+      chain: data.chain,
+      chainId: data.chainId,
+      status: data.status === "connected" ? "connected" : "disconnected",
+    };
   };
 
-  const { subscribe: subscribeOnAccountChange, notify: notifyOnAccountChange } = useObservable<Address | null>();
-  watch(address, (newAddress) => {
-    notifyOnAccountChange(newAddress);
+  const balance = computedAsync(
+    async () => {
+      if (!address.value) return null;
+
+      const currentBalance = await getBalance(config, {
+        address: address.value,
+      });
+
+      return `${currentBalance.formatted} ${currentBalance.symbol}`;
+    },
+    null,
+  );
+
+  const shortAddress = computed(() => {
+    if (!address.value) return null;
+    return useTruncateAddress(address.value);
   });
 
   return {
     address,
-    passkey,
-    sessionKey,
-    username,
+    shortAddress,
+    updateAccount,
     isLoggedIn,
-    subscribeOnAccountChange,
-    login,
-    logout,
+    balance,
   };
 });

@@ -14,7 +14,7 @@
         v-if="showBanner"
         class="text-[45px] font-bold tracking-tighter leading-1 text-blue-400"
         text="SSO Simple."
-        delay-multiple="25"
+        :delay-multiple="25"
       />
       <div
         v-else

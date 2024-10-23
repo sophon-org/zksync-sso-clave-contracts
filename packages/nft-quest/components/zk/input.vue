@@ -14,7 +14,7 @@
           v-bind="TransitionOpacity"
           mode="out-in"
         >
-          <CommonSpinner
+          <ZkSpinner
             v-if="loading"
             class="-my-1.5 w-auto h-[2em] absolute z-10 right-3"
           />
@@ -55,7 +55,8 @@ type UI = {
 const {
   placeholder = "",
   postLabel,
-  ui = () => ({}),
+  // eslint-disable-next-line vue/require-valid-default-prop
+  ui = {},
   error = false,
   messages,
   disabled = false,

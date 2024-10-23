@@ -2,9 +2,11 @@
   <div class="h-dvh flex flex-col">
     <div class="flex border-b border-b-neutral-900">
       <div class="grow">
-        <div class="logo">
-          <img src="/logo-animated.gif">
-        </div>
+        <NuxtLink to="/">
+          <div class="logo">
+            <img src="/logo-animated.gif">
+          </div>
+        </NuxtLink>
       </div>
       <WalletButton />
     </div>

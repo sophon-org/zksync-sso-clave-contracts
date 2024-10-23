@@ -1,9 +1,12 @@
 <template>
   <ClientOnly>
-    <DropdownMenu.Root v-model:open="toggleState">
+    <DropdownMenu.Root
+      v-if="isLoggedIn"
+      v-model:open="toggleState"
+    >
       <DropdownMenu.Trigger>
         <div class="flex items-center border-l border-neutral-900 h-full px-4 text-neutral-400">
-          0xffd...5ty
+          {{ shortAddress || "" }}
           <ZkIcon icon="keyboard_arrow_down" />
         </div>
       </DropdownMenu.Trigger>
@@ -17,9 +20,9 @@
           <DropdownMenu.Item
 
             class="group relative flex items-center py-3 px-2 text-sm leading-none rounded-[3px] select-none outline-none data-[disabled]:text-mauve8 data-[disabled]:pointer-events-none data-[highlighted]:bg-neutral-100 data-[highlighted]:text-neutral-950 text-neutral-700 cursor-pointer"
-            @click="selectItem(item.value)"
+            @click="disconnect"
           >
-            Connections
+            Disconnect
           </DropdownMenu.Item>
         </DropdownMenu.Content>
       </DropdownMenu.Portal>
@@ -30,21 +33,14 @@
 <script setup lang="ts">
 import { DropdownMenu } from "radix-vue/namespaced";
 
+const { shortAddress, isLoggedIn } = storeToRefs(useAccountStore());
+const { logout } = useWalletConnector();
+
 const toggleState = ref(false);
-// const dropdownState = defineModel("toggleState", { type: Boolean });
 const emit = defineEmits(["select", "update:toggleState"]);
 
-type MenuItem = {
-  value: string;
-  label: string;
-  icon?: string;
-};
-type MenuItems = Array<MenuItem>;
-
-defineProps<{ menu: MenuItems }>();
-
-function selectItem(value: string) {
-  emit("select", value);
+function disconnect() {
+  logout();
   toggleState.value = false;
 }
 

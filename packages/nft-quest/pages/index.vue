@@ -42,7 +42,7 @@
       <ZkButton
         type="primary"
         class="uppercase mt-8"
-        @click="connectWallet"
+        @click="connectAccount"
       >
         Let's Go
       </ZkButton>
@@ -51,4 +51,20 @@
 </template>
 
 <script setup lang="ts">
+const { login } = useWalletConnector();
+const { isLoggedIn } = storeToRefs(useAccountStore());
+
+const connectAccount = () => {
+  if (isLoggedIn.value) {
+    navigateTo("/mint");
+  } else {
+    login();
+  }
+};
+
+watch(isLoggedIn, () => {
+  if (isLoggedIn.value) {
+    navigateTo("/mint");
+  }
+});
 </script>
