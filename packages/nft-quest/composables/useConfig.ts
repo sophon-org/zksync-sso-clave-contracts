@@ -1,11 +1,12 @@
+import type { Config } from "@wagmi/core";
 import { defaultWagmiConfig } from "@web3modal/wagmi/vue";
 import { zksyncInMemoryNode } from "viem/chains";
 import { zksyncAccountConnector } from "zksync-account/connector";
 
-export const useConfig = () => {
-  const projectId = "dde7b251fcfd7e11d5270497a053816e"; // TODO: Move to env
+export const useConfig = (): { config: Config; projectId: string } => {
+  const projectId: string = "dde7b251fcfd7e11d5270497a053816e"; // TODO: Move to env
 
-  const config = defaultWagmiConfig({
+  const config: Config = defaultWagmiConfig({
     chains: [zksyncInMemoryNode],
     projectId,
     appName: "ZKsync SSO Demo",

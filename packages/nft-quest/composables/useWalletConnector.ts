@@ -1,11 +1,15 @@
-import { disconnect, getConnections, watchAccount } from "@wagmi/core";
+import { type Config, disconnect, getConnections, watchAccount } from "@wagmi/core";
 import { createWeb3Modal } from "@web3modal/wagmi/vue";
+
+const createModal = (config: Config, projectId: string) => {
+  return createWeb3Modal({ wagmiConfig: config, projectId });
+};
 
 export const useWalletConnector = () => {
   const { config, projectId } = useConfig();
   const { updateAccount } = useAccountStore();
 
-  const web3modal = createWeb3Modal({ wagmiConfig: config, projectId });
+  const web3modal = createModal(config, projectId);
 
   const logout = async () => {
     const connections = getConnections(config);
@@ -15,11 +19,11 @@ export const useWalletConnector = () => {
     }
     updateAccount({
       address: undefined,
-      addresses: undefined,
       chain: undefined,
       chainId: undefined,
       status: "disconnected",
     });
+    navigateTo("/");
   };
 
   const login = async () => {
@@ -34,13 +38,14 @@ export const useWalletConnector = () => {
   watchAccount(config, {
     async onChange(data) {
       if (data.status === "connected") {
-        updateAccount(data);
+        updateAccount({
+          address: data.address,
+          chain: data.chain,
+          chainId: data.chainId,
+          status: "connected",
+        });
       } else {
         updateAccount({
-          address: undefined,
-          addresses: undefined,
-          chain: undefined,
-          chainId: undefined,
           status: "disconnected",
         });
       }

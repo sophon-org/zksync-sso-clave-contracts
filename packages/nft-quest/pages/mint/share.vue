@@ -1,6 +1,16 @@
 <template>
   <div class="h-full flex items-center flex-col justify-center relative">
-    <div class="p-4 grow h-full justify-center flex flex-col">
+    <div class="p-4 grow h-full justify-center flex flex-col mb-20 sm:mb-8">
+      <BlurFade
+        in-view
+        :delay="0"
+        class="inline"
+      >
+        <img
+          src="/check.gif"
+          width="48"
+        >
+      </BlurFade>
       <BlurFade
         in-view
         :delay="0"
@@ -12,7 +22,7 @@
       </BlurFade>
       <GradualSpacing
         v-if="showBanner"
-        class="text-[45px] font-bold tracking-tighter leading-1 text-blue-400"
+        class="text-[45px] font-bold tracking-tighter leading-1 text-blue-600"
         text="SSO Simple."
         :delay-multiple="25"
       />

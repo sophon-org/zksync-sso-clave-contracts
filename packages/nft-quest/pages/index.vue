@@ -35,7 +35,7 @@
       :delay="1450"
       class="inline"
     >
-      <p class=" mt-8 text-neutral-400">
+      <p class=" mt-8 text-neutral-400 max-w-prose">
         ZKsync makes any crypto transaction simple using familiar sign-on methods like passkeys and lets you set custom parameters like time and spending limits. No more mnemonic phrases or annoying signature requests. Give it a try.
       </p>
 

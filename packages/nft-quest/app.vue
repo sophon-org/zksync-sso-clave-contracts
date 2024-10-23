@@ -14,11 +14,12 @@
       <div class="order-last sm:order-first border-b border-b-neutral-900 sm:border-b-0 sm:border-r sm:border-r-neutral-900 basis-6/12 h-full">
         <NuxtPage />
       </div>
-      <div class="basis-6/12 flex items-center">
-        <div class="nft-image">
+      <div class="basis-6/12 flex items-center justify-center">
+        <div class="nft-image max-w-[680px]">
           <video
             autoplay
             loop
+            muted
           >
             <source
               src="/nft-animation.mp4"

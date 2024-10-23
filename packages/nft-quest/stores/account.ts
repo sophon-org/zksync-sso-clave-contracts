@@ -1,10 +1,9 @@
 import { useStorage } from "@vueuse/core";
-import { type Config, type GetAccountReturnType, getBalance } from "@wagmi/core";
+import { getBalance } from "@wagmi/core";
 import type { Chain } from "viem";
 
 type AccountData = {
   address: `0x${string}` | undefined;
-  addresses: readonly `0x${string}`[] | undefined;
   chain: Chain | undefined;
   chainId: number | undefined;
   status: "connected" | "disconnected";
@@ -14,7 +13,6 @@ export const useAccountStore = defineStore("account", () => {
   const { config } = useConfig();
   const accountData = useStorage<AccountData>("account", {
     address: undefined,
-    addresses: undefined,
     chain: undefined,
     chainId: undefined,
     status: "disconnected",
@@ -22,14 +20,11 @@ export const useAccountStore = defineStore("account", () => {
     mergeDefaults: true,
   });
   const address = computed(() => accountData.value?.address || null);
-  const isLoggedIn = computed(() => !!address.value && accountData.value?.status === "connected");
-  const updateAccount = (data: Partial<GetAccountReturnType<Config>>) => {
+  const isLoggedIn = computed(() => !!address.value);
+  const updateAccount = (data: Partial<AccountData>) => {
     accountData.value = {
-      address: data.address,
-      addresses: data.addresses,
-      chain: data.chain,
-      chainId: data.chainId,
-      status: data.status === "connected" ? "connected" : "disconnected",
+      ...accountData.value,
+      ...data,
     };
   };
 
