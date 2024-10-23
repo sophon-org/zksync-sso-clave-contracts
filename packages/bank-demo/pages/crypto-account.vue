@@ -79,9 +79,9 @@
         <ZkIconThumbnail :icon="item.icon" />
         <div class="grow">
           <a :href="`${explorerUrl}tx/${item.transactionHash}`" target="_blank" class="hover:text-blue-500">
-            <div class="flex align-center">
+            <div class="flex items-center">
               {{ item.description }}
-              <ZkIcon type="secondary" icon="open_in_new" class="!text-[1.25rem] flex align-center ml-1 mt-0.5"/>
+              <ZkIcon type="secondary" icon="open_in_new" class="!text-[1.25rem] flex items-center ml-1 mt-0.5"/>
             </div>
           </a>
           <p class="text-sm text-neutral-600">{{ item.time }}</p>
@@ -167,7 +167,7 @@
             <div class="rounded-zk bg-neutral-100 p-4 text-neutral-700">
               <div class="flex">
                 <span class="grow">Supply APY</span>
-                <span class="text-right">0.47%</span>
+                <span class="text-right">0.97%</span>
               </div>
               <div class="flex pt-2">
                 <span class="grow">Collateralization</span>
@@ -179,7 +179,7 @@
             </div>
             <div class="flex justify-center">
               <ZkButton type="primary" class="w-full py-0 text-l" :disabled="isLoading" :ui="{base: 'py-0'}" @click="onClickSupplyEth">
-                <div class="flex gap-2 align-center">
+                <div class="flex gap-2 items-center">
                   <span class="py-3">Supply ETH</span>
                   <CommonSpinner v-if="isLoading" class="h-6 mt-1"/>
                 </div>
@@ -193,24 +193,16 @@
         <template #tab2>
           <div v-if="appMeta.hasCompletedAaveStake">
             <div class="flex gap-4 mb-2">
-            <div class="flex grow gap-4">
+            <div class="flex grow gap-4 items-center">
               <div class="bg-green-500 text-neutral-700 dark:text-neutral-300 dark:bg-neutral-800 w-[2.75rem] h-[2.75rem] p-2 rounded-full text-center">
-              <ZkIcon icon="check" :ui="'text-white !text-2xl'"/>
-            </div>
-            <h3 class="text-3xl font-bold">All done!</h3>
+                <ZkIcon icon="check" :ui="'text-white !text-2xl'"/>
+              </div>
+              <h3 class="text-3xl font-bold">All done!</h3>
             </div>
             <div class="text-center">
               <p class="text-lg text-neutral-700">You supplied {{stakeAmount}} ETH</p>
               <a :href="`${explorerUrl}tx/${history.cryptoAccount[0]?.transactionHash}`" target="_blank" class="text-neutral-700 underline">Review tx details</a>
             </div>
-          </div>
-          <div class="rounded-zk bg-neutral-100 p-4">
-            <span class="text-neutral-600 mr-2">Balance</span>
-            <span class="mr-6">0.47 %</span>
-            <span class="mr-2 text-neutral-600">APY</span>
-            <span class="mr-6">0.47 %</span>
-            <span class="mr-2 text-neutral-600">Collateral</span>
-            <span>£{{(stakeAmount * cart.priceOfEth).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}}</span>
           </div>
           <div class="rounded-zk bg-neutral-100 p-4 mt-4">
             <div class="mb-2 flex items-center">
@@ -227,11 +219,12 @@
             <hr class="border-neutral-200">
             <div class="flex mt-2 gap-4">
               <div>
-                <span>0.1</span> <span class="text-xs text-neutral-600">£{{(stakeAmount * cart.priceOfEth).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}}</span>
+                <span>{{history.cryptoAccount.slice(0,-1).reduce((acc, value) => acc + value.valueEth, 0).toLocaleString(undefined, {maximumSignificantDigits: 4})}} ETH</span>
+                <span class="ml-1 text-xs text-neutral-600">£{{(history.cryptoAccount.slice(0,-1).reduce((acc, value) => acc + value.valueEth, 0) * cart.priceOfEth).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}}</span>
                 <div class="text-sm text-neutral-600">Balance</div>
               </div>
               <div>
-                <span>0.47%</span>
+                <span>0.97%</span>
                 <div class="text-sm text-neutral-600">APY</div>
               </div>
               <div>
@@ -346,6 +339,7 @@ const supplyEthToAave = async () => {
     icon: "savings",
     amount: `- ${stakeAmount.value} ETH`,
     transactionHash: transactionReceipt,
+    valueEth: +stakeAmount.value,
   });
   appMeta.value = {
     ...appMeta.value,

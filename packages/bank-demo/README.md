@@ -1,7 +1,7 @@
 # Bank demo
 
-A Bank ZKsync demo. This demo illustrates creating a ZKsync smart account,
-logging in with a Passkey, and staking some ETH.
+A Bank ZKsync demo illustrating how to create a ZKsync smart account, log in
+with a Passkey, and stake some ETH with a fully embedded wallet.
 
 ## Running the demo locally
 
@@ -10,6 +10,8 @@ Run the following command from the root of the monorepo:
 ```bash
 pnpm nx dev bank-demo
 ```
+
+_Note: You will need `era_test_node` running with the latest contracts deployed_
 
 ## "Resetting" the demo
 

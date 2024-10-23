@@ -66,7 +66,7 @@
 
     <div class="flex justify-center pb-12">
       <ZkButton type="primary" class="mt-4" :disabled="isLoading" :ui="{base: 'py-0'}" @click="onClickConfirm">
-        <div class="flex gap-2 align-center">
+        <div class="flex gap-2 items-center">
           <span class="py-3">
             Pay £{{(cart.amount).toLocaleString(undefined, {maximumFractionDigits: 2})}}
           </span>
@@ -142,6 +142,7 @@ const continueToTransferConfirmation = async () => {
     amount: `+ ${(cart.value.amount / cart.value.priceOfEth).toFixed(4)} ETH`,
     icon: "add",
     transactionHash: transactionReceipt,
+    valueEth: cart.value.amount / cart.value.priceOfEth,
   });
   // Update UI to show completed transfer of 1 ETH
   appMeta.value = {
