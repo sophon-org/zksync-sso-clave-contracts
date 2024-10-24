@@ -58,6 +58,8 @@ library SessionLib {
     bool isAllowed;
     uint256 maxValuePerUse;
     UsageLimit valueLimit;
+
+    uint256 totalConstraints;
     Constraint[16] constraints;
   }
 
@@ -192,7 +194,7 @@ library SessionLib {
       require(transaction.value <= callPolicy.maxValuePerUse, "Value exceeds limit");
       callPolicy.valueLimit.checkAndUpdate(session.trackers.callValue[target][selector], transaction.value);
 
-      for (uint256 i = 0; i < callPolicy.constraints.length; i++) {
+      for (uint256 i = 0; i < callPolicy.totalConstraints; i++) {
         callPolicy.constraints[i].checkAndUpdate(session.trackers.params[target][selector][i], transaction.data);
       }
     } else {
@@ -218,6 +220,7 @@ library SessionLib {
       callPolicy.maxValuePerUse = newPolicy.maxValuePerUse;
       callPolicy.valueLimit = newPolicy.valueLimit;
       require(newPolicy.constraints.length <= 16, "Too many constraints");
+      callPolicy.totalConstraints = newPolicy.constraints.length;
       for (uint256 j = 0; j < newPolicy.constraints.length; j++) {
         callPolicy.constraints[j] = newPolicy.constraints[j];
       }
@@ -238,8 +241,8 @@ library SessionLib {
     for (uint256 i = 0; i < session.callTargets[account].length; i++) {
       CallTarget memory target = session.callTargets[account][i];
       CallPolicy storage callPolicy = session.callPolicy[target.target][target.selector][account];
-      Constraint[] memory constraints = new Constraint[](16);
-      for (uint256 j = 0; j < 16; j++) {
+      Constraint[] memory constraints = new Constraint[](callPolicy.totalConstraints);
+      for (uint256 j = 0; j < callPolicy.totalConstraints; j++) {
         constraints[j] = callPolicy.constraints[j];
       }
       callPolicies[i] = CallSpec({
