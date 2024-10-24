@@ -39,7 +39,7 @@
         class="inline"
       >
         <div class="h-full">
-          <p class=" mt-8 text-neutral-400">
+          <p class=" mt-8 text-neutral-400 max-w-prose">
             You can now find your NFT in your account on testnet.
             Wasn't that easy? Even I can do it. And I'm a cat. Now share the Zeek.
           </p>

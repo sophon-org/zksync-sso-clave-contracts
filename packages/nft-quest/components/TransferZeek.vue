@@ -28,7 +28,7 @@
       type="primary"
       class="uppercase mt-2 w-full"
     >
-      Send meow
+      Mint and send
     </ZkButton>
   </div>
 </template>
