@@ -26,8 +26,8 @@
 </template>
 
 <script lang="ts" setup>
-import Web3Avatar from "web3-avatar-vue";
 import { ArrowLeftEndOnRectangleIcon } from "@heroicons/vue/24/outline";
+import Web3Avatar from "web3-avatar-vue";
 
 defineProps({
   message: {

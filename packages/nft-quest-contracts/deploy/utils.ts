@@ -1,17 +1,16 @@
-require("@matterlabs/hardhat-zksync-node/dist/type-extensions");
-require("@matterlabs/hardhat-zksync-verify/dist/src/type-extensions");
+import "@matterlabs/hardhat-zksync-node/dist/type-extensions";
+import "@matterlabs/hardhat-zksync-verify/dist/src/type-extensions";
 
-const { Deployer } = require("@matterlabs/hardhat-zksync");
-const dotenv = require("dotenv");
-const { BigNumberish } = require("ethers");
-const { formatEther } = require("ethers/lib/utils");
-const hre = require("hardhat");
-const { Provider, Wallet } = require("zksync-ethers");
+import { Deployer } from "@matterlabs/hardhat-zksync";
+import dotenv from "dotenv";
+import { ethers } from "ethers";
+import * as hre from "hardhat";
+import { Provider, Wallet } from "zksync-ethers";
 
 // Load env file
 dotenv.config();
 
-const getProvider = () => {
+export const getProvider = () => {
   const rpcUrl = hre.network.config.url;
   if (!rpcUrl) throw `⛔️ RPC URL wasn't found in "${hre.network.name}"! Please add a "url" field to the network config in hardhat.config.ts`;
 
@@ -21,7 +20,7 @@ const getProvider = () => {
   return provider;
 };
 
-const getWallet = (privateKey) => {
+export const getWallet = (privateKey?: string) => {
   if (!privateKey) {
     // Get wallet private key from .env file
     if (!process.env.WALLET_PRIVATE_KEY) throw "⛔️ Wallet private key wasn't found in .env file!";
@@ -30,30 +29,49 @@ const getWallet = (privateKey) => {
   const provider = getProvider();
 
   // Initialize ZKsync Wallet
-  const wallet = new Wallet(privateKey ?? process.env.WALLET_PRIVATE_KEY, provider);
+  const wallet = new Wallet(privateKey ?? process.env.WALLET_PRIVATE_KEY!, provider);
 
   return wallet;
 };
 
-const verifyEnoughBalance = async (wallet, amount) => {
+export const verifyEnoughBalance = async (wallet: Wallet, amount: bigint) => {
   // Check if the wallet has enough balance
   const balance = await wallet.getBalance();
-  if (balance.lt(amount)) throw `⛔️ Wallet balance is too low! Required ${formatEther(amount)} ETH, but current ${wallet.address} balance is ${formatEther(balance)} ETH`;
+  if (balance < amount) throw `⛔️ Wallet balance is too low! Required ${ethers.formatEther(amount)} ETH, but current ${wallet.address} balance is ${ethers.formatEther(balance)} ETH`;
 };
 
 /**
  * @param {string} data.contract The contract's path and name. E.g., "contracts/Greeter.sol:Greeter"
  */
-const verifyContract = async (data) => {
-  const verificationRequestId = await hre.run("verify:verify", {
+export const verifyContract = async (data: {
+  address: string;
+  contract: string;
+  constructorArguments: string;
+  bytecode: string;
+}) => {
+  const verificationRequestId: number = await hre.run("verify:verify", {
     ...data,
     noCompile: true,
   });
   return verificationRequestId;
 };
 
-const deployContract = async (contractArtifactName, constructorArguments, options) => {
-  const log = (message) => {
+type DeployContractOptions = {
+  /**
+   * If true, the deployment process will not print any logs
+   */
+  silent?: boolean;
+  /**
+   * If true, the contract will not be verified on Block Explorer
+   */
+  noVerify?: boolean;
+  /**
+   * If specified, the contract will be deployed using this wallet
+   */
+  wallet?: Wallet;
+};
+export const deployContract = async (contractArtifactName: string, constructorArguments?: any[], options?: DeployContractOptions) => {
+  const log = (message: string) => {
     if (!options?.silent) console.log(message);
   };
 
@@ -70,7 +88,7 @@ const deployContract = async (contractArtifactName, constructorArguments, option
         )
       ) {
         console.error(error.message);
-        throw "⛔️ Please make sure you have compiled your contracts or specified the correct contract name!";
+        throw `⛔️ Please make sure you have compiled your contracts or specified the correct contract name!`;
       } else {
         throw error;
       }
@@ -81,27 +99,27 @@ const deployContract = async (contractArtifactName, constructorArguments, option
     artifact,
     constructorArguments || [],
   );
-  log(`Estimated deployment cost: ${formatEther(deploymentFee)} ETH`);
+  log(`Estimated deployment cost: ${ethers.formatEther(deploymentFee)} ETH`);
 
   // Check if the wallet has enough balance
   await verifyEnoughBalance(wallet, deploymentFee);
 
   // Deploy the contract to ZKsync
   const contract = await deployer.deploy(artifact, constructorArguments);
-
+  const address = await contract.getAddress();
   const constructorArgs = contract.interface.encodeDeploy(constructorArguments);
   const fullContractSource = `${artifact.sourceName}:${artifact.contractName}`;
 
   // Display contract deployment info
   log(`\n"${artifact.contractName}" was successfully deployed:`);
-  log(` - Contract address: ${contract.address}`);
+  log(` - Contract address: ${address}`);
   log(` - Contract source: ${fullContractSource}`);
   log(` - Encoded constructor arguments: ${constructorArgs}\n`);
 
   if (!options?.noVerify && hre.network.config.verifyURL) {
-    log("Requesting contract verification...");
+    log(`Requesting contract verification...`);
     await verifyContract({
-      address: contract.address,
+      address,
       contract: fullContractSource,
       constructorArguments: constructorArgs,
       bytecode: artifact.bytecode,
@@ -115,7 +133,7 @@ const deployContract = async (contractArtifactName, constructorArguments, option
  * Rich wallets can be used for testing purposes.
  * Available on ZKsync In-memory node and Dockerized node.
  */
-const LOCAL_RICH_WALLETS = [
+export const LOCAL_RICH_WALLETS = [
   {
     address: "0x36615Cf349d7F6344891B1e7CA7C72883F5dc049",
     privateKey: "0x7726827caac94a7f9e1b160f7ea819f172f7b6f9d2a97f992c38edeab82d4110",
@@ -157,12 +175,3 @@ const LOCAL_RICH_WALLETS = [
     privateKey: "0x3eb15da85647edd9a1159a4a13b9e7c56877c4eb33f614546d4db06a51868b1c",
   },
 ];
-
-module.exports = {
-  getProvider,
-  getWallet,
-  verifyEnoughBalance,
-  verifyContract,
-  deployContract,
-  LOCAL_RICH_WALLETS,
-};

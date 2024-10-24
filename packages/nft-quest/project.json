@@ -29,7 +29,7 @@
       "executor": "nx:run-commands",
       "options": {
         "cwd": "packages/nft-quest",
-        "command": "hardhat deploy-zksync"
+        "command": "hardhat deploy-zksync --script deploy.cjs"
       }
     }
   }

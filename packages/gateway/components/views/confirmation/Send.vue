@@ -117,11 +117,11 @@
 </template>
 
 <script lang="ts" setup>
-import Web3Avatar from "web3-avatar-vue";
-import { formatUnits, type Address } from "viem";
-import type { ExtractParams } from "zksync-account/client-gateway";
-import { chainConfig, type ZksyncRpcTransaction } from "viem/zksync";
 import { useIntervalFn } from "@vueuse/core";
+import { type Address, formatUnits } from "viem";
+import { chainConfig, type ZksyncRpcTransaction } from "viem/zksync";
+import Web3Avatar from "web3-avatar-vue";
+import type { ExtractParams } from "zksync-account/client-gateway";
 
 const { appMeta } = useAppMeta();
 const { respond, deny } = useRequestsStore();

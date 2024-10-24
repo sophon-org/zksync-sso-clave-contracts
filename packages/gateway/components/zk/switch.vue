@@ -36,7 +36,7 @@
 
 <script setup lang="ts">
 import { Switch } from "radix-vue/namespaced";
-import { ref, watch, defineEmits } from "vue";
+import { defineEmits, ref, watch } from "vue";
 
 const { isChecked = false } = defineProps<{
   isChecked?: boolean;

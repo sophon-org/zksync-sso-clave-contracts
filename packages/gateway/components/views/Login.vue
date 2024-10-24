@@ -105,8 +105,8 @@
 <script lang="ts" setup>
 import { parseEther, toHex } from "viem";
 import { generatePrivateKey, privateKeyToAddress } from "viem/accounts";
-import { registerNewPasskey } from "zksync-account/client/passkey";
 import { deployAccount } from "zksync-account/client";
+import { registerNewPasskey } from "zksync-account/client/passkey";
 
 const { appMeta } = useAppMeta();
 const { login } = useAccountStore();

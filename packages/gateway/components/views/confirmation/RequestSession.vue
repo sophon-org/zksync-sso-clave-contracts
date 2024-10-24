@@ -93,12 +93,12 @@
 </template>
 
 <script lang="ts" setup>
-import { useTimeAgo } from "@vueuse/core";
-import type { SessionPreferences, SessionData } from "zksync-account";
-import type { GatewayRpcSchema, ExtractReturnType } from "zksync-account/client-gateway";
-import { formatUnits, getAddress, type Address } from "viem";
 import { ClockIcon, FingerPrintIcon } from "@heroicons/vue/24/outline";
+import { useTimeAgo } from "@vueuse/core";
+import { type Address, formatUnits, getAddress } from "viem";
 import { privateKeyToAddress } from "viem/accounts";
+import type { SessionData, SessionPreferences } from "zksync-account";
+import type { ExtractReturnType, GatewayRpcSchema } from "zksync-account/client-gateway";
 
 const props = defineProps({
   session: {
