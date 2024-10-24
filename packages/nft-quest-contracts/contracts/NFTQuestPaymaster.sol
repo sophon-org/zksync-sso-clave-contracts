@@ -11,11 +11,18 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 
 /// @author Matter Labs
 /// @notice This contract does not include any validations other than using the paymaster general flow.
-contract GeneralPaymaster is IPaymaster, Ownable {
+contract NFTQuestPaymaster is IPaymaster, Ownable {
+  address public ZEEK_NFT_CONTRACT_ADDRESS;
+  bytes4 public constant MINT_SELECTOR = bytes4(keccak256("mint(address)"));
+
   modifier onlyBootloader() {
     require(msg.sender == BOOTLOADER_FORMAL_ADDRESS, "Only bootloader can call this method");
     // Continue execution if called from the bootloader.
     _;
+  }
+
+  constructor(address nftContractAddress) {
+    ZEEK_NFT_CONTRACT_ADDRESS = nftContractAddress;
   }
 
   function validateAndPayForPaymasterTransaction(
@@ -26,6 +33,14 @@ contract GeneralPaymaster is IPaymaster, Ownable {
     // By default we consider the transaction as accepted.
     magic = PAYMASTER_VALIDATION_SUCCESS_MAGIC;
     require(_transaction.paymasterInput.length >= 4, "The standard paymaster input must be at least 4 bytes long");
+
+    // Ensure the transaction is calling the ZeekNFTQuest contract
+    require(address(uint160(_transaction.to)) == ZEEK_NFT_CONTRACT_ADDRESS, "Unsupported contract address");
+
+    // Ensure the transaction is calling the `mint` function
+    require(_transaction.data.length >= 4, "Transaction data is too short");
+    bytes4 methodSelector = bytes4(_transaction.data[0:4]);
+    require(methodSelector == MINT_SELECTOR, "Unsupported method");
 
     bytes4 paymasterInputSelector = bytes4(_transaction.paymasterInput[0:4]);
     if (paymasterInputSelector == IPaymasterFlow.general.selector) {
