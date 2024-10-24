@@ -6,6 +6,13 @@
           "zksync-auth-server-staging"
         ]
       }
+    },
+    "stake-demo-app": {
+      "hosting": {
+        "stake-demo-app": [
+          "stake-demo-app"
+        ]
+      }
     }
   },
   "etags": {}
