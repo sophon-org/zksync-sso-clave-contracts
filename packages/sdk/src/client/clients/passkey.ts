@@ -24,7 +24,6 @@ export function createZksyncPasskeyClient<
   const account = toSmartAccount({
     address: parameters.address,
     sign: async ({ hash }) => {
-      console.log("calling custom sign function for hash", hash);
       const passkeySignature = await requestPasskeyAuthentication({
         challenge: hash,
         credentialPublicKey: parameters.credentialPublicKey,

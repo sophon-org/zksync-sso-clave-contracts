@@ -314,7 +314,7 @@ const onClickSupplyEth = async () => {
 };
 
 const supplyEthToAave = async () => {
-  // Send 0.1 ETH to the AAVE address
+  // Send some ETH to the AAVE address
   const passkeyClient = createZksyncPasskeyClient({
     address: appMeta.value.cryptoAccountAddress! as Address,
     credentialPublicKey: new Uint8Array(JSON.parse(appMeta.value.credentialPublicKey!)),
@@ -325,7 +325,6 @@ const supplyEthToAave = async () => {
     transport: http(),
   });
 
-  console.log("contracts", contracts);
   console.log(`Sending ${stakeAmount.value} ETH to AAVE Address`, aaveAddress);
   const transactionReceipt = await passkeyClient.sendTransaction({
     to: aaveAddress as Address,
