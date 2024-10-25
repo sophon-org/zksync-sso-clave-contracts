@@ -36,7 +36,7 @@ development principles in mind.
       initialSessions: [
          {
             sessionPublicKey,
-            expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24), // 1 day expiry
+            expiresAt: (new Date(Date.now() + 1000 * 60 * 60 * 24)).toISOString(), // 1 day expiry
             spendLimit: {
                [Token.address]: "1000",
             },
@@ -76,6 +76,6 @@ development principles in mind.
    await passkeyClient.addSessionKey({
      sessionPublicKey,
      token: Token.address, // Address of the token
-     expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24), // 1 day expiry
+     expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24).toISOString(), // 1 day expiry
    });
    ```

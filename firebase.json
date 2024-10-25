@@ -5,6 +5,12 @@
       "trailingSlash": false,
       "public": "packages/gateway/.output/public",
       "ignore": ["firebase.json", "**/.*", "**/node_modules/**"]
+    },
+    {
+      "target": "stake-demo-app",
+      "trailingSlash": false,
+      "public": "packages/bank-demo/.output/public",
+      "ignore": ["firebase.json", "**/.*", "**/node_modules/**"]
     }
   ]
 }

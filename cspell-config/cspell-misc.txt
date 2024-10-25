@@ -9,4 +9,15 @@ Nuxt
 nuxtjs
 verdaccio
 vueuse
+
+// packages/bank-demo
+ctap
+Aave
+aave
+jdoe
 wght
+topup
+OBAGNSGT
+OXBB
+Usdc
+usdc
