@@ -1,21 +1,14 @@
-import { type Config, disconnect, getConnections, watchAccount } from "@wagmi/core";
-import { createWeb3Modal } from "@web3modal/wagmi/vue";
-
-const createModal = (config: Config, projectId: string) => {
-  return createWeb3Modal({ wagmiConfig: config, projectId });
-};
+import { connect, type CreateConnectorFn, disconnect, getConnections, watchAccount } from "@wagmi/core";
 
 export const useWalletConnector = () => {
-  const { config, projectId } = useConfig();
+  const { config, connector } = useConfig();
   const { updateAccount } = useAccountStore();
-
-  const web3modal = createModal(config, projectId);
 
   const logout = async () => {
     const connections = getConnections(config);
 
     if (connections.length) {
-      await disconnect(config);
+      disconnect(config);
     }
     updateAccount({
       address: undefined,
@@ -28,7 +21,10 @@ export const useWalletConnector = () => {
 
   const login = async () => {
     try {
-      await web3modal.open();
+      connect(config, {
+        connector: connector as CreateConnectorFn,
+        chainId: config.chains[0].id,
+      });
     } catch (error) {
       // eslint-disable-next-line no-console
       console.error("Connection failed:", error);
@@ -53,7 +49,6 @@ export const useWalletConnector = () => {
   });
 
   return {
-    web3modal,
     logout,
     login,
   };

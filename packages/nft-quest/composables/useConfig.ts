@@ -1,31 +1,27 @@
-import type { Config } from "@wagmi/core";
-import { defaultWagmiConfig } from "@web3modal/wagmi/vue";
+import { type Config, createConfig, type CreateConnectorFn, http } from "@wagmi/core";
 import { zksyncInMemoryNode } from "viem/chains";
 import { zksyncAccountConnector } from "zksync-account/connector";
 
-export const useConfig = (): { config: Config; projectId: string } => {
-  const projectId: string = "dde7b251fcfd7e11d5270497a053816e"; // TODO: Move to env
-
-  const config: Config = defaultWagmiConfig({
-    chains: [zksyncInMemoryNode],
-    projectId,
-    appName: "ZKsync SSO Demo",
-    connectors: [
-      zksyncAccountConnector({
-        metadata: {
-          name: "ZKsync SSO Demo",
-          icon: "http://localhost:3006/favicon.ico",
-        },
-        gatewayUrl: "http://localhost:3002/confirm",
-        session: {
-          expiresAt: (Date.now() + 1000 * 60 * 60 * 24).toString(), // Expires in 24 hours (1 day) from now
-          spendLimit: {
-            ["0x000000000000000000000000000000000000800A"]: "1000000000000000000",
-          },
-        },
-      }),
-    ],
+export const useConfig = (): { config: Config; connector: CreateConnectorFn } => {
+  const chain = zksyncInMemoryNode;
+  const connector: CreateConnectorFn = zksyncAccountConnector({
+    metadata: {
+      name: "ZKsync NFT Demo",
+      icon: "http://localhost:3006/favicon.ico",
+    },
+    session: {
+      expiresAt: (Date.now() + 1000 * 60 * 60 * 24).toString(), // Expires in 24h
+      spendLimit: {
+        ["0x000000000000000000000000000000000000800A"]: "1000000000000000000",
+      },
+    },
   });
 
-  return { config, projectId };
+  const config: Config = createConfig({
+    chains: [chain],
+    connectors: [connector],
+    transports: (Object.fromEntries([chain].map((chain) => [chain.id, http()]))) as Record<(typeof chain)["id"], ReturnType<typeof http>>,
+  });
+
+  return { config, connector };
 };

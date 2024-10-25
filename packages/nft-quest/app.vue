@@ -22,7 +22,7 @@
             muted
           >
             <source
-              src="/nft-animation.mp4"
+              src="/nft/zeek-nft.mp4"
               type="video/mp4"
             >
           </video>
