@@ -24,6 +24,16 @@ export const getProvider = () => {
   return provider;
 };
 
+export const getProviderL1 = () => {
+  const rpcUrl = hre.network.config['ethNetwork'];
+  if (!rpcUrl) {
+    console.warn(`No ethNetwork URL specified for network ${hre.network.name}`);
+  }
+
+  const provider = new ethers.JsonRpcProvider(rpcUrl);
+  return provider;
+}
+
 export async function deployFactory(factoryName: string, wallet: Wallet, expectedAddress?: string): Promise<AAFactory> {
   const factoryArtifact = JSON.parse(await promises.readFile(`artifacts-zk/src/${factoryName}.sol/${factoryName}.json`, "utf8"));
   const proxyAaArtifact = JSON.parse(await promises.readFile("artifacts-zk/src/AccountProxy.sol/AccountProxy.json", "utf8"));
@@ -48,9 +58,10 @@ export const getWallet = (privateKey?: string) => {
   }
 
   const provider = getProvider();
+  const providerL1 = getProviderL1();
 
   // Initialize zkSync Wallet
-  const wallet = new Wallet(privateKey ?? process.env.WALLET_PRIVATE_KEY!, provider);
+  const wallet = new Wallet(privateKey ?? process.env.WALLET_PRIVATE_KEY!, provider, providerL1);
 
   return wallet;
 };
@@ -111,11 +122,18 @@ export function logWarning(message: string) {
   console.log("\x1b[33m%s\x1b[0m", message);
 }
 
+
+const masterWallet = ethers.Wallet.fromPhrase("stuff slice staff easily soup parent arm payment cotton trade scatter struggle");
+
 /**
  * Rich wallets can be used for testing purposes.
  * Available on ZKsync In-memory node and docker node.
  */
 export const LOCAL_RICH_WALLETS = [
+  hre.network.name == "dockerizedNode" ? {
+    address: masterWallet.address,
+    privateKey: masterWallet.privateKey,
+  } :
   {
     address: "0xBC989fDe9e54cAd2aB4392Af6dF60f04873A033A",
     privateKey: "0x3d3cbc973389cb26f657686445bcc75662b415b656078503592ac8c1abb8810e",

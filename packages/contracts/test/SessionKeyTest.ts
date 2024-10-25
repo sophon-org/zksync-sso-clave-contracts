@@ -10,6 +10,8 @@ import type { SessionLib } from "../typechain-types/src/validators/SessionKeyVal
 import { ContractFixtures } from "./EndToEndSpendLimit";
 import { getProvider } from "./utils";
 
+import hre from "hardhat";
+
 const fixtures = new ContractFixtures();
 const abiCoder = new ethers.AbiCoder();
 const provider = getProvider();
@@ -190,6 +192,14 @@ class SessionTester {
 
 describe.only("SessionKeyModule tests", function () {
   let proxyAccountAddress: string;
+
+  (hre.network.name == "dockerizedNode" ? it : it.skip)("should deposit funds", async () => {
+    const deposit = await fixtures.wallet.deposit({
+      token: utils.ETH_ADDRESS,
+      amount: parseEther("10")
+    });
+    await deposit.waitL1Commit();
+  });
 
   it("should deploy implemention, proxy and session key module", async () => {
     const accountImplContract = await fixtures.getAccountImplContract();
