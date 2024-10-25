@@ -205,17 +205,17 @@ library SessionLib {
     }
   }
 
-  function fill(SessionStorage storage session, SessionSpec memory newSession) internal {
-    session.status[msg.sender] = Status.Active;
-    session.expiry[msg.sender] = newSession.expiry;
-    session.feeLimit[msg.sender] = newSession.feeLimit;
+  function fill(SessionStorage storage session, SessionSpec memory newSession, address account) internal {
+    session.status[account] = Status.Active;
+    session.expiry[account] = newSession.expiry;
+    session.feeLimit[account] = newSession.feeLimit;
     for (uint256 i = 0; i < newSession.callPolicies.length; i++) {
       CallSpec memory newPolicy = newSession.callPolicies[i];
-      session.callTargets[msg.sender].push(CallTarget({
+      session.callTargets[account].push(CallTarget({
         target: newPolicy.target,
         selector: newPolicy.selector
       }));
-      CallPolicy storage callPolicy = session.callPolicy[newPolicy.target][newPolicy.selector][msg.sender];
+      CallPolicy storage callPolicy = session.callPolicy[newPolicy.target][newPolicy.selector][account];
       callPolicy.isAllowed = true;
       callPolicy.maxValuePerUse = newPolicy.maxValuePerUse;
       callPolicy.valueLimit = newPolicy.valueLimit;
@@ -227,15 +227,15 @@ library SessionLib {
     }
     for (uint256 i = 0; i < newSession.transferPolicies.length; i++) {
       TransferSpec memory newPolicy = newSession.transferPolicies[i];
-      session.transferTargets[msg.sender].push(newPolicy.target);
-      TransferPolicy storage transferPolicy = session.transferPolicy[newPolicy.target][msg.sender];
+      session.transferTargets[account].push(newPolicy.target);
+      TransferPolicy storage transferPolicy = session.transferPolicy[newPolicy.target][account];
       transferPolicy.isAllowed = true;
       transferPolicy.maxValuePerUse = newPolicy.maxValuePerUse;
       transferPolicy.valueLimit = newPolicy.valueLimit;
     }
   }
 
-  function getSpec(SessionStorage storage session, address account) internal view returns (SessionSpec memory) {
+  function getSpec(SessionStorage storage session, address account) internal view returns (Status, SessionSpec memory) {
     CallSpec[] memory callPolicies = new CallSpec[](session.callTargets[account].length);
     TransferSpec[] memory transferPolicies = new TransferSpec[](session.transferTargets[account].length);
     for (uint256 i = 0; i < session.callTargets[account].length; i++) {
@@ -262,13 +262,13 @@ library SessionLib {
         valueLimit: transferPolicy.valueLimit
       });
     }
-    return SessionSpec({
+    return (session.status[account], SessionSpec({
       signer: address(0),
       expiry: session.expiry[account],
       feeLimit: session.feeLimit[account],
       callPolicies: callPolicies,
       transferPolicies: transferPolicies
-    });
+    }));
   }
 }
 
@@ -278,21 +278,22 @@ contract SessionKeyValidator is IHook, IValidationHook, IModuleValidator, IModul
 
   bytes4 constant EIP1271_SUCCESS_RETURN_VALUE = 0x1626ba7e;
 
-  // signer => session storage
+  // session owner => session storage
   mapping(address => SessionLib.SessionStorage) private sessions;
   // account => owners
   mapping(address => EnumerableSet.AddressSet) sessionOwners;
 
-  function sessionBySigner(address account, address signer) public view returns (SessionLib.SessionSpec memory spec) {
-    spec = sessions[signer].getSpec(account);
+  function getSession(address account, address signer) public view returns (SessionLib.Status status, SessionLib.SessionSpec memory spec) {
+    (status, spec) = sessions[signer].getSpec(account);
     spec.signer = signer;
   }
 
-  function sessionsList(address account) external view returns (SessionLib.SessionSpec[] memory specs) {
+  function sessionList(address account) external view returns (SessionLib.Status[] memory statuses, SessionLib.SessionSpec[] memory specs) {
     specs = new SessionLib.SessionSpec[](sessionOwners[account].length());
+    statuses = new SessionLib.Status[](specs.length);
     for (uint256 i = 0; i < specs.length; i++) {
       address signer = sessionOwners[account].at(i);
-      specs[i] = sessionBySigner(account, signer);
+      (statuses[i], specs[i]) = getSession(account, signer);
     }
   }
 
@@ -317,7 +318,7 @@ contract SessionKeyValidator is IHook, IValidationHook, IModuleValidator, IModul
     require(sessions[newSession.signer].status[msg.sender] == SessionLib.Status.NotInitialized, "Session already exists");
     require(newSession.feeLimit.limitType != SessionLib.LimitType.Unlimited, "Unlimited fee allowance is not safe");
     sessionOwners[msg.sender].add(newSession.signer);
-    sessions[newSession.signer].fill(newSession);
+    sessions[newSession.signer].fill(newSession, msg.sender);
   }
 
   function init(bytes calldata data) external {
@@ -363,6 +364,7 @@ contract SessionKeyValidator is IHook, IValidationHook, IModuleValidator, IModul
     );
   }
 
+  // TODO: make the session owner able revoke its own key, in case it was leaked, to prevent further misuse?
   function revokeKey(address sessionOwner) public {
     require(sessions[sessionOwner].status[msg.sender] == SessionLib.Status.Active, "Nothing to revoke");
     sessions[sessionOwner].status[msg.sender] = SessionLib.Status.Closed;

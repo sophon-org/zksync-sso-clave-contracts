@@ -92,7 +92,10 @@ class SessionTester {
       secret: fixtures.wallet.privateKey,
     }, provider);
 
-    const currentSessions = await sessionKeyModuleContract.sessionsList(this.proxyAccountAddress);
+    const [oldList] = await sessionKeyModuleContract.sessionList(this.proxyAccountAddress);
+    const [oldStatus] = await sessionKeyModuleContract.getSession(this.proxyAccountAddress, this.sessionOwner.address);
+    expect(oldStatus).to.equal(0, "session should not be initialized");
+
     this.session = this.getSession(newSession);
 
     const aaTx = {
@@ -105,8 +108,51 @@ class SessionTester {
     const signedTransaction = await smartAccount.signTransaction(aaTx);
     const tx = await provider.broadcastTransaction(signedTransaction);
     await tx.wait();
-    expect(await sessionKeyModuleContract.sessionsList(this.proxyAccountAddress))
-      .to.have.lengthOf(currentSessions.length + 1, "session should be created");
+
+    const [statusList] = await sessionKeyModuleContract.sessionList(this.proxyAccountAddress);
+    expect(statusList).to.have.lengthOf(oldList.length + 1, "session should be created");
+    const [status, session] = await sessionKeyModuleContract.getSession(this.proxyAccountAddress, this.sessionOwner.address);
+    expect(status).to.equal(1, "session should be active");
+    this.assertSession(session);
+  }
+
+  assertSession(session: SessionLib.SessionSpecStruct) {
+    const deepEqual = (a, b) => Object.keys(a).forEach((key) => {
+      if (Array.isArray(a[key]) && Array.isArray(b[key])) {
+        expect(a[key]).to.have.lengthOf(b[key].length, `key ${key} should have same length`);
+        a[key].forEach((item, i) => deepEqual(item, b[key][i]));
+      } else if (typeof a[key] === "object" && typeof b[key] === "object") {
+        deepEqual(a[key], b[key]);
+      } else {
+        expect(a[key]).to.equal(b[key], `key ${key} should match`);
+      }
+    });
+
+    deepEqual(this.session, session);
+  }
+
+  async revokeKey() {
+    const sessionKeyModuleContract = await fixtures.getSessionKeyContract();
+    let [status] = await sessionKeyModuleContract.getSession(this.proxyAccountAddress, this.sessionOwner.address);
+    expect(status).to.equal(1, "session should be active");
+
+    const smartAccount = new SmartAccount({
+      address: this.proxyAccountAddress,
+      secret: fixtures.wallet.privateKey,
+    }, provider);
+
+    const aaTx = {
+      ...await this.aaTxTemplate(),
+      to: await sessionKeyModuleContract.getAddress(),
+      data: sessionKeyModuleContract.interface.encodeFunctionData("revokeKey", [this.sessionOwner.address]),
+    };
+    aaTx.gasLimit = await provider.estimateGas(aaTx);
+
+    const signedTransaction = await smartAccount.signTransaction(aaTx);
+    const tx = await provider.broadcastTransaction(signedTransaction);
+    await tx.wait();
+    [status] = await sessionKeyModuleContract.getSession(this.proxyAccountAddress, this.sessionOwner.address);
+    expect(status).to.equal(2, "session should be revoked");
   }
 
   async sendTxSuccess(txRequest: ethers.TransactionRequest = {}) {
@@ -338,13 +384,22 @@ describe.only("SessionKeyModule tests", function () {
         data: erc20.interface.encodeFunctionData("transfer", [sessionTarget, 501n]),
       });
     });
+
+    it("should successfully revoke a session key", async () => {
+      await tester.revokeKey();
+    });
+
+    it("should reject a revoked session key transaction", async () => {
+      await tester.sendTxFail({
+        to: await erc20.getAddress(),
+        data: erc20.interface.encodeFunctionData("transfer", [sessionTarget, 1n]),
+      });
+    });
   });
 
-  // TODO: revoke key tests
   // TODO: module uninstall tests
   // TODO: session expiry tests
   // TODO: session fee limit tests
   // TODO: allowance tests
-  // TODO: getters tests
 });
 
