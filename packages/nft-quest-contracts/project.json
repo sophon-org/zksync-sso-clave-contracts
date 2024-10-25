@@ -12,7 +12,7 @@
       "executor": "nx:run-commands",
       "options": {
         "cwd": "packages/nft-quest-contracts",
-        "command": "hardhat deploy-zksync --script deploy.ts"
+        "command": "hardhat deploy-zksync --script deploy.ts --network inMemoryNode"
       }
     },
     "test": {

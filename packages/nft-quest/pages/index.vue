@@ -54,12 +54,12 @@
 const { login } = useWalletConnector();
 const { isLoggedIn } = storeToRefs(useAccountStore());
 
-const connectAccount = () => {
-  if (isLoggedIn.value) {
-    navigateTo("/mint");
-  } else {
-    login();
-  }
+const connectAccount = async () => {
+  await login();
+  // if (isLoggedIn.value) {
+  //   navigateTo("/mint");
+  // } else {
+  // }
 };
 
 watch(isLoggedIn, () => {

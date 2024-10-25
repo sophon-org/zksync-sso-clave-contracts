@@ -1,9 +1,9 @@
 import { type Config, createConfig, type CreateConnectorFn, http } from "@wagmi/core";
-import { zksyncInMemoryNode } from "viem/chains";
 import { zksyncAccountConnector } from "zksync-account/connector";
 
 export const useConfig = (): { config: Config; connector: CreateConnectorFn } => {
-  const chain = zksyncInMemoryNode;
+  const runtimeConfig = useRuntimeConfig();
+  const chain = runtimeConfig.public.chain;
   const connector: CreateConnectorFn = zksyncAccountConnector({
     metadata: {
       name: "ZKsync NFT Demo",

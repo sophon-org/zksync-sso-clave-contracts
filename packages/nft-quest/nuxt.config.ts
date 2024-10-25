@@ -1,4 +1,5 @@
 import { defineNuxtConfig } from "nuxt/config";
+import { zksyncInMemoryNode } from "viem/chains";
 
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
@@ -21,6 +22,9 @@ export default defineNuxtConfig({
         { rel: "icon", type: "image/x-icon", href: "/favicon.ico" },
         { rel: "icon", type: "image/png", href: "/favicon_48x48.png", sizes: "48x48" },
       ],
+      bodyAttrs: {
+        class: "dark-mode",
+      },
     },
   },
   css: ["@/assets/style.scss"],
@@ -28,7 +32,7 @@ export default defineNuxtConfig({
     url: "https://nft-quest.zksync.io",
     name: "NFT Quest",
     description: "Mint your own ZKsync NFT gas-free",
-    defaultLocale: "end",
+    defaultLocale: "en",
   },
   compatibilityDate: "2024-04-03",
   // ssr: false,
@@ -47,6 +51,15 @@ export default defineNuxtConfig({
   googleFonts: {
     families: {
       Inter: [200, 300, 400, 500, 600, 700],
+    },
+  },
+  runtimeConfig: {
+    public: {
+      chain: zksyncInMemoryNode,
+      contracts: {
+        nft: "0x26b368C3Ed16313eBd6660b72d8e4439a697Cb0B",
+        paymaster: "0x094499Df5ee555fFc33aF07862e43c90E6FEe501",
+      },
     },
   },
 });

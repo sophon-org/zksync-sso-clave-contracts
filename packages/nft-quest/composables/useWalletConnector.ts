@@ -1,15 +1,11 @@
-import { connect, type CreateConnectorFn, disconnect, getConnections, watchAccount } from "@wagmi/core";
+import { connect, type CreateConnectorFn, disconnect, watchAccount } from "@wagmi/core";
 
 export const useWalletConnector = () => {
   const { config, connector } = useConfig();
   const { updateAccount } = useAccountStore();
 
   const logout = async () => {
-    const connections = getConnections(config);
-
-    if (connections.length) {
-      disconnect(config);
-    }
+    disconnect(config);
     updateAccount({
       address: undefined,
       chain: undefined,

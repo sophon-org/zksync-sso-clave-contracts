@@ -2,7 +2,7 @@ import defaultTheme from "tailwindcss/defaultTheme";
 
 /** @type {import('tailwindcss').Config} */
 export default {
-  darkMode: ["selector", ".dark-mode"],
+  // darkMode: ["selector", ".dark-mode"],
   content: [
     "./components/**/*.{js,vue,ts}",
     "./views/**/*.vue",
