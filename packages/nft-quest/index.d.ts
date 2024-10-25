@@ -1,8 +1,8 @@
-import type { zksyncInMemoryNode, zksyncNode } from "viem/chains";
+import type { Chain } from "viem";
 
 declare module "nuxt/schema" {
   interface PublicRuntimeConfig {
-    chain: zksyncInMemoryNode | zksyncNode;
+    chain: Chain;
     contracts: {
       nft: `0x${string}`;
       paymaster: `0x${string}`;

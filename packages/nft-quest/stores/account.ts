@@ -20,7 +20,8 @@ export const useAccountStore = defineStore("account", () => {
     mergeDefaults: true,
   });
   const address = computed(() => accountData.value?.address || null);
-  const isLoggedIn = computed(() => !!address.value);
+  const isLoggedIn = computed(() => accountData.value?.status === "connected");
+  // const isLoggedIn = computed(() => !!address.value);
   const updateAccount = (data: Partial<AccountData>) => {
     accountData.value = {
       ...accountData.value,
@@ -51,6 +52,7 @@ export const useAccountStore = defineStore("account", () => {
     shortAddress,
     updateAccount,
     isLoggedIn,
+    // isConnected,
     balance,
   };
 });

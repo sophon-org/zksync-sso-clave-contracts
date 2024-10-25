@@ -27,6 +27,18 @@
         </DropdownMenu.Content>
       </DropdownMenu.Portal>
     </DropdownMenu.Root>
+    <div
+      v-else
+      class="flex items-center"
+    >
+      <ZkButton
+        type="secondary"
+        class="uppercase"
+        @click="connectAccount"
+      >
+        Sign in
+      </ZkButton>
+    </div>
   </ClientOnly>
 </template>
 
@@ -34,7 +46,7 @@
 import { DropdownMenu } from "radix-vue/namespaced";
 
 const { shortAddress, isLoggedIn } = storeToRefs(useAccountStore());
-const { logout } = useWalletConnector();
+const { logout, login } = useWalletConnector();
 
 const toggleState = ref(false);
 const emit = defineEmits(["select", "update:toggleState"]);
@@ -43,6 +55,10 @@ function disconnect() {
   logout();
   toggleState.value = false;
 }
+
+const connectAccount = () => {
+  login();
+};
 
 watch(toggleState, (newValue) => {
   emit("update:toggleState", newValue);

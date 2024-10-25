@@ -51,15 +51,14 @@
 </template>
 
 <script setup lang="ts">
-const { login } = useWalletConnector();
 const { isLoggedIn } = storeToRefs(useAccountStore());
 
 const connectAccount = async () => {
-  await login();
-  // if (isLoggedIn.value) {
-  //   navigateTo("/mint");
-  // } else {
-  // }
+  if (isLoggedIn.value) {
+    navigateTo("/mint");
+  } else {
+    await login();
+  }
 };
 
 watch(isLoggedIn, () => {

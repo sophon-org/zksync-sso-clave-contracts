@@ -1,8 +1,10 @@
-import { connect, type CreateConnectorFn, disconnect, watchAccount } from "@wagmi/core";
+import { connect, type CreateConnectorFn, disconnect, getConnections, getConnectorClient, watchAccount, watchConnections } from "@wagmi/core";
 
 export const useWalletConnector = () => {
   const { config, connector } = useConfig();
   const { updateAccount } = useAccountStore();
+
+  const connections = ref(getConnections(config));
 
   const logout = async () => {
     disconnect(config);
@@ -17,7 +19,8 @@ export const useWalletConnector = () => {
 
   const login = async () => {
     try {
-      connect(config, {
+      // TODO: maybe check to see if an existing connection of zksync-account exists
+      await connect(config, {
         connector: connector as CreateConnectorFn,
         chainId: config.chains[0].id,
       });
@@ -27,7 +30,25 @@ export const useWalletConnector = () => {
     }
   };
 
-  watchAccount(config, {
+  const getConnection = () => {
+    return getConnections(config).find((connection) => connection.connector.type === "zksync-account");
+  };
+
+  const unsubscribeConnections = watchConnections(config, {
+    onChange(data) {
+      console.log("WalletConnector: updating connections", data);
+      connections.value = data;
+    },
+  });
+  onScopeDispose(() => unsubscribeConnections());
+
+  const getClient = async () => {
+    const connector = getConnection();
+    console.log("Connector", connector);
+    return await getConnectorClient(config, { connector: getConnection()!.connector });
+  };
+
+  const unsubscribe = watchAccount(config, {
     async onChange(data) {
       if (data.status === "connected") {
         updateAccount({
@@ -43,9 +64,12 @@ export const useWalletConnector = () => {
       }
     },
   });
+  onScopeDispose(() => unsubscribe());
 
   return {
     logout,
     login,
+    getConnection,
+    getClient,
   };
 };

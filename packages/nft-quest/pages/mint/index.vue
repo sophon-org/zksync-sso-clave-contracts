@@ -47,17 +47,13 @@
 import { getConnections, getConnectorClient } from "@wagmi/core";
 import { getGeneralPaymasterInput } from "viem/zksync";
 
-const mintNFT = async () => {
-  const { address } = useAccountStore();
-  const { config, connector } = useConfig();
-  const runtimeConfig = useRuntimeConfig();
+const { address } = useAccountStore();
+const { config } = useConfig();
+const runtimeConfig = useRuntimeConfig();
 
-  console.log("minting NFT");
-  // const client = await getConnectorClient(config);
-  // await login();
-  const connections = await getConnections(config);
-  console.log("connections", connections);
-  const client = await getConnectorClient(config, { connector });
+const mintNFT = async () => {
+  const connection = getConnections(config).find((connection) => connection.connector.type === "zksync-account");
+  const client = await getConnectorClient(config, { connector: connection.connector }); ;
 
   const hash = await client.writeContract({
     address: runtimeConfig.contracts.nft,
