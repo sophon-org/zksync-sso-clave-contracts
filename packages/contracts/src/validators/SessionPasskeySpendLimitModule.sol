@@ -10,7 +10,7 @@ import { IERC7579Module } from "../interfaces/IERC7579Module.sol";
 import { IR1Validator } from "../interfaces/IValidator.sol";
 import { IModuleValidator } from "../interfaces/IModuleValidator.sol";
 
-import "hardhat/console.sol";
+import "../helpers/Logger.sol";
 
 /**
  * Looking to combine with the validator to ensure that the spend limit is touched
@@ -64,7 +64,7 @@ contract SessionPasskeySpendLimitModule is IERC7579Module, IModule, IModuleValid
 
   // expects SessionKey[]
   function addValidationKey(bytes memory installData) external returns (bool) {
-    console.log("installing session-key spend-limit module");
+    Logger.logString("installing session-key spend-limit module");
     SessionKey[] memory sessionKeys = abi.decode(installData, (SessionKey[]));
     for (uint256 sessionKeyIndex = 0; sessionKeyIndex < sessionKeys.length; sessionKeyIndex++) {
       setSessionKey(sessionKeys[sessionKeyIndex]);
@@ -84,7 +84,7 @@ contract SessionPasskeySpendLimitModule is IERC7579Module, IModule, IModuleValid
   }
 
   function _install(bytes calldata installData) internal {
-    console.log("installing session-key spend-limit module");
+    Logger.logString("installing session-key spend-limit module");
     SessionKey[] memory sessionKeys = abi.decode(installData, (SessionKey[]));
     for (uint256 sessionKeyIndex = 0; sessionKeyIndex < sessionKeys.length; sessionKeyIndex++) {
       setSessionKey(sessionKeys[sessionKeyIndex]);
@@ -201,7 +201,7 @@ contract SessionPasskeySpendLimitModule is IERC7579Module, IModule, IModuleValid
 
     if (v != 27 && v != 28) {
       magic = bytes4(0);
-      console.log("session key signature v is invalid(27 or 28)");
+      Logger.logString("session key signature v is invalid(27 or 28)");
     }
 
     // EIP-2 still allows signature malleability for ecrecover(). Remove this possibility and make the signature
@@ -215,22 +215,22 @@ contract SessionPasskeySpendLimitModule is IERC7579Module, IModule, IModuleValid
     // these malleable signatures as well.
     if (uint256(s) > 0x7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF5D576E7357A4501DDFE92F46681B20A0) {
       magic = bytes4(0);
-      console.log("session key signature s is too high");
+      Logger.logString("session key signature s is too high");
     }
 
     address recoveredAddress = ecrecover(_hash, v, r, s);
-    console.log("recoveredAddress(sessionKey)");
-    console.logAddress(recoveredAddress);
+    Logger.logString("recoveredAddress(sessionKey)");
+    Logger.logAddress(recoveredAddress);
 
     SessionData storage sessionData = spendLimitBySession[recoveredAddress];
-    console.log("sessionData.accountAddress");
-    console.logAddress(sessionData.accountAddress);
-    console.log("msg.sender");
-    console.logAddress(msg.sender);
+    Logger.logString("sessionData.accountAddress");
+    Logger.logAddress(sessionData.accountAddress);
+    Logger.logString("msg.sender");
+    Logger.logAddress(msg.sender);
     if (sessionData.accountAddress != msg.sender || recoveredAddress == address(0)) {
       // Note, that we should abstain from using the require here in order to allow for fee estimation to work
       magic = bytes4(0);
-      console.log("invalid session key");
+      Logger.logString("invalid session key");
     }
   }
 
