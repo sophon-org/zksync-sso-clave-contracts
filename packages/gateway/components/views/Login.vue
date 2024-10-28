@@ -103,7 +103,7 @@
 </template>
 
 <script lang="ts" setup>
-import { toHex } from "viem";
+import { parseEther, toHex } from "viem";
 import { generatePrivateKey, privateKeyToAddress } from "viem/accounts";
 import { deployAccount } from "zksync-account/client";
 import { registerNewPasskey } from "zksync-account/client/passkey";
@@ -134,10 +134,15 @@ const errorState = computed<"username-taken" | "account-not-found" | undefined>(
   }
   return undefined;
 });
+
+const name = `ZK Auth ${(new Date()).toLocaleDateString("en-US")}`;
 const { inProgress: registerInProgress, execute: createAccount } = useAsync(async () => {
-  const { newCredentialPublicKey: credentialPublicKey } = await registerNewPasskey({
-    userName: username.value,
-    userDisplayName: username.value,
+  const {
+    newCredentialPublicKey: credentialPublicKey,
+    newCredentialId,
+  } = await registerNewPasskey({
+    userName: name,
+    userDisplayName: name,
   });
 
   /* TODO: implement username check */
@@ -153,7 +158,7 @@ const { inProgress: registerInProgress, execute: createAccount } = useAsync(asyn
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { address } = await deployAccount(deployerClient as any, {
     credentialPublicKey,
-    uniqueAccountId: username.value,
+    uniqueAccountId: newCredentialId,
     /* TODO: Remove spend limit, right now deployment fails without initial data */
     initialSessions: [
       {
@@ -167,13 +172,20 @@ const { inProgress: registerInProgress, execute: createAccount } = useAsync(asyn
     contracts: contractsByChain[requestChain.value!.id],
   });
 
+  // TODO: Replace the cost of session key creation with a Paymaster
+  await deployerClient.sendTransaction({
+    to: address,
+    value: parseEther("0.001"),
+  });
+
   login({
-    username: username.value,
+    username: newCredentialId,
     address: address,
     passkey: toHex(credentialPublicKey),
     sessionKey,
   });
 });
+
 const { inProgress: loginInProgress, execute: connectToAccount } = useAsync(async () => {
   const credential = await navigator.credentials.get({
     publicKey: {
@@ -185,6 +197,7 @@ const { inProgress: loginInProgress, execute: connectToAccount } = useAsync(asyn
 
   // eslint-disable-next-line no-console
   console.log({ credential });
+  console.log(credential.id);
   // eslint-disable-next-line no-console
   console.log("Login not implemented yet");
   /* TODO: find account by credential.id */

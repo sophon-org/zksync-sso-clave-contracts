@@ -51,6 +51,7 @@
 </template>
 
 <script setup lang="ts">
+const { login } = useWalletConnector();
 const { isLoggedIn } = storeToRefs(useAccountStore());
 
 const connectAccount = async () => {
