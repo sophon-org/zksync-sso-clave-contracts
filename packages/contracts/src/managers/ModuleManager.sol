@@ -15,7 +15,7 @@ import { IModuleManager } from "../interfaces/IModuleManager.sol";
 import { IUserOpValidator } from "../interfaces/IERC7579Validator.sol";
 import { IERC7579Module, IExecutor } from "../interfaces/IERC7579Module.sol";
 
-import "hardhat/console.sol";
+import "../helpers/Logger.sol";
 
 /**
  * @title Manager contract for modules
@@ -66,7 +66,9 @@ abstract contract ModuleManager is IModuleManager, Auth {
 
   function _addNativeModule(address moduleAddress, bytes memory moduleData) internal {
     if (!_supportsModule(moduleAddress)) {
-      console.log("module", moduleAddress, "is not supported");
+      Logger.logString("module is not supported");
+      Logger.logAddress(moduleAddress);
+      // FIXME: support native modules on install
       // revert Errors.MODULE_ERC165_FAIL();
     }
 
