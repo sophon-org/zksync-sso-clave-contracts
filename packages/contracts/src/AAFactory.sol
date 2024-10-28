@@ -5,7 +5,7 @@ import "@matterlabs/zksync-contracts/l2/system-contracts/Constants.sol";
 import "@matterlabs/zksync-contracts/l2/system-contracts/libraries/SystemContractsCaller.sol";
 
 import { IClaveAccount } from "./interfaces/IClaveAccount.sol";
-import "hardhat/console.sol";
+import "./helpers/Logger.sol";
 
 contract AAFactory {
   bytes32 public proxyAaBytecodeHash;
@@ -45,7 +45,9 @@ contract AAFactory {
     require(success, "Deployment failed");
 
     (accountAddress) = abi.decode(returnData, (address));
-    console.log("account deployed to", accountAddress);
+
+    Logger.logString("accountAddress");
+    Logger.logAddress(accountAddress);
 
     // add session-key/spend-limit module (similar code)
     IClaveAccount(accountAddress).initialize(initialValidators, initialModules, initialK1Owners);

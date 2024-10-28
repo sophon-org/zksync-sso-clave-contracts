@@ -3,6 +3,8 @@
 .nx/cache
 .nx/workspace-data
 
+.nuxt
+
 # nodejs
 node_modules/
 
@@ -23,3 +25,5 @@ test-results/
 playwright-report/
 blob-report/
 playwright/.cache/
+
+.output

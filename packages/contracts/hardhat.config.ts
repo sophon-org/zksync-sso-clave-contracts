@@ -33,12 +33,17 @@ const config: HardhatUserConfig = {
       ethNetwork: "localhost", // in-memory node doesn't support eth node; removing this line will cause an error
       zksync: true,
     },
+    demoNode: {
+      url: "https://node.nvillanueva.com",
+      ethNetwork: "localhost", // in-memory node doesn't support eth node; removing this line will cause an error
+      zksync: true,
+    },
     hardhat: {
       zksync: true,
     },
   },
   zksolc: {
-    version: "latest",
+    version: "1.5.6",
     settings: {
       // https://era.zksync.io/docs/tools/hardhat/hardhat-zksync-solc.html#configuration
       // Native AA calls an internal system contract, so it needs extra permissions

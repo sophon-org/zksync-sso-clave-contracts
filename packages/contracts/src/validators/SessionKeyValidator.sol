@@ -16,8 +16,6 @@ import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import { IHookManager } from "../interfaces/IHookManager.sol";
 import { IValidatorManager } from "../interfaces/IValidatorManager.sol";
 
-import "hardhat/console.sol";
-
 library SessionLib {
   using SessionLib for SessionLib.Constraint;
   using SessionLib for SessionLib.UsageLimit;

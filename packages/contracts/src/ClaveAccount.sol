@@ -25,7 +25,7 @@ import { BatchCaller } from "./batch/BatchCaller.sol";
 
 import { IClaveAccount } from "./interfaces/IClaveAccount.sol";
 
-import "hardhat/console.sol";
+import "./helpers/Logger.sol";
 
 /**
  * @title Main account contract from the Clave wallet infrastructure in ZKsync Era
@@ -212,6 +212,8 @@ contract ClaveAccount is
   ) internal returns (bytes4 magicValue) {
     if (transaction.signature.length == 65) {
       (address signer, ) = ECDSA.tryRecover(signedHash, transaction.signature);
+      Logger.logString("recovered EOA signer");
+      Logger.logAddress(signer);
       if (signer == address(0)) {
         return bytes4(0);
       }
@@ -223,13 +225,13 @@ contract ClaveAccount is
       transaction.signature
     );
 
-    console.log("validator address");
-    console.logAddress(validator);
+    Logger.logString("validator address");
+    Logger.logAddress(validator);
 
     // Run validation hooks
     bool hookSuccess = runValidationHooks(signedHash, transaction, hookData);
     if (!hookSuccess) {
-      console.log("failed hook validation");
+      Logger.logString("failed hook validation");
       return bytes4(0);
     }
 

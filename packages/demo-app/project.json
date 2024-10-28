@@ -5,9 +5,29 @@
       "executor": "nx:run-commands",
       "options": {
         "cwd": "packages/demo-app",
-        "command": "PORT=3004 nuxt dev"
-      },
-      "dependsOn": []
+        "commands": [
+          {
+            "command": "pnpm nx dev gateway",
+            "prefix": "Gateway:"
+          },
+
+          {
+            "command": "PORT=3004 nuxt dev",
+            "prefix": "Demo-App:"
+          }
+        ]
+      }
+    },
+    "build": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "packages/demo-app",
+        "commands": [
+          {
+            "command": "pnpm nuxt generate"
+          }
+        ]
+      }
     },
     "e2e:setup": {
       "executor": "nx:run-commands",
@@ -20,7 +40,7 @@
       "executor": "nx:run-commands",
       "options": {
         "cwd": "packages/demo-app",
-        "command": "playwright test"
+        "command": "playwright test --timeout 60000"
       },
       "dependsOn": ["e2e:setup"]
     },

@@ -1,5 +1,5 @@
 <template>
-  <div class="h-full flex flex-col">
+  <div class="h-dvh px-4">
     <AccountHeader message="Connecting with" />
     <div class="w-14 h-14 rounded-full bg-neutral-800 mx-auto">
       <img
