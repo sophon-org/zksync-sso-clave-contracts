@@ -1,7 +1,7 @@
 <template>
   <ClientOnly>
     <DropdownMenu.Root
-      v-if="isLoggedIn"
+      v-if="isConnected"
       v-model:open="toggleState"
     >
       <DropdownMenu.Trigger>
@@ -34,7 +34,7 @@
       <ZkButton
         type="secondary"
         class="uppercase"
-        @click="connectAccount"
+        @click="connectAccount()"
       >
         Sign in
       </ZkButton>
@@ -45,20 +45,16 @@
 <script setup lang="ts">
 import { DropdownMenu } from "radix-vue/namespaced";
 
-const { shortAddress, isLoggedIn } = storeToRefs(useAccountStore());
-const { logout, login } = useWalletConnector();
+const { shortAddress, isConnected } = storeToRefs(useConnectorStore());
+const { connectAccount, disconnectAccount } = useConnectorStore();
 
 const toggleState = ref(false);
 const emit = defineEmits(["select", "update:toggleState"]);
 
 function disconnect() {
-  logout();
+  disconnectAccount();
   toggleState.value = false;
 }
-
-const connectAccount = () => {
-  login();
-};
 
 watch(toggleState, (newValue) => {
   emit("update:toggleState", newValue);

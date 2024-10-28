@@ -44,23 +44,40 @@
 </template>
 
 <script setup lang="ts">
-import { getConnections, getConnectorClient } from "@wagmi/core";
+import { writeContract } from "@wagmi/core";
+import type { Address } from "viem";
 import { getGeneralPaymasterInput } from "viem/zksync";
 
-const { address } = useAccountStore();
-const { config } = useConfig();
+import { useConnectorStore, wagmiConfig } from "~/stores/connector";
+
 const runtimeConfig = useRuntimeConfig();
 
 const mintNFT = async () => {
-  const connection = getConnections(config).find((connection) => connection.connector.type === "zksync-account");
-  const client = await getConnectorClient(config, { connector: connection.connector }); ;
+  const { account } = storeToRefs(useConnectorStore());
 
-  const hash = await client.writeContract({
-    address: runtimeConfig.contracts.nft,
-    abi: parseAbi(["function mint(address to)"]),
+  const hash = await writeContract(wagmiConfig, {
+    account: account.value.address,
+    address: runtimeConfig.public.contracts.nft as Address,
+    abi: [{ inputs: [
+      {
+        internalType: "address",
+        name: "to",
+        type: "address",
+      },
+    ],
+    name: "mint",
+    outputs: [
+      {
+        internalType: "uint256",
+        name: "",
+        type: "uint256",
+      },
+    ] as const,
+    stateMutability: "nonpayable",
+    type: "function" }],
     functionName: "mint",
-    args: [address],
-    paymaster: runtimeConfig.contracts.paymaster,
+    args: [account.value.address as Address],
+    paymaster: runtimeConfig.public.contracts.paymaster,
     paymasterInput: getGeneralPaymasterInput({ innerInput: new Uint8Array() }),
   });
 

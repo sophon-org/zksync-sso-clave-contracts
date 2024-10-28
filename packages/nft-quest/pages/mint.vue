@@ -3,7 +3,8 @@
 </template>
 
 <script setup lang="ts">
-definePageMeta({
-  middleware: ["require-login"],
+useSeoMeta({
+  title: "Mint",
+  ogTitle: "Mint - NFT Quest",
 });
 </script>
