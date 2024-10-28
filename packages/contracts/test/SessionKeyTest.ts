@@ -51,7 +51,7 @@ type PartialSession = {
     valueLimit?: PartialLimit;
     constraints?: {
       condition?: Condition;
-      offset: ethers.BigNumberish;
+      index: ethers.BigNumberish;
       refValue?: ethers.BytesLike;
       limit?: PartialLimit;
     }[];
@@ -92,7 +92,7 @@ class SessionTester {
     }, provider);
 
     const [oldList] = await sessionKeyModuleContract.sessionList(this.proxyAccountAddress);
-    const [oldStatus] = await sessionKeyModuleContract.getSession(this.proxyAccountAddress, this.sessionOwner.address);
+    const [oldStatus] = await sessionKeyModuleContract.session(this.proxyAccountAddress, this.sessionOwner.address);
     expect(oldStatus).to.equal(0, "session should not be initialized");
 
     this.session = this.getSession(newSession);
@@ -110,7 +110,7 @@ class SessionTester {
 
     const [statusList] = await sessionKeyModuleContract.sessionList(this.proxyAccountAddress);
     expect(statusList).to.have.lengthOf(oldList.length + 1, "session should be created");
-    const [status, session] = await sessionKeyModuleContract.getSession(this.proxyAccountAddress, this.sessionOwner.address);
+    const [status, session] = await sessionKeyModuleContract.session(this.proxyAccountAddress, this.sessionOwner.address);
     expect(status).to.equal(1, "session should be active");
     this.assertSession(session);
   }
@@ -132,7 +132,7 @@ class SessionTester {
 
   async revokeKey() {
     const sessionKeyModuleContract = await fixtures.getSessionKeyContract();
-    let [status] = await sessionKeyModuleContract.getSession(this.proxyAccountAddress, this.sessionOwner.address);
+    let [status] = await sessionKeyModuleContract.session(this.proxyAccountAddress, this.sessionOwner.address);
     expect(status).to.equal(1, "session should be active");
 
     const smartAccount = new SmartAccount({
@@ -150,7 +150,7 @@ class SessionTester {
     const signedTransaction = await smartAccount.signTransaction(aaTx);
     const tx = await provider.broadcastTransaction(signedTransaction);
     await tx.wait();
-    [status] = await sessionKeyModuleContract.getSession(this.proxyAccountAddress, this.sessionOwner.address);
+    [status] = await sessionKeyModuleContract.session(this.proxyAccountAddress, this.sessionOwner.address);
     expect(status).to.equal(2, "session should be revoked");
   }
 
@@ -211,7 +211,7 @@ class SessionTester {
         valueLimit: this.getLimit(policy.valueLimit),
         constraints: policy.constraints?.map((constraint) => ({
           condition: constraint.condition ?? 0,
-          offset: constraint.offset,
+          index: constraint.index,
           refValue: constraint.refValue ?? ethers.ZeroHash,
           limit: this.getLimit(constraint.limit),
         })) ?? [],
@@ -339,14 +339,14 @@ describe.only("SessionKeyModule tests", function () {
           constraints: [
             // can only transfer to sessionTarget
             {
-              offset: 0,
+              index: 0,
               refValue: ethers.zeroPadValue(sessionTarget, 32),
               condition: Condition.Equal,
             },
             // can only transfer upto 1000 tokens per tx
             // can only transfer upto 1500 tokens in total
             {
-              offset: 1,
+              index: 1,
               refValue: ethers.toBeHex(1000, 32),
               condition: Condition.LessEqual,
               limit: { limit: 1500 },
@@ -381,6 +381,10 @@ describe.only("SessionKeyModule tests", function () {
     });
 
     it("should reject a session key transaction that goes over total limit", async () => {
+      const sessionKeyModuleContract = await fixtures.getSessionKeyContract();
+      const remainingLimits = await sessionKeyModuleContract.remainingSessionLimits(proxyAccountAddress, tester.sessionOwner.address);
+      expect(remainingLimits.callParams[0].remaining).to.equal(500n, "should have 500 tokens remaining in allowance");
+
       await tester.sendTxFail({
         to: await erc20.getAddress(),
         data: erc20.interface.encodeFunctionData("transfer", [sessionTarget, 501n]),

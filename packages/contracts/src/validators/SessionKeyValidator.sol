@@ -20,6 +20,8 @@ library SessionLib {
   using SessionLib for SessionLib.Constraint;
   using SessionLib for SessionLib.UsageLimit;
 
+  uint256 constant MAX_CONSTRAINTS = 16;
+
   enum Status {
     NotInitialized,
     Active,
@@ -55,7 +57,7 @@ library SessionLib {
     uint256 maxValuePerUse;
     UsageLimit valueLimit;
     uint256 totalConstraints;
-    Constraint[16] constraints;
+    Constraint[MAX_CONSTRAINTS] constraints;
   }
 
   // for transfers, i.e. calls without a selector
@@ -67,7 +69,7 @@ library SessionLib {
 
   struct Constraint {
     Condition condition;
-    uint64 offset;
+    uint64 index;
     bytes32 refValue;
     UsageLimit limit;
   }
@@ -129,6 +131,23 @@ library SessionLib {
     UsageLimit valueLimit;
   }
 
+  struct LimitState {
+    uint256 remaining;
+    address target;
+    // ignored for trasnfer value
+    bytes4 selector;
+    // ignored for transfer and call value
+    uint256 index;
+  }
+
+  // Info about remaining session limits
+  struct SessionState {
+    uint256 fee;
+    LimitState[] transferValue;
+    LimitState[] callValue;
+    LimitState[] callParams;
+  }
+
   function checkAndUpdate(UsageLimit storage limit, UsageTracker storage tracker, uint256 value) internal {
     if (limit.limitType == LimitType.Lifetime) {
       require(tracker.lifetimeUsage[msg.sender] + value <= limit.limit, "Lifetime limit exceeded");
@@ -147,8 +166,8 @@ library SessionLib {
       return;
     }
 
-    uint256 offset = 4 + constraint.offset * 32;
-    bytes32 param = bytes32(data[offset:offset + 32]);
+    uint256 index = 4 + constraint.index * 32;
+    bytes32 param = bytes32(data[index:index + 32]);
     Condition condition = constraint.condition;
     bytes32 refValue = constraint.refValue;
 
@@ -211,7 +230,7 @@ library SessionLib {
       callPolicy.isAllowed = true;
       callPolicy.maxValuePerUse = newPolicy.maxValuePerUse;
       callPolicy.valueLimit = newPolicy.valueLimit;
-      require(newPolicy.constraints.length <= 16, "Too many constraints");
+      require(newPolicy.constraints.length <= MAX_CONSTRAINTS, "Too many constraints");
       callPolicy.totalConstraints = newPolicy.constraints.length;
       for (uint256 j = 0; j < newPolicy.constraints.length; j++) {
         callPolicy.constraints[j] = newPolicy.constraints[j];
@@ -265,6 +284,86 @@ library SessionLib {
       })
     );
   }
+
+  function remainingUsage(UsageLimit memory limit, UsageTracker storage tracker, address account) internal view returns (uint256) {
+    if (limit.limitType == LimitType.Unlimited) {
+      // this might be still limited by `maxValuePerUse`
+      return type(uint256).max;
+    }
+    if (limit.limitType == LimitType.Lifetime) {
+      return limit.limit - tracker.lifetimeUsage[account];
+    }
+    if (limit.limitType == LimitType.Allowance) {
+      uint256 period = block.timestamp / limit.period;
+      return limit.limit - tracker.allowanceUsage[period][account];
+    }
+  }
+
+  function remainingLimits(SessionStorage storage session, address account) internal view returns (SessionState memory) {
+    (, SessionSpec memory spec) = getSpec(session, account);
+
+    LimitState[] memory transferValue = new LimitState[](spec.transferPolicies.length);
+    LimitState[] memory callValue = new LimitState[](spec.callPolicies.length);
+    LimitState[] memory callParams = new LimitState[](MAX_CONSTRAINTS * spec.callPolicies.length); // there will be empty ones at the end
+    uint256 paramLimitIndex = 0;
+
+    for (uint256 i = 0; i < transferValue.length; i++) {
+      TransferSpec memory transferSpec = spec.transferPolicies[i];
+      uint256 remaining;
+
+      if (transferSpec.valueLimit.limitType == LimitType.Unlimited) {
+        remaining = transferSpec.maxValuePerUse;
+      } else {
+        remaining = remainingUsage(transferSpec.valueLimit, session.trackers.transferValue[transferSpec.target], account);
+      }
+
+      transferValue[i] = LimitState({
+        remaining: remaining,
+        target: spec.transferPolicies[i].target,
+        selector: bytes4(0),
+        index: 0
+      });
+    }
+
+    for (uint256 i = 0; i < callValue.length; i++) {
+      CallSpec memory callSpec = spec.callPolicies[i];
+      uint256 remaining;
+
+      if (callSpec.valueLimit.limitType == LimitType.Unlimited) {
+        remaining = callSpec.maxValuePerUse;
+      } else {
+        remaining = remainingUsage(callSpec.valueLimit, session.trackers.callValue[callSpec.target][callSpec.selector], account);
+      }
+
+      callValue[i] = LimitState({
+        remaining: remaining,
+        target: callSpec.target,
+        selector: callSpec.selector,
+        index: 0
+      });
+
+      for (uint256 j = 0; j < callSpec.constraints.length; j++) {
+        if (callSpec.constraints[j].limit.limitType != LimitType.Unlimited) {
+          callParams[paramLimitIndex++] = LimitState({
+            remaining: remainingUsage(callSpec.constraints[j].limit, session.trackers.params[callSpec.target][callSpec.selector][j], account),
+            target: callSpec.target,
+            selector: callSpec.selector,
+            index: callSpec.constraints[j].index
+          });
+        }
+      }
+    }
+
+    // shrink array to actual size
+    assembly { mstore(callParams, paramLimitIndex) }
+
+    return SessionState({
+      fee: remainingUsage(spec.feeLimit, session.trackers.fee, account),
+      transferValue: transferValue,
+      callValue: callValue,
+      callParams: callParams
+    });
+  }
 }
 
 contract SessionKeyValidator is IHook, IValidationHook, IModuleValidator, IModule {
@@ -278,12 +377,20 @@ contract SessionKeyValidator is IHook, IValidationHook, IModuleValidator, IModul
   // account => owners
   mapping(address => EnumerableSet.AddressSet) sessionOwners;
 
-  function getSession(
+  function session(
     address account,
     address signer
   ) public view returns (SessionLib.Status status, SessionLib.SessionSpec memory spec) {
     (status, spec) = sessions[signer].getSpec(account);
     spec.signer = signer;
+  }
+
+  function remainingSessionLimits(address account, address signer) external view returns (SessionLib.SessionState memory) {
+    return sessions[signer].remainingLimits(account);
+  }
+
+  function activeSigners(address account) external view returns (address[] memory) {
+    return sessionOwners[account].values();
   }
 
   function sessionList(
@@ -293,7 +400,7 @@ contract SessionKeyValidator is IHook, IValidationHook, IModuleValidator, IModul
     statuses = new SessionLib.Status[](specs.length);
     for (uint256 i = 0; i < specs.length; i++) {
       address signer = sessionOwners[account].at(i);
-      (statuses[i], specs[i]) = getSession(account, signer);
+      (statuses[i], specs[i]) = session(account, signer);
     }
   }
 
@@ -302,7 +409,6 @@ contract SessionKeyValidator is IHook, IValidationHook, IModuleValidator, IModul
     return isValidSignature(signedHash, signature) == EIP1271_SUCCESS_RETURN_VALUE;
   }
 
-  // TODO what bool does it return?
   function addValidationKey(bytes memory sessionData) external returns (bool) {
     if (sessionData.length == 0) {
       return false;
