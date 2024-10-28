@@ -1,16 +1,15 @@
 import { assert, expect } from "chai";
 import { parseEther, randomBytes } from "ethers";
 import { ethers, Wallet, ZeroAddress } from "ethers";
+import hre from "hardhat";
 import { it } from "mocha";
 import { SmartAccount, utils } from "zksync-ethers";
 
-import { ERC7579Account__factory } from "../typechain-types";
 import type { ERC20 } from "../typechain-types";
+import { ERC7579Account__factory } from "../typechain-types";
 import type { SessionLib } from "../typechain-types/src/validators/SessionKeyValidator";
 import { ContractFixtures } from "./EndToEndSpendLimit";
 import { getProvider } from "./utils";
-
-import hre from "hardhat";
 
 const fixtures = new ContractFixtures();
 const abiCoder = new ethers.AbiCoder();
@@ -55,13 +54,13 @@ type PartialSession = {
       offset: ethers.BigNumberish;
       refValue?: ethers.BytesLike;
       limit?: PartialLimit;
-    }[]
+    }[];
   }[];
   transferPolicies?: {
     target: string;
     maxValuePerUse?: ethers.BigNumberish;
     valueLimit?: PartialLimit;
-  }[]
+  }[];
 };
 
 class SessionTester {
@@ -77,8 +76,8 @@ class SessionTester {
         [
           this.sessionOwner.signingKey.sign(hash).serialized,
           sessionKeyModuleAddress,
-          ["0x"] // this array supplies data for hooks
-        ]
+          ["0x"], // this array supplies data for hooks
+        ],
       ),
       address: this.proxyAccountAddress,
       secret: this.sessionOwner.privateKey,
@@ -180,19 +179,23 @@ class SessionTester {
   };
 
   getLimit(limit?: PartialLimit): SessionLib.UsageLimitStruct {
-    return limit == null ? {
-      limitType: LimitType.Unlimited,
-      limit: 0,
-      period: 0,
-    } : limit.period == null ? {
-      limitType: LimitType.Lifetime,
-      limit: limit.limit,
-      period: 0,
-    } : {
-      limitType: LimitType.Allowance,
-      limit: limit.limit,
-      period: limit.period,
-    }
+    return limit == null
+      ? {
+          limitType: LimitType.Unlimited,
+          limit: 0,
+          period: 0,
+        }
+      : limit.period == null
+        ? {
+            limitType: LimitType.Lifetime,
+            limit: limit.limit,
+            period: 0,
+          }
+        : {
+            limitType: LimitType.Allowance,
+            limit: limit.limit,
+            period: limit.period,
+          };
   }
 
   getSession(session: PartialSession): SessionLib.SessionSpecStruct {
@@ -211,14 +214,14 @@ class SessionTester {
           offset: constraint.offset,
           refValue: constraint.refValue ?? ethers.ZeroHash,
           limit: this.getLimit(constraint.limit),
-        })) ?? []
+        })) ?? [],
       })) ?? [],
       transferPolicies: session.transferPolicies?.map((policy) => ({
         target: policy.target,
         maxValuePerUse: policy.maxValuePerUse ?? 0,
         valueLimit: this.getLimit(policy.valueLimit),
-      })) ?? []
-    }
+      })) ?? [],
+    };
   }
 
   async aaTxTemplate() {
@@ -242,7 +245,7 @@ describe.only("SessionKeyModule tests", function () {
   (hre.network.name == "dockerizedNode" ? it : it.skip)("should deposit funds", async () => {
     const deposit = await fixtures.wallet.deposit({
       token: utils.ETH_ADDRESS,
-      amount: parseEther("10")
+      amount: parseEther("10"),
     });
     await deposit.waitL1Commit();
   });
@@ -255,7 +258,6 @@ describe.only("SessionKeyModule tests", function () {
     const sessionKeyModuleContract = await fixtures.getSessionKeyContract();
     assert(sessionKeyModuleContract != null, "No session key module deployed");
   });
-
 
   it("should deploy proxy account via factory", async () => {
     const aaFactoryContract = await fixtures.getAaFactory();
@@ -295,8 +297,8 @@ describe.only("SessionKeyModule tests", function () {
       await tester.createSession({
         transferPolicies: [{
           target: sessionTarget,
-          maxValuePerUse: parseEther("0.01")
-        }]
+          maxValuePerUse: parseEther("0.01"),
+        }],
       });
     });
 
@@ -325,7 +327,7 @@ describe.only("SessionKeyModule tests", function () {
 
     it("should deploy and mint an ERC20 token", async () => {
       erc20 = await fixtures.deployERC20(proxyAccountAddress);
-      expect(await erc20.balanceOf(proxyAccountAddress)).to.equal(10n**18n, "should have some tokens");
+      expect(await erc20.balanceOf(proxyAccountAddress)).to.equal(10n ** 18n, "should have some tokens");
     });
 
     it("should create a session", async () => {
@@ -348,9 +350,9 @@ describe.only("SessionKeyModule tests", function () {
               refValue: ethers.toBeHex(1000, 32),
               condition: Condition.LessEqual,
               limit: { limit: 1500 },
-            }
-          ]
-        }]
+            },
+          ],
+        }],
       });
     });
 
@@ -402,4 +404,3 @@ describe.only("SessionKeyModule tests", function () {
   // TODO: session fee limit tests
   // TODO: allowance tests
 });
-

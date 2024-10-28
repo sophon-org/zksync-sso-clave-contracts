@@ -1,5 +1,5 @@
 import { assert, expect } from "chai";
-import { AbiCoder, BytesLike, Contract, ethers, parseEther, randomBytes, ZeroAddress } from "ethers";
+import { AbiCoder, BytesLike, ethers, parseEther, randomBytes, ZeroAddress } from "ethers";
 import * as hre from "hardhat";
 import { it } from "mocha";
 import { Address, createWalletClient, getAddress, Hash, http, publicActions } from "viem";
@@ -11,8 +11,8 @@ import { setSessionKey } from "zksync-account/client/actions";
 import { encodePasskeyModuleParameters, encodeSessionSpendLimitParameters } from "zksync-account/utils";
 import { SmartAccount, types, utils, Wallet } from "zksync-ethers";
 
-import type { AAFactory, ERC7579Account, SessionKeyValidator, WebAuthValidator, ERC20 } from "../typechain-types";
-import { ERC7579Account__factory, SessionKeyValidator__factory, WebAuthValidator__factory, ERC20__factory } from "../typechain-types";
+import type { AAFactory, ERC20, ERC7579Account, SessionKeyValidator, WebAuthValidator } from "../typechain-types";
+import { ERC20__factory, ERC7579Account__factory, SessionKeyValidator__factory, WebAuthValidator__factory } from "../typechain-types";
 import { createZksyncPasskeyClient } from "./sdk/PasskeyClient";
 import { create2, deployFactory, getProvider, getWallet, LOCAL_RICH_WALLETS, logInfo, RecordedResponse } from "./utils";
 
@@ -125,8 +125,8 @@ export class ContractFixtures {
   }
 
   async deployERC20(mintTo: string): Promise<ERC20> {
-      const contract = await create2("TestERC20", this.wallet, this.ethersStaticSalt, [mintTo]);
-      return ERC20__factory.connect(await contract.getAddress(), this.wallet);
+    const contract = await create2("TestERC20", this.wallet, this.ethersStaticSalt, [mintTo]);
+    return ERC20__factory.connect(await contract.getAddress(), this.wallet);
   }
 
   // need to store values that works on equal for use in map to memoize results

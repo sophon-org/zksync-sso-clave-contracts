@@ -25,14 +25,14 @@ export const getProvider = () => {
 };
 
 export const getProviderL1 = () => {
-  const rpcUrl = hre.network.config['ethNetwork'];
+  const rpcUrl = hre.network.config["ethNetwork"];
   if (!rpcUrl) {
     console.warn(`No ethNetwork URL specified for network ${hre.network.name}`);
   }
 
   const provider = new ethers.JsonRpcProvider(rpcUrl);
   return provider;
-}
+};
 
 export async function deployFactory(factoryName: string, wallet: Wallet, expectedAddress?: string): Promise<AAFactory> {
   const factoryArtifact = JSON.parse(await promises.readFile(`artifacts-zk/src/${factoryName}.sol/${factoryName}.json`, "utf8"));
@@ -122,7 +122,6 @@ export function logWarning(message: string) {
   console.log("\x1b[33m%s\x1b[0m", message);
 }
 
-
 const masterWallet = ethers.Wallet.fromPhrase("stuff slice staff easily soup parent arm payment cotton trade scatter struggle");
 
 /**
@@ -130,14 +129,15 @@ const masterWallet = ethers.Wallet.fromPhrase("stuff slice staff easily soup par
  * Available on ZKsync In-memory node and docker node.
  */
 export const LOCAL_RICH_WALLETS = [
-  hre.network.name == "dockerizedNode" ? {
-    address: masterWallet.address,
-    privateKey: masterWallet.privateKey,
-  } :
-  {
-    address: "0xBC989fDe9e54cAd2aB4392Af6dF60f04873A033A",
-    privateKey: "0x3d3cbc973389cb26f657686445bcc75662b415b656078503592ac8c1abb8810e",
-  },
+  hre.network.name == "dockerizedNode"
+    ? {
+        address: masterWallet.address,
+        privateKey: masterWallet.privateKey,
+      }
+    : {
+        address: "0xBC989fDe9e54cAd2aB4392Af6dF60f04873A033A",
+        privateKey: "0x3d3cbc973389cb26f657686445bcc75662b415b656078503592ac8c1abb8810e",
+      },
   {
     address: "0x36615Cf349d7F6344891B1e7CA7C72883F5dc049",
     privateKey: "0x7726827caac94a7f9e1b160f7ea819f172f7b6f9d2a97f992c38edeab82d4110",

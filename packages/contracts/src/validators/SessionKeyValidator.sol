@@ -44,9 +44,7 @@ library SessionLib {
     mapping(address => Status) status;
     mapping(address => uint256) expiry;
     mapping(address => UsageLimit) feeLimit;
-
     UsageTrackers trackers;
-
     // only used in getters / view functions, not used during validation
     mapping(address => CallTarget[]) callTargets;
     mapping(address => address[]) transferTargets;
@@ -58,7 +56,6 @@ library SessionLib {
     bool isAllowed;
     uint256 maxValuePerUse;
     UsageLimit valueLimit;
-
     uint256 totalConstraints;
     Constraint[16] constraints;
   }
@@ -211,10 +208,7 @@ library SessionLib {
     session.feeLimit[account] = newSession.feeLimit;
     for (uint256 i = 0; i < newSession.callPolicies.length; i++) {
       CallSpec memory newPolicy = newSession.callPolicies[i];
-      session.callTargets[account].push(CallTarget({
-        target: newPolicy.target,
-        selector: newPolicy.selector
-      }));
+      session.callTargets[account].push(CallTarget({ target: newPolicy.target, selector: newPolicy.selector }));
       CallPolicy storage callPolicy = session.callPolicy[newPolicy.target][newPolicy.selector][account];
       callPolicy.isAllowed = true;
       callPolicy.maxValuePerUse = newPolicy.maxValuePerUse;
@@ -262,13 +256,16 @@ library SessionLib {
         valueLimit: transferPolicy.valueLimit
       });
     }
-    return (session.status[account], SessionSpec({
-      signer: address(0),
-      expiry: session.expiry[account],
-      feeLimit: session.feeLimit[account],
-      callPolicies: callPolicies,
-      transferPolicies: transferPolicies
-    }));
+    return (
+      session.status[account],
+      SessionSpec({
+        signer: address(0),
+        expiry: session.expiry[account],
+        feeLimit: session.feeLimit[account],
+        callPolicies: callPolicies,
+        transferPolicies: transferPolicies
+      })
+    );
   }
 }
 
@@ -283,12 +280,17 @@ contract SessionKeyValidator is IHook, IValidationHook, IModuleValidator, IModul
   // account => owners
   mapping(address => EnumerableSet.AddressSet) sessionOwners;
 
-  function getSession(address account, address signer) public view returns (SessionLib.Status status, SessionLib.SessionSpec memory spec) {
+  function getSession(
+    address account,
+    address signer
+  ) public view returns (SessionLib.Status status, SessionLib.SessionSpec memory spec) {
     (status, spec) = sessions[signer].getSpec(account);
     spec.signer = signer;
   }
 
-  function sessionList(address account) external view returns (SessionLib.Status[] memory statuses, SessionLib.SessionSpec[] memory specs) {
+  function sessionList(
+    address account
+  ) external view returns (SessionLib.Status[] memory statuses, SessionLib.SessionSpec[] memory specs) {
     specs = new SessionLib.SessionSpec[](sessionOwners[account].length());
     statuses = new SessionLib.Status[](specs.length);
     for (uint256 i = 0; i < specs.length; i++) {
@@ -315,7 +317,10 @@ contract SessionKeyValidator is IHook, IValidationHook, IModuleValidator, IModul
   function createSession(SessionLib.SessionSpec memory newSession) public {
     require(_isInitialized(msg.sender), "Account not initialized");
     require(newSession.signer != address(0), "Invalid signer");
-    require(sessions[newSession.signer].status[msg.sender] == SessionLib.Status.NotInitialized, "Session already exists");
+    require(
+      sessions[newSession.signer].status[msg.sender] == SessionLib.Status.NotInitialized,
+      "Session already exists"
+    );
     require(newSession.feeLimit.limitType != SessionLib.LimitType.Unlimited, "Unlimited fee allowance is not safe");
     sessionOwners[msg.sender].add(newSession.signer);
     sessions[newSession.signer].fill(newSession, msg.sender);
@@ -332,7 +337,6 @@ contract SessionKeyValidator is IHook, IValidationHook, IModuleValidator, IModul
   function onInstall(bytes calldata data) external override {
     // TODO
   }
-
 
   function onUninstall(bytes calldata) external override {
     // TODO
@@ -356,12 +360,12 @@ contract SessionKeyValidator is IHook, IValidationHook, IModuleValidator, IModul
   }
 
   function supportsInterface(bytes4 interfaceId) external pure override returns (bool) {
-    return interfaceId != 0xffffffff && (
-      interfaceId == type(IERC165).interfaceId ||
-      interfaceId == type(IValidationHook).interfaceId ||
-      interfaceId == type(IModuleValidator).interfaceId ||
-      interfaceId == type(IModule).interfaceId
-    );
+    return
+      interfaceId != 0xffffffff &&
+      (interfaceId == type(IERC165).interfaceId ||
+        interfaceId == type(IValidationHook).interfaceId ||
+        interfaceId == type(IModuleValidator).interfaceId ||
+        interfaceId == type(IModule).interfaceId);
   }
 
   // TODO: make the session owner able revoke its own key, in case it was leaked, to prevent further misuse?
@@ -388,7 +392,7 @@ contract SessionKeyValidator is IHook, IValidationHook, IModuleValidator, IModul
 
   function _isInitialized(address smartAccount) internal view returns (bool) {
     return IHookManager(smartAccount).isHook(address(this));
-      // && IValidatorManager(smartAccount).isModuleValidator(address(this));
+    // && IValidatorManager(smartAccount).isModuleValidator(address(this));
   }
 
   /*
@@ -403,11 +407,7 @@ contract SessionKeyValidator is IHook, IValidationHook, IModuleValidator, IModul
     }
   }
 
-  function validationHook(
-    bytes32 signedHash,
-    Transaction calldata transaction,
-    bytes calldata _hookData
-  ) external {
+  function validationHook(bytes32 signedHash, Transaction calldata transaction, bytes calldata _hookData) external {
     (bytes memory signature, address validator, ) = abi.decode(transaction.signature, (bytes, address, bytes[]));
     if (validator != address(this)) {
       // This transaction is not meant to be validated by this module
