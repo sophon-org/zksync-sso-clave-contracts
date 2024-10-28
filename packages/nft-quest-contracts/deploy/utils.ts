@@ -131,7 +131,7 @@ export const deployContract = async (contractArtifactName: string, constructorAr
 
 /**
  * Rich wallets can be used for testing purposes.
- * Available on ZKsync In-memory node and Dockerized node.
+ * Available on ZKsync In-memory node and Docker node.
  */
 export const LOCAL_RICH_WALLETS = [
   {

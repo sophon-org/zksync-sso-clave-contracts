@@ -47,6 +47,7 @@ import { zksyncAccountConnector } from "zksync-account/connector";
 
 const address = ref(null);
 const balance = ref(null);
+const isAccountCreated = ref(false);
 const errorMessage = ref(null);
 const projectId = "dde7b251fcfd7e11d5270497a053816e"; // TODO: Move to env
 
@@ -80,6 +81,22 @@ watchAccount(config, {
 
     if (!address.value) {
       return;
+    }
+
+    // Send new account 1 ETH from a rich wallet
+    if (!isAccountCreated.value) {
+      const richClient = createWalletClient({
+        account: privateKeyToAccount("0x509ca2e9e6acf0ba086477910950125e698d4ea70fa6f63e000c5a22bda9361c"),
+        chain: zksyncInMemoryNode,
+        transport: http(),
+      });
+
+      await richClient.sendTransaction({
+        to: data.address,
+        value: parseEther("1"),
+      });
+
+      isAccountCreated.value = true;
     }
 
     const currentBalance = await getBalance(config, {

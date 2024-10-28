@@ -15,6 +15,9 @@ export default defineNuxtConfig({
     "@nuxtjs/seo",
     "@vueuse/motion/nuxt",
   ],
+  colorMode: {
+    preference: "dark",
+  },
   devtools: { enabled: true },
   app: {
     head: {

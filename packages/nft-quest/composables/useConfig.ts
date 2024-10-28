@@ -7,7 +7,7 @@ export const useConfig = (): { config: Config; connector: CreateConnectorFn } =>
   const chain = runtimeConfig.public.chain as Chain;
   const connector: CreateConnectorFn = zksyncAccountConnector({
     metadata: {
-      name: "ZKsync NFT Demo",
+      name: "ZK NFT Quest",
       icon: "http://localhost:3006/favicon.ico",
     },
     session: {

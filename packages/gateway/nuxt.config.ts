@@ -16,6 +16,9 @@ export default defineNuxtConfig({
       Inter: [400, 500, 600, 700],
     },
   },
+  colorMode: {
+    preference: "dark",
+  },
   eslint: {
     config: {
       stylistic: {

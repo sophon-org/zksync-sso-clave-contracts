@@ -103,7 +103,7 @@
 </template>
 
 <script lang="ts" setup>
-import { parseEther, toHex } from "viem";
+import { toHex } from "viem";
 import { generatePrivateKey, privateKeyToAddress } from "viem/accounts";
 import { deployAccount } from "zksync-account/client";
 import { registerNewPasskey } from "zksync-account/client/passkey";
@@ -166,10 +166,7 @@ const { inProgress: registerInProgress, execute: createAccount } = useAsync(asyn
     ],
     contracts: contractsByChain[requestChain.value!.id],
   });
-  await deployerClient.sendTransaction({
-    to: address,
-    value: parseEther("1"),
-  });
+
   login({
     username: username.value,
     address: address,
