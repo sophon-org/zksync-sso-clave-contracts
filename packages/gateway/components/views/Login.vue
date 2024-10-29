@@ -92,7 +92,12 @@ const errorState = computed<"username-taken" | "account-not-found" | undefined>(
   return undefined;
 });
 
-const name = `ZK Auth ${(new Date()).toLocaleDateString("en-US")}`;
+let name = `ZK Auth ${(new Date()).toLocaleDateString("en-US")}`;
+if (requestChain.value!.id == 260) {
+  // For local testing, append the time
+  name += ` ${(new Date()).toLocaleTimeString("en-US")}`;
+}
+
 const { inProgress: registerInProgress, execute: createAccount } = useAsync(async () => {
   const {
     newCredentialPublicKey: credentialPublicKey,
