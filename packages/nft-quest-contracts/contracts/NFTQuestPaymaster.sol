@@ -36,7 +36,6 @@ contract NFTQuestPaymaster is IPaymaster, Ownable {
 
     // Ensure the transaction is calling the ZeekNFTQuest contract
     require(address(uint160(_transaction.to)) == ZEEK_NFT_CONTRACT_ADDRESS, "Unsupported contract address");
-
     // Ensure the transaction is calling the `mint` function
     require(_transaction.data.length >= 4, "Transaction data is too short");
     bytes4 methodSelector = bytes4(_transaction.data[0:4]);

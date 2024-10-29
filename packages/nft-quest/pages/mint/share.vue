@@ -44,7 +44,7 @@
             Wasn't that easy? Even I can do it. And I'm a cat. Now share the Zeek.
           </p>
           <ZkLink
-            to="https://google.com"
+            :to="transactionURL"
             target="_blank"
             type="secondary"
             class="mt-8"
@@ -70,9 +70,26 @@
 </template>
 
 <script setup lang="ts">
+definePageMeta({
+  middleware: [
+    function (to) {
+      if (to.query.trxn === undefined) {
+        return navigateTo("/mint");
+      }
+    },
+  ],
+});
+
 const showBanner = ref(false);
 
 setTimeout(() => {
   showBanner.value = true;
 }, 750);
+
+const route = useRoute();
+const runtimeConfig = useRuntimeConfig();
+
+const transactionURL = computed(() => {
+  return `${runtimeConfig.public.explorerURL}/tx/${route.query.trxn}`;
+});
 </script>

@@ -60,9 +60,10 @@ export default defineNuxtConfig({
     public: {
       chain: zksyncInMemoryNode,
       contracts: {
-        nft: "0x111C3E89Ce80e62EE88318C2804920D4c96f92bb",
-        paymaster: "0x4B5DF730c2e6b28E17013A1485E5d9BC41Efe021",
+        nft: "0xb76eD02Dea1ba444609602BE5D587c4bFfd67153",
+        paymaster: "0xf2FcC18ED5072b48C0a076693eCa72fE840b3981",
       },
+      explorerURL: "http://localhost:3010",
     },
   },
 });

@@ -35,58 +35,27 @@
       <ZkButton
         type="primary"
         class="uppercase mt-8"
+        :loading="status === 'pending'"
         @click="mintNFT"
       >
         Mint 100% free NFT
       </ZkButton>
+      <p
+        v-if="status === 'error'"
+        class="text-error-400 mt-4 text-sm"
+      >
+        An error occurred. Please try minting again.
+      </p>
     </BlurFade>
   </div>
 </template>
 
 <script setup lang="ts">
-import { waitForTransactionReceipt, writeContract } from "@wagmi/core";
-import type { Address } from "viem";
-import { getGeneralPaymasterInput } from "viem/zksync";
+const { execute: mintNFT, status, data } = await useMintNft();
 
-import { supportedChains, useConnectorStore, wagmiConfig } from "~/stores/connector";
-import { nftAbi } from "~/utils/abi";
-
-const runtimeConfig = useRuntimeConfig();
-
-const mintNFT = async () => {
-  const { account } = storeToRefs(useConnectorStore());
-
-  const transactionHash = await writeContract(wagmiConfig, {
-    account: account.value.address,
-    address: runtimeConfig.public.contracts.nft as Address,
-    abi: nftAbi,
-    functionName: "mint",
-    args: [account.value.address as Address],
-    chainId: supportedChains[0].id,
-    paymaster: runtimeConfig.public.contracts.paymaster as Address,
-    paymasterInput: getGeneralPaymasterInput({ innerInput: new Uint8Array() }),
-  });
-
-  const waitForReceipt = async () => {
-    console.log("TRANSACTION HASH", transactionHash.value);
-    try {
-      const transactionReceipt = await waitForTransactionReceipt(wagmiConfig, { hash: transactionHash.value });
-      return transactionReceipt;
-    } catch (error) {
-      if (error instanceof Error && (error.message.includes("The Transaction may not be processed on a block yet") || error.message.includes("Cannot convert null to a BigInt"))) {
-        console.log(error.message);
-        await new Promise((resolve) => setTimeout(resolve, 500));
-        return await waitForReceipt();
-      }
-      throw error;
-    }
-  };
-
-  await waitForReceipt().then((trxn) => {
-    console.log("NFT minted successfully", trxn);
-    navigateTo("/mint/share");
-  }).catch(() => {
-    console.log("NFT minting failed");
-  });
-};
+watch(status, (status) => {
+  if (status === "success") {
+    navigateTo({ path: "mint/share", query: { trxn: data.value.transactionHash } });
+  }
+});
 </script>
