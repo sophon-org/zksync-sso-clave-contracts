@@ -2,10 +2,10 @@ import { type Account, type Address, type Chain, type Client, getAddress, type H
 import { waitForTransactionReceipt, writeContract } from "viem/actions";
 
 import { FactoryAbi } from "../../abi/Factory.js";
-import { encodeModuleData, encodePasskeyModuleParameters, encodeCreateSessionParameters } from "../../utils/encoding.js";
+import type { SessionData } from "../../client-gateway/interface.js";
+import { encodeCreateSessionParameters, encodeModuleData, encodePasskeyModuleParameters } from "../../utils/encoding.js";
 import { noThrow } from "../../utils/helpers.js";
 import { getPublicKeyBytesFromPasskeySignature } from "../../utils/passkey.js";
-import type { SessionData } from "../../client-gateway/interface.js";
 
 /* TODO: try to get rid of most of the contract params like accountImplementation, passkey, session */
 /* it should come from factory, not passed manually each time */
@@ -61,7 +61,7 @@ export const deployAccount = async <
 
   const encodedSessionKeyModuleData = encodeModuleData({
     address: args.contracts.session,
-    parameters: args.initialSession == null ? "0x" : encodeCreateSessionParameters(args.initialSession)
+    parameters: args.initialSession == null ? "0x" : encodeCreateSessionParameters(args.initialSession),
   });
 
   const transactionHash = await writeContract(client, {

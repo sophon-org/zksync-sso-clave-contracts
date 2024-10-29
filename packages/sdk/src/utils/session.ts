@@ -1,12 +1,12 @@
-import type { Limit, SessionPreferences } from "../client-gateway/interface.js";
 import type { Address, Hex } from "viem";
+
+import type { Limit, SessionPreferences } from "../client-gateway/interface.js";
 
 enum LimitType {
   Unlimited = 0,
   Lifetime = 1,
   Allowance = 2,
 }
-
 
 function getLimit(limit?: Limit) {
   return limit == null
@@ -30,7 +30,7 @@ function getLimit(limit?: Limit) {
 
 export function getSession(session: SessionPreferences) {
   return {
-    expiry: BigInt(session.expiry ?? Date.now() + 1000 * 60 * 60 * 24),
+    expiry: BigInt(session.expiry ?? Math.floor(Date.now() / 1000) + 60 * 60 * 24),
     feeLimit: getLimit(session.feeLimit),
     callPolicies: session.callPolicies?.map((policy) => ({
       target: <Address>policy.target,

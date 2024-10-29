@@ -285,7 +285,11 @@ library SessionLib {
     );
   }
 
-  function remainingUsage(UsageLimit memory limit, UsageTracker storage tracker, address account) internal view returns (uint256) {
+  function remainingUsage(
+    UsageLimit memory limit,
+    UsageTracker storage tracker,
+    address account
+  ) internal view returns (uint256) {
     if (limit.limitType == LimitType.Unlimited) {
       // this might be still limited by `maxValuePerUse`
       return type(uint256).max;
@@ -299,7 +303,10 @@ library SessionLib {
     }
   }
 
-  function remainingLimits(SessionStorage storage session, address account) internal view returns (SessionState memory) {
+  function remainingLimits(
+    SessionStorage storage session,
+    address account
+  ) internal view returns (SessionState memory) {
     (, SessionSpec memory spec) = getSpec(session, account);
 
     LimitState[] memory transferValue = new LimitState[](spec.transferPolicies.length);
@@ -314,7 +321,11 @@ library SessionLib {
       if (transferSpec.valueLimit.limitType == LimitType.Unlimited) {
         remaining = transferSpec.maxValuePerUse;
       } else {
-        remaining = remainingUsage(transferSpec.valueLimit, session.trackers.transferValue[transferSpec.target], account);
+        remaining = remainingUsage(
+          transferSpec.valueLimit,
+          session.trackers.transferValue[transferSpec.target],
+          account
+        );
       }
 
       transferValue[i] = LimitState({
@@ -332,7 +343,11 @@ library SessionLib {
       if (callSpec.valueLimit.limitType == LimitType.Unlimited) {
         remaining = callSpec.maxValuePerUse;
       } else {
-        remaining = remainingUsage(callSpec.valueLimit, session.trackers.callValue[callSpec.target][callSpec.selector], account);
+        remaining = remainingUsage(
+          callSpec.valueLimit,
+          session.trackers.callValue[callSpec.target][callSpec.selector],
+          account
+        );
       }
 
       callValue[i] = LimitState({
@@ -345,7 +360,11 @@ library SessionLib {
       for (uint256 j = 0; j < callSpec.constraints.length; j++) {
         if (callSpec.constraints[j].limit.limitType != LimitType.Unlimited) {
           callParams[paramLimitIndex++] = LimitState({
-            remaining: remainingUsage(callSpec.constraints[j].limit, session.trackers.params[callSpec.target][callSpec.selector][j], account),
+            remaining: remainingUsage(
+              callSpec.constraints[j].limit,
+              session.trackers.params[callSpec.target][callSpec.selector][j],
+              account
+            ),
             target: callSpec.target,
             selector: callSpec.selector,
             index: callSpec.constraints[j].index
@@ -355,14 +374,17 @@ library SessionLib {
     }
 
     // shrink array to actual size
-    assembly { mstore(callParams, paramLimitIndex) }
+    assembly {
+      mstore(callParams, paramLimitIndex)
+    }
 
-    return SessionState({
-      fee: remainingUsage(spec.feeLimit, session.trackers.fee, account),
-      transferValue: transferValue,
-      callValue: callValue,
-      callParams: callParams
-    });
+    return
+      SessionState({
+        fee: remainingUsage(spec.feeLimit, session.trackers.fee, account),
+        transferValue: transferValue,
+        callValue: callValue,
+        callParams: callParams
+      });
   }
 }
 
@@ -385,7 +407,10 @@ contract SessionKeyValidator is IHook, IValidationHook, IModuleValidator, IModul
     spec.signer = signer;
   }
 
-  function remainingSessionLimits(address account, address signer) external view returns (SessionLib.SessionState memory) {
+  function remainingSessionLimits(
+    address account,
+    address signer
+  ) external view returns (SessionLib.SessionState memory) {
     return sessions[signer].remainingLimits(account);
   }
 

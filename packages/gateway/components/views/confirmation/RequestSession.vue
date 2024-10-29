@@ -170,7 +170,7 @@ const confirmConnection = async () => {
       session: {
         sessionKey: privateKeyToAddress(sessionKey.value!),
         ...sessionData,
-      }
+      },
     });
     const response: ExtractReturnType<"eth_requestAccounts", GatewayRpcSchema> = {
       account: {

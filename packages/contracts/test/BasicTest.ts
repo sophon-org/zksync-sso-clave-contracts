@@ -6,7 +6,7 @@ import { SmartAccount, utils } from "zksync-ethers";
 
 import { ERC7579Account__factory } from "../typechain-types";
 import { CallStruct } from "../typechain-types/src/batch/BatchCaller";
-import { getProvider, ContractFixtures } from "./utils";
+import { ContractFixtures, getProvider } from "./utils";
 
 describe("Basic tests", function () {
   const fixtures = new ContractFixtures();

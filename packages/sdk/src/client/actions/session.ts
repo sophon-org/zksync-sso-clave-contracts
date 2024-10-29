@@ -5,8 +5,8 @@ import { sendTransaction } from "viem/zksync";
 
 import { SessionKeyModuleAbi } from "../../abi/SessionKeyModule.js";
 import type { SessionData } from "../../client-gateway/interface.js";
-import { getSession } from "../../utils/session.js";
 import { noThrow } from "../../utils/helpers.js";
+import { getSession } from "../../utils/session.js";
 
 /* DO NOT USE THIS. USE FUNCTION FROM PASSKEY ACTIONS INSTEAD */
 /* TODO: Remove */
@@ -92,7 +92,6 @@ export const createSessionWithPasskey = async <
 //
 //   return remainingTokenSpendLimit;
 // };
-
 
 export type CreateSessionArgs = {
   session: SessionData;

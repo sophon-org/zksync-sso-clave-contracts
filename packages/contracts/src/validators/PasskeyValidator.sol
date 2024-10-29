@@ -43,9 +43,10 @@ contract PasskeyValidator is IR1Validator, VerifierCaller {
 
   /// @inheritdoc IERC165
   function supportsInterface(bytes4 interfaceId) external pure override returns (bool) {
-    return interfaceId == type(IR1Validator).interfaceId
-      || interfaceId == type(IERC165).interfaceId
-      || interfaceId == type(IModule).interfaceId;
+    return
+      interfaceId == type(IR1Validator).interfaceId ||
+      interfaceId == type(IERC165).interfaceId ||
+      interfaceId == type(IModule).interfaceId;
   }
 
   function _validateSignature(

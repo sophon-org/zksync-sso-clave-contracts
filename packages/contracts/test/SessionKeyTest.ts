@@ -8,7 +8,7 @@ import { SmartAccount, utils } from "zksync-ethers";
 import type { ERC20 } from "../typechain-types";
 import { ERC7579Account__factory } from "../typechain-types";
 import type { SessionLib } from "../typechain-types/src/validators/SessionKeyValidator";
-import { getProvider, ContractFixtures, logInfo } from "./utils";
+import { ContractFixtures, getProvider, logInfo } from "./utils";
 
 const fixtures = new ContractFixtures();
 const abiCoder = new ethers.AbiCoder();
@@ -195,7 +195,7 @@ class SessionTester {
   getSession(session: PartialSession): SessionLib.SessionSpecStruct {
     return {
       signer: this.sessionOwner.address,
-      expiry: session.expiry ?? Math.floor(Date.now() / 1000) +  60 * 60 * 24,
+      expiry: session.expiry ?? Math.floor(Date.now() / 1000) + 60 * 60 * 24,
       // unlimited fees are not safe
       feeLimit: session.feeLimit ? this.getLimit(session.feeLimit) : this.getLimit({ limit: parseEther("0.1") }),
       callPolicies: session.callPolicies?.map((policy) => ({

@@ -67,7 +67,7 @@ const config = defaultWagmiConfig({
         transferPolicies: [{
           target: sessionTarget,
           maxValuePerUse: parseEther("0.1"),
-        }]
+        }],
       }),
     }),
   ],

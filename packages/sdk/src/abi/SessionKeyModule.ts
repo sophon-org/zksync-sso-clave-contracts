@@ -1097,5 +1097,3 @@ export const SessionKeyModuleAbi = [
     type: "function",
   },
 ] as const;
-
-

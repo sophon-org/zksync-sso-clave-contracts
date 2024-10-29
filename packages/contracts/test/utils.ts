@@ -10,7 +10,7 @@ import { base64UrlToUint8Array, getPublicKeyBytesFromPasskeySignature, unwrapEC2
 import { ContractFactory, Provider, utils, Wallet } from "zksync-ethers";
 
 import type { AAFactory, ERC20, ERC7579Account, SessionKeyValidator, WebAuthValidator } from "../typechain-types";
-import { ERC20__factory, ERC7579Account__factory, SessionKeyValidator__factory, WebAuthValidator__factory, AAFactory__factory } from "../typechain-types";
+import { AAFactory__factory, ERC20__factory, ERC7579Account__factory, SessionKeyValidator__factory, WebAuthValidator__factory } from "../typechain-types";
 
 export class ContractFixtures {
   // NOTE: CHANGING THE READONLY VALUES WILL REQUIRE UPDATING THE STATIC SIGNATURE
