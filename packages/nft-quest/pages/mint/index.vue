@@ -44,44 +44,49 @@
 </template>
 
 <script setup lang="ts">
-import { writeContract } from "@wagmi/core";
+import { waitForTransactionReceipt, writeContract } from "@wagmi/core";
 import type { Address } from "viem";
 import { getGeneralPaymasterInput } from "viem/zksync";
 
-import { useConnectorStore, wagmiConfig } from "~/stores/connector";
+import { supportedChains, useConnectorStore, wagmiConfig } from "~/stores/connector";
+import { nftAbi } from "~/utils/abi";
 
 const runtimeConfig = useRuntimeConfig();
 
 const mintNFT = async () => {
   const { account } = storeToRefs(useConnectorStore());
 
-  const hash = await writeContract(wagmiConfig, {
+  const transactionHash = await writeContract(wagmiConfig, {
     account: account.value.address,
     address: runtimeConfig.public.contracts.nft as Address,
-    abi: [{ inputs: [
-      {
-        internalType: "address",
-        name: "to",
-        type: "address",
-      },
-    ],
-    name: "mint",
-    outputs: [
-      {
-        internalType: "uint256",
-        name: "",
-        type: "uint256",
-      },
-    ] as const,
-    stateMutability: "nonpayable",
-    type: "function" }],
+    abi: nftAbi,
     functionName: "mint",
     args: [account.value.address as Address],
-    paymaster: runtimeConfig.public.contracts.paymaster,
+    chainId: supportedChains[0].id,
+    paymaster: runtimeConfig.public.contracts.paymaster as Address,
     paymasterInput: getGeneralPaymasterInput({ innerInput: new Uint8Array() }),
   });
 
-  console.log("minted NFT", hash);
-  // navigateTo("/mint/share");
+  const waitForReceipt = async () => {
+    console.log("TRANSACTION HASH", transactionHash.value);
+    try {
+      const transactionReceipt = await waitForTransactionReceipt(wagmiConfig, { hash: transactionHash.value });
+      return transactionReceipt;
+    } catch (error) {
+      if (error instanceof Error && (error.message.includes("The Transaction may not be processed on a block yet") || error.message.includes("Cannot convert null to a BigInt"))) {
+        console.log(error.message);
+        await new Promise((resolve) => setTimeout(resolve, 500));
+        return await waitForReceipt();
+      }
+      throw error;
+    }
+  };
+
+  await waitForReceipt().then((trxn) => {
+    console.log("NFT minted successfully", trxn);
+    navigateTo("/mint/share");
+  }).catch(() => {
+    console.log("NFT minting failed");
+  });
 };
 </script>

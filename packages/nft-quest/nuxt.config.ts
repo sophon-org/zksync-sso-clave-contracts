@@ -18,7 +18,7 @@ export default defineNuxtConfig({
   colorMode: {
     preference: "dark",
   },
-  devtools: { enabled: true },
+  devtools: { enabled: false },
   app: {
     head: {
       link: [

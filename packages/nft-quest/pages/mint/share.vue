@@ -55,6 +55,10 @@
               class="ml-2"
             />
           </ZkLink>
+
+          <p class="mt-10 text-neutral-400">
+            Your session is still active! You can mint another NFT and send it to your friend without having to approve any more transactions! Try it below!
+          </p>
         </div>
       </BlurFade>
     </div>

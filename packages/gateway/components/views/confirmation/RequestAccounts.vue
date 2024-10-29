@@ -35,7 +35,7 @@
         Funds will not leave your account without your confirmation
       </li>
     </ul>
-    <div class="mt-auto flex gap-4">
+    <div class="mt-auto flex gap-4 p-2">
       <CommonButton
         class="w-full"
         variant="neutral"
