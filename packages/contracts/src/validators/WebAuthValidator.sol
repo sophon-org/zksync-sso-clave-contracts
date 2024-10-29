@@ -2,6 +2,7 @@
 pragma solidity ^0.8.24;
 
 import { IModuleValidator } from "../interfaces/IModuleValidator.sol";
+import { IR1Validator, IERC165 } from "../interfaces/IValidator.sol";
 import "./PasskeyValidator.sol";
 
 import "../helpers/Logger.sol";
@@ -127,5 +128,13 @@ contract WebAuthValidator is PasskeyValidator, IModuleValidator {
 
     bytes32 message = _createMessage(authenticatorData, bytes(clientDataJSON));
     valid = callVerifier(P256_VERIFIER, message, rs, pubKey);
+  }
+
+  /// @inheritdoc IERC165
+  function supportsInterface(bytes4 interfaceId) external override pure returns (bool) {
+    return
+      interfaceId == type(IR1Validator).interfaceId ||
+      interfaceId == type(IERC165).interfaceId ||
+      interfaceId == type(IModuleValidator).interfaceId;
   }
 }
