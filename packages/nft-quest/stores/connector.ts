@@ -9,7 +9,7 @@ export type SupportedChainId = (typeof supportedChains)[number]["id"];
 const connector = zksyncAccountConnector({
   metadata: {
     name: "ZK NFT Quest",
-    icon: "http://localhost:3006/favicon.ico",
+    icon: "http://localhost:3006/favicon.svg",
   },
   gatewayUrl: "http://localhost:3002/confirm",
 });

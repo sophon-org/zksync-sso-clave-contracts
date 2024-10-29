@@ -14,106 +14,65 @@
       </h1>
     </div>
 
-    <div
-      v-if="screen === 'choose-auth-method'"
-      class="flex flex-col gap-4 mt-8 py-8"
-    >
-      <ZkButton @click="screen = 'login'">
-        Log in
-      </ZkButton>
+    <div class="flex flex-col gap-5 mt-8 py-8">
+      <div className="highlight">
+        <div className="inner">
+          <ZkButton
+            class="w-full"
+            :loading="registerInProgress"
+            @click="createAccount"
+          >
+            Create new account
+          </ZkButton>
+        </div>
+      </div>
+
       <ZkButton
         type="secondary"
-        @click="screen = 'register'"
+        class="!text-slate-400"
+        :loading="loginInProgress"
+        @click="connectToAccount"
       >
-        Create new account
+        Log in w/ Passkey
       </ZkButton>
     </div>
-    <form
-      v-else-if="screen === 'register' || screen === 'login'"
-      class="flex flex-col gap-4 mt-8"
-      @submit.prevent="onFormSubmit()"
-    >
-      <div>
-        <CommonInput
-          v-model="username"
-          placeholder="Username"
-          required
-          minlength="3"
-          maxlength="32"
-          autofocus
-          :loading="accountDataFetchInProgress"
-          :disabled="registerInProgress || loginInProgress"
-        />
-        <CommonHeightTransition :opened="!!accountDataFetchError || !!errorState || !!passkeyError">
-          <p class="pt-3 text-sm text-error-300 text-center">
-            <span
-              v-if="accountDataFetchError"
-            >
-              {{ accountDataFetchError }}
-            </span>
-            <span v-else-if="errorState === 'username-taken'">
-              Username is already taken.
-              <button
-                type="button"
-                class="underline underline-offset-4"
-                @click="screen = 'login'"
-              >
-                Login instead?
-              </button>
-            </span>
-            <span v-else-if="errorState === 'account-not-found'">
-              Account not found.
-              <button
-                type="button"
-                class="underline underline-offset-4"
-                @click="screen = 'register'"
-              >
-                Create account?
-              </button>
-            </span>
-            <span v-else-if="passkeyError">
-              {{ passkeyError }}
-            </span>
-          </p>
-        </CommonHeightTransition>
-      </div>
-      <CommonButton
-        class="w-full"
-        :loading="registerInProgress"
-        type="submit"
-      >
-        {{ mainButton }}
-      </CommonButton>
-      <div
-        v-if="secondaryButton"
-        class="h-0 -mb-4"
-      >
-        <CommonButton
-          variant="transparent"
-          type="button"
-          size="sm"
-          class="w-full"
-          @click="secondaryButton?.onClick()"
+
+    <CommonHeightTransition :opened="!!accountDataFetchError || !!errorState">
+      <p class="pt-3 text-sm text-error-300 text-center">
+        <span
+          v-if="accountDataFetchError"
         >
-          {{ secondaryButton?.label }}
-        </CommonButton>
-      </div>
-    </form>
+          {{ accountDataFetchError }}
+        </span>
+        <span v-else-if="errorState === 'account-not-found'">
+          Account not found.
+          <button
+            type="button"
+            class="underline underline-offset-4"
+            @click="createAccount"
+          >
+            Create account?
+          </button>
+        </span>
+        <span v-else-if="passkeyError">
+          {{ passkeyError }}
+        </span>
+      </p>
+    </CommonHeightTransition>
   </div>
 </template>
 
 <script lang="ts" setup>
-import { parseEther, toHex } from "viem";
+import { type Address, encodeFunctionData, parseAbi, parseEther, toHex } from "viem";
 import { generatePrivateKey, privateKeyToAddress } from "viem/accounts";
 import { deployAccount } from "zksync-account/client";
 import { registerNewPasskey } from "zksync-account/client/passkey";
 
 const { appMeta } = useAppMeta();
 const { login } = useAccountStore();
-const { getRichWalletClient } = useClientStore();
+const { getRichWalletClient, getPublicClient } = useClientStore();
 const { requestChain } = storeToRefs(useRequestsStore());
 
-const screen = ref<"choose-auth-method" | "register" | "login">("choose-auth-method");
 const username = ref("");
 
 const { accountData, accountDataFetchInProgress, accountDataFetchError/* , fetchAccountData */ } = useFetchAccountData(
@@ -123,14 +82,11 @@ const { accountData, accountDataFetchInProgress, accountDataFetchError/* , fetch
 
 const passkeyError = ref<string | undefined>(undefined);
 const errorState = computed<"username-taken" | "account-not-found" | undefined>(() => {
-  if (screen.value === "register") {
-    if (accountData.value) {
-      return "username-taken";
-    }
-  } else if (screen.value === "login") {
-    if (username.value && !accountDataFetchInProgress.value && !accountData.value) {
-      return "account-not-found";
-    }
+  if (accountData.value) {
+    return "username-taken";
+  }
+  if (username.value && !accountDataFetchInProgress.value && !accountData.value) {
+    return "account-not-found";
   }
   return undefined;
 });
@@ -196,44 +152,82 @@ const { inProgress: loginInProgress, execute: connectToAccount } = useAsync(asyn
   if (!credential) throw new Error("No registered passkeys");
 
   // eslint-disable-next-line no-console
-  console.log({ credential });
   console.log(credential.id);
-  // eslint-disable-next-line no-console
-  console.log("Login not implemented yet");
-  /* TODO: find account by credential.id */
-});
 
-const mainButton = computed(() => {
-  if (screen.value === "register") {
-    return "Create new account";
-  } else if (screen.value === "login") {
-    return "Login";
-  }
-  return undefined;
+  // TODO: Fetch address and credentialPublicKey from credential.id
+  const publicClient = getPublicClient({ chainId: requestChain.value!.id });
+  const data = await publicClient.call({
+    data: encodeFunctionData({
+      abi: parseAbi(["function accountMappings(string) view returns (address)"]),
+      functionName: "accountMappings",
+      args: [credential.id],
+    }),
+
+    to: contractsByChain[requestChain.value!.id].accountFactory,
+  });
+
+  console.log(data.data);
+  console.log(data.data as Address);
+
+  // login({
+  //   username: credential.id,
+  //   address,
+  //   passkey: credentialPublicKey,
+  // })
 });
-const secondaryButton = computed(() => {
-  if (screen.value === "register") {
-    return {
-      label: "Go to login",
-      onClick: () => {
-        screen.value = "login";
-      },
-    };
-  } else if (screen.value === "login") {
-    return {
-      label: "Go to register",
-      onClick: () => {
-        screen.value = "register";
-      },
-    };
-  }
-  return undefined;
-});
-const onFormSubmit = async () => {
-  if (screen.value === "register") {
-    await createAccount();
-  } else if (screen.value === "login") {
-    await connectToAccount();
-  }
-};
 </script>
+
+<style scoped>
+.highlight::before,
+.highlight::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  right: 0;
+  background: linear-gradient(
+    45deg,
+    #ff595e,
+    #ffca3a,
+    #8ac926,
+    #1982c4,
+    #6a4c93,
+    #ff6700
+  );
+  background-size: 400%;
+  z-index: -1;
+  animation: glow 5s linear infinite;
+  width: 100%;
+  border-radius: 2rem;
+}
+
+.highlight::after {
+  filter: blur(9px);
+  transform: translate3d(0, 0, 0); /* For Safari */
+}
+
+.highlight {
+  position: relative;
+  border-radius: 2rem;
+  padding: 4px;
+}
+
+.highlight .inner {
+  border-radius: 4px;
+}
+
+@keyframes glow {
+  0% {
+    background-position: 0 0;
+  }
+
+  50% {
+    background-position: 100% 0;
+  }
+
+  100% {
+    background-position: 0 0;
+  }
+}
+</style>
