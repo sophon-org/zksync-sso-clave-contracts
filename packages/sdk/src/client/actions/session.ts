@@ -3,8 +3,9 @@ import { publicKeyToAddress } from "viem/accounts";
 import { readContract, waitForTransactionReceipt } from "viem/actions";
 import { sendTransaction } from "viem/zksync";
 
-import { SessionPasskeySpendLimitModuleAbi } from "../../abi/SessionPasskeySpendLimitModule.js";
+import { SessionKeyModuleAbi } from "../../abi/SessionKeyModule.js";
 import type { SessionData } from "../../client-gateway/interface.js";
+import { getSession } from "../../utils/session.js";
 import { noThrow } from "../../utils/helpers.js";
 
 /* DO NOT USE THIS. USE FUNCTION FROM PASSKEY ACTIONS INSTEAD */
@@ -69,57 +70,52 @@ export const createSessionWithPasskey = async <
   return transactionHash;
 } */
 
-export type GetRemainingTokenSpendLimitArgs =
- ({ sessionKey: Hash } | { sessionKeyPublicAddress: Address })
- & {
-   tokenAddress: Address;
-   contracts: { session: Address };
- };
-export type GetRemainingTokenSpendLimitReturnType = bigint;
-export const getRemainingTokenSpendLimit = async <
-  transport extends Transport,
-  chain extends Chain,
-  account extends Account,
->(client: Client<transport, chain, account>, args: GetRemainingTokenSpendLimitArgs): Promise<Prettify<GetRemainingTokenSpendLimitReturnType>> => {
-  const sessionKeyPublicAddress = "sessionKey" in args ? publicKeyToAddress(args.sessionKey) : args.sessionKeyPublicAddress;
-  const remainingTokenSpendLimit = await readContract(client, {
-    address: args.contracts.session,
-    abi: SessionPasskeySpendLimitModuleAbi,
-    functionName: "getRemainingSpendLimit",
-    args: [sessionKeyPublicAddress, args.tokenAddress],
-  });
+// export type GetRemainingTokenSpendLimitArgs =
+//  ({ sessionKey: Hash } | { sessionKeyPublicAddress: Address })
+//  & {
+//    tokenAddress: Address;
+//    contracts: { session: Address };
+//  };
+// export type GetRemainingTokenSpendLimitReturnType = bigint;
+// export const getRemainingTokenSpendLimit = async <
+//   transport extends Transport,
+//   chain extends Chain,
+//   account extends Account,
+// >(client: Client<transport, chain, account>, args: GetRemainingTokenSpendLimitArgs): Promise<Prettify<GetRemainingTokenSpendLimitReturnType>> => {
+//   const sessionKeyPublicAddress = "sessionKey" in args ? publicKeyToAddress(args.sessionKey) : args.sessionKeyPublicAddress;
+//   const remainingTokenSpendLimit = await readContract(client, {
+//     address: args.contracts.session,
+//     abi: SessionKeyModuleAbi,
+//     functionName: "getRemainingSpendLimit",
+//     args: [sessionKeyPublicAddress, args.tokenAddress],
+//   });
+//
+//   return remainingTokenSpendLimit;
+// };
 
-  return remainingTokenSpendLimit;
-};
 
-export type SetSessionKeysArgs = {
-  sessions: SessionData[];
+export type CreateSessionArgs = {
+  session: SessionData;
   contracts: {
-    session: Address;
+    session: Address; // session module
   };
   onTransactionSent?: (hash: Hash) => void;
 };
-export type SetSessionKeysReturnType = {
+export type CreateSessionReturnType = {
   transactionReceipt: TransactionReceipt;
 };
-export const setSessionKeys = async <
+export const createSession = async <
   transport extends Transport,
   chain extends Chain,
   account extends Account,
->(client: Client<transport, chain, account>, args: Prettify<SetSessionKeysArgs>): Promise<Prettify<SetSessionKeysReturnType>> => {
+>(client: Client<transport, chain, account>, args: Prettify<CreateSessionArgs>): Promise<Prettify<CreateSessionReturnType>> => {
   const callData = encodeFunctionData({
-    abi: SessionPasskeySpendLimitModuleAbi,
-    functionName: "setSessionKeys",
-    args: [
-      args.sessions.map((sessionData) => ({
-        sessionKey: sessionData.sessionKey,
-        expiresAt: BigInt(Math.floor(new Date(+sessionData.expiresAt).getTime() / 1000)),
-        spendLimits: Object.entries(sessionData.spendLimit).map(([tokenAddress, limit]) => ({
-          tokenAddress: tokenAddress as Address,
-          limit: BigInt(limit),
-        })),
-      })),
-    ],
+    abi: SessionKeyModuleAbi,
+    functionName: "createSession",
+    args: [{
+      ...getSession(args.session),
+      signer: args.session.sessionKey,
+    }],
   });
 
   const transactionHash = await sendTransaction(client, {
@@ -137,23 +133,4 @@ export const setSessionKeys = async <
   return {
     transactionReceipt,
   };
-};
-
-export interface SetSessionKeyArgs extends SessionData {
-  contracts: {
-    session: Address;
-  };
-  onTransactionSent?: (hash: Hash) => void;
-};
-export type SetSessionKeyReturnType = SetSessionKeysReturnType;
-export const setSessionKey = async <
-  transport extends Transport,
-  chain extends Chain,
-  account extends Account,
->(client: Client<transport, chain, account>, args: SetSessionKeyArgs): Promise<SetSessionKeyReturnType> => {
-  return setSessionKeys(client, {
-    sessions: [args],
-    contracts: args.contracts,
-    onTransactionSent: args.onTransactionSent,
-  });
 };

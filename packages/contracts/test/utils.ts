@@ -9,7 +9,95 @@ import * as hre from "hardhat";
 import { base64UrlToUint8Array, getPublicKeyBytesFromPasskeySignature, unwrapEC2Signature } from "zksync-account/utils";
 import { ContractFactory, Provider, utils, Wallet } from "zksync-ethers";
 
-import { AAFactory, AAFactory__factory } from "../typechain-types";
+import type { AAFactory, ERC20, ERC7579Account, SessionKeyValidator, WebAuthValidator } from "../typechain-types";
+import { ERC20__factory, ERC7579Account__factory, SessionKeyValidator__factory, WebAuthValidator__factory, AAFactory__factory } from "../typechain-types";
+
+export class ContractFixtures {
+  // NOTE: CHANGING THE READONLY VALUES WILL REQUIRE UPDATING THE STATIC SIGNATURE
+  readonly wallet: Wallet = getWallet(LOCAL_RICH_WALLETS[0].privateKey);
+  readonly ethersStaticSalt = new Uint8Array([
+    205, 241, 161, 186, 101, 105, 79,
+    248, 98, 64, 50, 124, 168, 204,
+    200, 71, 214, 169, 195, 118, 199,
+    62, 140, 111, 128, 47, 32, 21,
+    177, 177, 174, 166,
+  ]);
+
+  private _aaFactory: AAFactory;
+  async getAaFactory() {
+    if (!this._aaFactory) {
+      this._aaFactory = await deployFactory("AAFactory", this.wallet);
+    }
+    return this._aaFactory;
+  }
+
+  private _sessionKeyModule: SessionKeyValidator;
+  async getSessionKeyContract() {
+    if (!this._sessionKeyModule) {
+      const contract = await create2("SessionKeyValidator", this.wallet, this.ethersStaticSalt);
+      this._sessionKeyModule = SessionKeyValidator__factory.connect(await contract.getAddress(), this.wallet);
+    }
+    return this._sessionKeyModule;
+  }
+
+  async getSessionKeyModuleAddress() {
+    return (await this.getSessionKeyContract()).getAddress();
+  }
+
+  private _webauthnValidatorModule: WebAuthValidator;
+  // does passkey validation via modular interface
+  async getWebAuthnVerifierContract() {
+    if (!this._webauthnValidatorModule) {
+      const contract = await create2("WebAuthValidator", this.wallet, this.ethersStaticSalt);
+      this._webauthnValidatorModule = WebAuthValidator__factory.connect(await contract.getAddress(), this.wallet);
+    }
+    return this._webauthnValidatorModule;
+  }
+
+  private _passkeyModuleAddress: string;
+  async getPasskeyModuleAddress() {
+    if (!this._passkeyModuleAddress) {
+      const passkeyModule = await this.getWebAuthnVerifierContract();
+      this._passkeyModuleAddress = await passkeyModule.getAddress();
+    }
+    return this._passkeyModuleAddress;
+  }
+
+  private _accountImplContract: ERC7579Account;
+  // wraps the clave account
+  async getAccountImplContract() {
+    if (!this._accountImplContract) {
+      const contract = await create2("ERC7579Account", this.wallet, this.ethersStaticSalt);
+      this._accountImplContract = ERC7579Account__factory.connect(await contract.getAddress(), this.wallet);
+    }
+    return this._accountImplContract;
+  }
+
+  private _accountImplAddress: string;
+  // deploys the base account for future proxy use
+  async getAccountImplAddress() {
+    if (!this._accountImplAddress) {
+      const accountImpl = await this.getAccountImplContract();
+      this._accountImplAddress = await accountImpl.getAddress();
+    }
+    return this._accountImplAddress;
+  }
+
+  private _proxyAccountContract: ERC7579Account;
+  async getProxyAccountContract() {
+    const claveAddress = await this.getAccountImplAddress();
+    if (!this._proxyAccountContract) {
+      const contract = await create2("AccountProxy", this.wallet, this.ethersStaticSalt, [claveAddress]);
+      this._proxyAccountContract = ERC7579Account__factory.connect(await contract.getAddress(), this.wallet);
+    }
+    return this._proxyAccountContract;
+  }
+
+  async deployERC20(mintTo: string): Promise<ERC20> {
+    const contract = await create2("TestERC20", this.wallet, this.ethersStaticSalt, [mintTo]);
+    return ERC20__factory.connect(await contract.getAddress(), this.wallet);
+  }
+}
 
 // Load env file
 dotenv.config();

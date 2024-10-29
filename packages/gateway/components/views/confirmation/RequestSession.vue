@@ -52,7 +52,7 @@
         <div>
           <template v-if="tokensLoading">
             <TokenAmountLoader
-              v-for="item in Object.keys(props.session.spendLimit)"
+              v-for="item in []"
               :key="item"
             />
           </template>
@@ -115,7 +115,7 @@ const { fetchTokenInfo } = useTokenUtilities(computed(() => requestChain.value!.
 const { getClient } = useClientStore();
 
 const domain = computed(() => new URL(origin.value).host);
-const sessionExpiresIn = useTimeAgo(props.session.expiresAt);
+const sessionExpiresIn = useTimeAgo(Number(props.session.expiry));
 
 const { result: tokensList, inProgress: tokensLoading, execute: fetchTokens } = useAsync(async () => {
   const fetchSingleToken = async (tokenAddress: Address): Promise<Token> => {
@@ -132,19 +132,23 @@ const { result: tokensList, inProgress: tokensLoading, execute: fetchTokens } = 
       };
     }
   };
-  const promises = Object.keys(props.session.spendLimit).map(async (tokenAddress) => fetchSingleToken(tokenAddress as Address));
-  if (!Object.keys(props.session.spendLimit).includes(BASE_TOKEN_ADDRESS)) { // Fetch base token info if not present
-    promises.push(fetchSingleToken(BASE_TOKEN_ADDRESS));
-  }
+  // TODO: figure out if session has any spend limits for tokens.
+  // const promises = Object.keys(props.session.spendLimit).map(async (tokenAddress) => fetchSingleToken(tokenAddress as Address));
+  // if (!Object.keys(props.session.spendLimit).includes(BASE_TOKEN_ADDRESS)) { // Fetch base token info if not present
+  //   promises.push(fetchSingleToken(BASE_TOKEN_ADDRESS));
+  // }
+  const promises = [];
   return Object.fromEntries((await Promise.all(promises)).map((e) => [e.address, e]));
 });
 
 const spendLimitTokens = computed(() => {
   if (!props.session || !tokensList.value) return;
-  return Object.entries(props.session.spendLimit).map(([tokenAddress, amount]) => ({
-    token: tokensList.value![tokenAddress],
-    amount,
-  }));
+  // TODO
+  // return Object.entries(props.session.spendLimit).map(([tokenAddress, amount]) => ({
+  //   token: tokensList.value![tokenAddress],
+  //   amount,
+  // }));
+  return [];
 });
 
 const totalUsd = computed(() => (spendLimitTokens.value || []).reduce((acc, item) => {
@@ -157,20 +161,16 @@ const confirmConnection = async () => {
   respond(async () => {
     const client = getClient({ chainId: requestChain.value!.id });
     const sessionData: Omit<SessionData, "sessionKey"> = {
-      expiresAt: props.session.expiresAt,
-      spendLimit: props.session.spendLimit
-        ? Object.fromEntries(Object.entries(props.session.spendLimit).map(
-          ([tokenAddress, amount]) => [
-            getAddress(tokenAddress.toLowerCase()),
-            amount.toString(),
-          ],
-        ))
-        : {},
+      ...props.session,
     };
 
-    const _session = await client.setSessionKey({
-      sessionKey: privateKeyToAddress(sessionKey.value!),
-      ...sessionData,
+    console.log(sessionData);
+
+    const _session = await client.createSession({
+      session: {
+        sessionKey: privateKeyToAddress(sessionKey.value!),
+        ...sessionData,
+      }
     });
     const response: ExtractReturnType<"eth_requestAccounts", GatewayRpcSchema> = {
       account: {

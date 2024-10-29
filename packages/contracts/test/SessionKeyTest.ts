@@ -8,8 +8,7 @@ import { SmartAccount, utils } from "zksync-ethers";
 import type { ERC20 } from "../typechain-types";
 import { ERC7579Account__factory } from "../typechain-types";
 import type { SessionLib } from "../typechain-types/src/validators/SessionKeyValidator";
-import { ContractFixtures } from "./EndToEndSpendLimit";
-import { getProvider } from "./utils";
+import { getProvider, ContractFixtures, logInfo } from "./utils";
 
 const fixtures = new ContractFixtures();
 const abiCoder = new ethers.AbiCoder();
@@ -29,11 +28,6 @@ enum LimitType {
   Unlimited = 0,
   Lifetime = 1,
   Allowance = 2,
-}
-
-function oneYearAway() {
-  const now = new Date();
-  return Math.floor(+new Date(now.setFullYear(now.getFullYear() + 1)) / 1000);
 }
 
 type PartialLimit = {
@@ -201,7 +195,7 @@ class SessionTester {
   getSession(session: PartialSession): SessionLib.SessionSpecStruct {
     return {
       signer: this.sessionOwner.address,
-      expiry: session.expiry ?? oneYearAway(),
+      expiry: session.expiry ?? Math.floor(Date.now() / 1000) +  60 * 60 * 24,
       // unlimited fees are not safe
       feeLimit: session.feeLimit ? this.getLimit(session.feeLimit) : this.getLimit({ limit: parseEther("0.1") }),
       callPolicies: session.callPolicies?.map((policy) => ({
@@ -239,7 +233,7 @@ class SessionTester {
   }
 }
 
-describe.only("SessionKeyModule tests", function () {
+describe("SessionKeyModule tests", function () {
   let proxyAccountAddress: string;
 
   (hre.network.name == "dockerizedNode" ? it : it.skip)("should deposit funds", async () => {
@@ -250,23 +244,31 @@ describe.only("SessionKeyModule tests", function () {
     await deposit.waitL1Commit();
   });
 
-  it("should deploy implemention, proxy and session key module", async () => {
-    const accountImplContract = await fixtures.getAccountImplContract();
-    assert(accountImplContract != null, "No account impl deployed");
-    const proxyAccountContract = await fixtures.getProxyAccountContract();
-    assert(proxyAccountContract != null, "No account proxy deployed");
-    const sessionKeyModuleContract = await fixtures.getSessionKeyContract();
-    assert(sessionKeyModuleContract != null, "No session key module deployed");
+  it("should deploy all contracts", async () => {
+    const verifierContract = await fixtures.getWebAuthnVerifierContract();
+    assert(verifierContract != null, "No verifier deployed");
+    const sessionModuleContract = await fixtures.getSessionKeyContract();
+    assert(sessionModuleContract != null, "No session module deployed");
+    const proxyContract = await fixtures.getProxyAccountContract();
+    assert(proxyContract != null, "No proxy account deployed");
+    const erc7579Contract = await fixtures.getAccountImplContract();
+    assert(erc7579Contract != null, "No ERC7579 deployed");
+    const factoryContract = await fixtures.getAaFactory();
+    assert(factoryContract != null, "No AA Factory deployed");
+
+    logInfo(`Session Address                : ${await sessionModuleContract.getAddress()}`);
+    logInfo(`Passkey Address                : ${await verifierContract.getAddress()}`);
+    logInfo(`Account Factory Address        : ${await factoryContract.getAddress()}`);
+    logInfo(`Account Implementation Address : ${await erc7579Contract.getAddress()}`);
+    logInfo(`Proxy Account Address          : ${await proxyContract.getAddress()}`);
   });
 
   it("should deploy proxy account via factory", async () => {
-    const aaFactoryContract = await fixtures.getAaFactory();
-    assert(aaFactoryContract != null, "No AA Factory deployed");
-
+    const factoryContract = await fixtures.getAaFactory();
     const sessionKeyModuleAddress = await fixtures.getSessionKeyModuleAddress();
     const sessionKeyPayload = abiCoder.encode(["address", "bytes"], [sessionKeyModuleAddress, "0x"]);
 
-    const deployTx = await aaFactoryContract.deployProxy7579Account(
+    const deployTx = await factoryContract.deployProxy7579Account(
       randomBytes(32),
       await fixtures.getAccountImplAddress(),
       "id",

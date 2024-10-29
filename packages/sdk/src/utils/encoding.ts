@@ -1,31 +1,179 @@
 import { type Address, encodeAbiParameters, type Hash, parseAbiParameters, toHex } from "viem";
 
 import type { SessionData } from "../client-gateway/interface.js";
+import { getSession } from "../utils/session.js";
 
-export const encodeSessionSpendLimitParameters = (sessions: SessionData[]) => {
-  const spendLimitTypes = [
-    { type: "address", name: "tokenAddress" },
-    { type: "uint256", name: "limit" },
-  ] as const;
-
-  const sessionKeyTypes = [
-    { type: "address", name: "sessionKey" },
-    { type: "uint256", name: "expiresAt" },
-    { type: "tuple[]", name: "spendLimits", components: spendLimitTypes },
-  ] as const;
+export const encodeCreateSessionParameters = (session: SessionData) => {
+  const sessionSpec = {
+        components: [
+          {
+            internalType: "address",
+            name: "signer",
+            type: "address",
+          },
+          {
+            internalType: "uint256",
+            name: "expiry",
+            type: "uint256",
+          },
+          {
+            components: [
+              {
+                internalType: "enum SessionLib.LimitType",
+                name: "limitType",
+                type: "uint8",
+              },
+              {
+                internalType: "uint256",
+                name: "limit",
+                type: "uint256",
+              },
+              {
+                internalType: "uint256",
+                name: "period",
+                type: "uint256",
+              },
+            ],
+            internalType: "struct SessionLib.UsageLimit",
+            name: "feeLimit",
+            type: "tuple",
+          },
+          {
+            components: [
+              {
+                internalType: "address",
+                name: "target",
+                type: "address",
+              },
+              {
+                internalType: "bytes4",
+                name: "selector",
+                type: "bytes4",
+              },
+              {
+                internalType: "uint256",
+                name: "maxValuePerUse",
+                type: "uint256",
+              },
+              {
+                components: [
+                  {
+                    internalType: "enum SessionLib.LimitType",
+                    name: "limitType",
+                    type: "uint8",
+                  },
+                  {
+                    internalType: "uint256",
+                    name: "limit",
+                    type: "uint256",
+                  },
+                  {
+                    internalType: "uint256",
+                    name: "period",
+                    type: "uint256",
+                  },
+                ],
+                internalType: "struct SessionLib.UsageLimit",
+                name: "valueLimit",
+                type: "tuple",
+              },
+              {
+                components: [
+                  {
+                    internalType: "enum SessionLib.Condition",
+                    name: "condition",
+                    type: "uint8",
+                  },
+                  {
+                    internalType: "uint64",
+                    name: "index",
+                    type: "uint64",
+                  },
+                  {
+                    internalType: "bytes32",
+                    name: "refValue",
+                    type: "bytes32",
+                  },
+                  {
+                    components: [
+                      {
+                        internalType: "enum SessionLib.LimitType",
+                        name: "limitType",
+                        type: "uint8",
+                      },
+                      {
+                        internalType: "uint256",
+                        name: "limit",
+                        type: "uint256",
+                      },
+                      {
+                        internalType: "uint256",
+                        name: "period",
+                        type: "uint256",
+                      },
+                    ],
+                    internalType: "struct SessionLib.UsageLimit",
+                    name: "limit",
+                    type: "tuple",
+                  },
+                ],
+                internalType: "struct SessionLib.Constraint[]",
+                name: "constraints",
+                type: "tuple[]",
+              },
+            ],
+            internalType: "struct SessionLib.CallSpec[]",
+            name: "callPolicies",
+            type: "tuple[]",
+          },
+          {
+            components: [
+              {
+                internalType: "address",
+                name: "target",
+                type: "address",
+              },
+              {
+                internalType: "uint256",
+                name: "maxValuePerUse",
+                type: "uint256",
+              },
+              {
+                components: [
+                  {
+                    internalType: "enum SessionLib.LimitType",
+                    name: "limitType",
+                    type: "uint8",
+                  },
+                  {
+                    internalType: "uint256",
+                    name: "limit",
+                    type: "uint256",
+                  },
+                  {
+                    internalType: "uint256",
+                    name: "period",
+                    type: "uint256",
+                  },
+                ],
+                internalType: "struct SessionLib.UsageLimit",
+                name: "valueLimit",
+                type: "tuple",
+              },
+            ],
+            internalType: "struct SessionLib.TransferSpec[]",
+            name: "transferPolicies",
+            type: "tuple[]",
+          },
+        ],
+        internalType: "struct SessionLib.SessionSpec",
+        name: "newSession",
+        type: "tuple",
+      };
 
   return encodeAbiParameters(
-    [{ type: "tuple[]", components: sessionKeyTypes }],
-    [
-      sessions.map((sessionData) => ({
-        sessionKey: sessionData.sessionKey,
-        expiresAt: BigInt(Math.floor(new Date(sessionData.expiresAt).getTime() / 1000)),
-        spendLimits: Object.entries(sessionData.spendLimit).map(([tokenAddress, limit]) => ({
-          tokenAddress: tokenAddress as Address,
-          limit: BigInt(limit),
-        })),
-      })),
-    ],
+    [sessionSpec],
+    [{ ...getSession(session), signer: session.sessionKey }],
   );
 };
 

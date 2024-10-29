@@ -154,16 +154,6 @@ const { inProgress: registerInProgress, execute: createAccount } = useAsync(asyn
   const { address } = await deployAccount(deployerClient as any, {
     credentialPublicKey,
     uniqueAccountId: username.value,
-    /* TODO: Remove spend limit, right now deployment fails without initial data */
-    initialSessions: [
-      {
-        sessionPublicKey,
-        expiresAt: new Date(new Date().getTime() + 1000 * 60 * 60 * 24).toISOString(), // 24 hours
-        spendLimit: {
-          "0x111C3E89Ce80e62EE88318C2804920D4c96f92bb": "10000",
-        },
-      },
-    ],
     contracts: contractsByChain[requestChain.value!.id],
   });
   await deployerClient.sendTransaction({
