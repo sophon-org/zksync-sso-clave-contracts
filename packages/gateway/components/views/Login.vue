@@ -22,7 +22,7 @@
             :loading="registerInProgress"
             @click="createAccount"
           >
-            Create new account
+            Sign Up
           </ZkButton>
         </div>
       </div>
@@ -33,7 +33,7 @@
         :loading="loginInProgress"
         @click="connectToAccount"
       >
-        Log in w/ Passkey
+        Sign In
       </ZkButton>
     </div>
 
@@ -63,10 +63,11 @@
 </template>
 
 <script lang="ts" setup>
-import { type Address, encodeFunctionData, parseAbi, parseEther, toHex } from "viem";
+import { encodeFunctionData, getAddress, parseAbi, parseEther, toHex } from "viem";
 import { generatePrivateKey, privateKeyToAddress } from "viem/accounts";
 import { deployAccount } from "zksync-account/client";
 import { registerNewPasskey } from "zksync-account/client/passkey";
+import { getPasskeySignatureFromPublicKeyBytes } from "zksync-account/utils";
 
 const { appMeta } = useAppMeta();
 const { login } = useAccountStore();
@@ -100,6 +101,10 @@ const { inProgress: registerInProgress, execute: createAccount } = useAsync(asyn
     userName: name,
     userDisplayName: name,
   });
+
+  console.log("CREDENTIAL PUBLIC KEY");
+  console.log({ credentialPublicKey });
+  console.log(toHex(credentialPublicKey));
 
   /* TODO: implement username check */
   /* await fetchAccountData();
@@ -143,6 +148,7 @@ const { inProgress: registerInProgress, execute: createAccount } = useAsync(asyn
 });
 
 const { inProgress: loginInProgress, execute: connectToAccount } = useAsync(async () => {
+  // TODO: Move a lot of this into the SDK
   const credential = await navigator.credentials.get({
     publicKey: {
       challenge: new Uint8Array(32),
@@ -154,7 +160,6 @@ const { inProgress: loginInProgress, execute: connectToAccount } = useAsync(asyn
   // eslint-disable-next-line no-console
   console.log(credential.id);
 
-  // TODO: Fetch address and credentialPublicKey from credential.id
   const publicClient = getPublicClient({ chainId: requestChain.value!.id });
   const data = await publicClient.call({
     data: encodeFunctionData({
@@ -167,13 +172,38 @@ const { inProgress: loginInProgress, execute: connectToAccount } = useAsync(asyn
   });
 
   console.log(data.data);
-  console.log(data.data as Address);
+  const accountAddress = getAddress(data.data!.replace("0x000000000000000000000000", "0x"));
+  console.log(accountAddress);
+  const domain = window.location.origin;
 
-  // login({
-  //   username: credential.id,
-  //   address,
-  //   passkey: credentialPublicKey,
-  // })
+  const lowerKeyHalfBytes = await publicClient.call({
+    data: encodeFunctionData({
+      abi: parseAbi(["function lowerKeyHalf(string,address) view returns (bytes32)"]),
+      functionName: "lowerKeyHalf",
+      args: [domain, accountAddress],
+    }),
+    to: contractsByChain[requestChain.value!.id].passkey,
+  });
+
+  const upperKeyHalfBytes = await publicClient.call({
+    data: encodeFunctionData({
+      abi: parseAbi(["function upperKeyHalf(string,address) view returns (bytes32)"]),
+      functionName: "upperKeyHalf",
+      args: [domain, accountAddress],
+    }),
+    to: contractsByChain[requestChain.value!.id].passkey,
+  });
+  console.log({ lowerKeyHalfBytes });
+  console.log({ upperKeyHalfBytes });
+
+  const maybePasskey = getPasskeySignatureFromPublicKeyBytes([lowerKeyHalfBytes.data!, upperKeyHalfBytes.data!]);
+  console.log({ maybePasskey });
+
+  login({
+    username: credential.id,
+    address: accountAddress,
+    passkey: toHex(maybePasskey),
+  });
 });
 </script>
 
