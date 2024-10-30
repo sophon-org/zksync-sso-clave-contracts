@@ -1,5 +1,5 @@
 import { connect, createConfig, type CreateConnectorFn, disconnect, getAccount, http, reconnect, watchAccount } from "@wagmi/core";
-import type { Address } from "viem";
+import { type Address, parseEther } from "viem";
 import { zksyncInMemoryNode } from "viem/zksync";
 import { zksyncAccountConnector } from "zksync-account/connector";
 
@@ -12,6 +12,12 @@ const connector = zksyncAccountConnector({
     icon: "http://localhost:3006/favicon.svg",
   },
   gatewayUrl: "http://localhost:3002/confirm",
+  session: {
+    expiresAt: (Date.now() + 1000 * 60 * 60 * 24).toString(), // 1 day expiry
+    spendLimit: {
+      ["0x000000000000000000000000000000000000800A" as Address]: parseEther("0.001").toString(),
+    },
+  },
 });
 export const wagmiConfig = createConfig({
   chains: supportedChains,

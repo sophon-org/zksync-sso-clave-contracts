@@ -59,6 +59,7 @@ const connect = async () => {
     navigateTo("/mint");
   } else {
     await connectAccount();
+    navigateTo("/mint");
   }
 };
 </script>

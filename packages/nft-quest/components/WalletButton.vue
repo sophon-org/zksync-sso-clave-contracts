@@ -54,6 +54,7 @@ const emit = defineEmits(["select", "update:toggleState"]);
 function disconnect() {
   disconnectAccount();
   toggleState.value = false;
+  navigateTo("/");
 }
 
 watch(toggleState, (newValue) => {

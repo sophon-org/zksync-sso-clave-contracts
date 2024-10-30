@@ -51,7 +51,7 @@
             class="underline underline-offset-4"
             @click="createAccount"
           >
-            Create account?
+            Sign up?
           </button>
         </span>
         <span v-else-if="passkeyError">
@@ -106,10 +106,6 @@ const { inProgress: registerInProgress, execute: createAccount } = useAsync(asyn
     userName: name,
     userDisplayName: name,
   });
-
-  console.log("CREDENTIAL PUBLIC KEY");
-  console.log({ credentialPublicKey });
-  console.log(toHex(credentialPublicKey));
 
   /* TODO: implement username check */
   /* await fetchAccountData();

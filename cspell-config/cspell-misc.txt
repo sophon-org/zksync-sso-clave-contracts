@@ -25,3 +25,4 @@ usdc
 // packages/nft-quest
 Fren
 fren
+trxn
