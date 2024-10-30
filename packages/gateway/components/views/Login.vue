@@ -37,14 +37,9 @@
       </ZkButton>
     </div>
 
-    <CommonHeightTransition :opened="!!accountDataFetchError || !!errorState">
+    <CommonHeightTransition :opened="!!accountDataFetchError">
       <p class="pt-3 text-sm text-error-300 text-center">
-        <span
-          v-if="accountDataFetchError"
-        >
-          {{ accountDataFetchError }}
-        </span>
-        <span v-else-if="errorState === 'account-not-found'">
+        <span>
           Account not found.
           <button
             type="button"
@@ -54,43 +49,21 @@
             Sign up?
           </button>
         </span>
-        <span v-else-if="passkeyError">
-          {{ passkeyError }}
-        </span>
       </p>
     </CommonHeightTransition>
   </div>
 </template>
 
 <script lang="ts" setup>
-import { encodeFunctionData, getAddress, parseAbi, parseEther, toHex } from "viem";
+import { parseEther, toHex } from "viem";
 import { generatePrivateKey, privateKeyToAddress } from "viem/accounts";
-import { deployAccount } from "zksync-account/client";
+import { deployAccount, fetchAccount } from "zksync-account/client";
 import { registerNewPasskey } from "zksync-account/client/passkey";
-import { getPasskeySignatureFromPublicKeyBytes } from "zksync-account/utils";
 
 const { appMeta } = useAppMeta();
 const { login } = useAccountStore();
 const { getRichWalletClient, getPublicClient } = useClientStore();
 const { requestChain } = storeToRefs(useRequestsStore());
-
-const username = ref("");
-
-const { accountData, accountDataFetchInProgress, accountDataFetchError/* , fetchAccountData */ } = useFetchAccountData(
-  username,
-  computed(() => requestChain.value!.id),
-);
-
-const passkeyError = ref<string | undefined>(undefined);
-const errorState = computed<"username-taken" | "account-not-found" | undefined>(() => {
-  if (accountData.value) {
-    return "username-taken";
-  }
-  if (username.value && !accountDataFetchInProgress.value && !accountData.value) {
-    return "account-not-found";
-  }
-  return undefined;
-});
 
 const { inProgress: registerInProgress, execute: createAccount } = useAsync(async () => {
   let name = `ZK Auth ${(new Date()).toLocaleDateString("en-US")}`;
@@ -106,12 +79,6 @@ const { inProgress: registerInProgress, execute: createAccount } = useAsync(asyn
     userName: name,
     userDisplayName: name,
   });
-
-  /* TODO: implement username check */
-  /* await fetchAccountData();
-  if (accountData.value) {
-    return; // username is taken
-  } */
 
   const deployerClient = getRichWalletClient({ chainId: requestChain.value!.id });
   const sessionKey = generatePrivateKey();
@@ -148,62 +115,17 @@ const { inProgress: registerInProgress, execute: createAccount } = useAsync(asyn
   });
 });
 
-const { inProgress: loginInProgress, execute: connectToAccount } = useAsync(async () => {
-  // TODO: Move a lot of this into the SDK
-  const credential = await navigator.credentials.get({
-    publicKey: {
-      challenge: new Uint8Array(32),
-      userVerification: "discouraged",
-    },
-  }) as PublicKeyCredential | null;
-  if (!credential) throw new Error("No registered passkeys");
-
-  // eslint-disable-next-line no-console
-  console.log(credential.id);
-
-  const publicClient = getPublicClient({ chainId: requestChain.value!.id });
-  const data = await publicClient.call({
-    data: encodeFunctionData({
-      abi: parseAbi(["function accountMappings(string) view returns (address)"]),
-      functionName: "accountMappings",
-      args: [credential.id],
-    }),
-
-    to: contractsByChain[requestChain.value!.id].accountFactory,
+const { inProgress: loginInProgress, error: accountDataFetchError, execute: connectToAccount } = useAsync(async () => {
+  const client = getPublicClient({ chainId: requestChain.value!.id });
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { username, address, passkeyPublicKey } = await fetchAccount(client as any, {
+    contracts: contractsByChain[requestChain.value!.id],
   });
-
-  console.log(data.data);
-  const accountAddress = getAddress(data.data!.replace("0x000000000000000000000000", "0x"));
-  console.log(accountAddress);
-  const domain = window.location.origin;
-
-  const lowerKeyHalfBytes = await publicClient.call({
-    data: encodeFunctionData({
-      abi: parseAbi(["function lowerKeyHalf(string,address) view returns (bytes32)"]),
-      functionName: "lowerKeyHalf",
-      args: [domain, accountAddress],
-    }),
-    to: contractsByChain[requestChain.value!.id].passkey,
-  });
-
-  const upperKeyHalfBytes = await publicClient.call({
-    data: encodeFunctionData({
-      abi: parseAbi(["function upperKeyHalf(string,address) view returns (bytes32)"]),
-      functionName: "upperKeyHalf",
-      args: [domain, accountAddress],
-    }),
-    to: contractsByChain[requestChain.value!.id].passkey,
-  });
-  console.log({ lowerKeyHalfBytes });
-  console.log({ upperKeyHalfBytes });
-
-  const maybePasskey = getPasskeySignatureFromPublicKeyBytes([lowerKeyHalfBytes.data!, upperKeyHalfBytes.data!]);
-  console.log({ maybePasskey });
 
   login({
-    username: credential.id,
-    address: accountAddress,
-    passkey: toHex(maybePasskey),
+    username,
+    address,
+    passkey: toHex(passkeyPublicKey),
   });
 });
 </script>
@@ -217,15 +139,7 @@ const { inProgress: loginInProgress, execute: connectToAccount } = useAsync(asyn
   left: 0;
   bottom: 0;
   right: 0;
-  background: linear-gradient(
-    45deg,
-    #ff595e,
-    #ffca3a,
-    #8ac926,
-    #1982c4,
-    #6a4c93,
-    #ff6700
-  );
+  background: linear-gradient(45deg, #ff595e, #ffca3a, #8ac926, #1982c4, #6a4c93, #ff6700);
   background-size: 400%;
   z-index: -1;
   animation: glow 5s linear infinite;
@@ -249,16 +163,8 @@ const { inProgress: loginInProgress, execute: connectToAccount } = useAsync(asyn
 }
 
 @keyframes glow {
-  0% {
-    background-position: 0 0;
-  }
-
-  50% {
-    background-position: 100% 0;
-  }
-
-  100% {
-    background-position: 0 0;
-  }
+  0% { background-position: 0 0; }
+  50% { background-position: 100% 0; }
+  100% { background-position: 0 0; }
 }
 </style>
