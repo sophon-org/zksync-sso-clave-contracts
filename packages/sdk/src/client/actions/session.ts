@@ -1,6 +1,5 @@
 import { type Account, type Address, type Chain, type Client, encodeFunctionData, type Hash, type Prettify, type TransactionReceipt, type Transport } from "viem";
-import { publicKeyToAddress } from "viem/accounts";
-import { readContract, waitForTransactionReceipt } from "viem/actions";
+import { waitForTransactionReceipt } from "viem/actions";
 import { sendTransaction } from "viem/zksync";
 
 import { SessionKeyModuleAbi } from "../../abi/SessionKeyModule.js";

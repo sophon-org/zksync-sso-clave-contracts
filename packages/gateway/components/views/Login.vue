@@ -104,7 +104,7 @@
 
 <script lang="ts" setup>
 import { parseEther, toHex } from "viem";
-import { generatePrivateKey, privateKeyToAddress } from "viem/accounts";
+import { generatePrivateKey } from "viem/accounts";
 import { registerNewPasskey } from "zksync-account/client/passkey";
 import { deployAccount } from "zksync-account/client";
 
@@ -148,7 +148,6 @@ const { inProgress: registerInProgress, execute: createAccount } = useAsync(asyn
 
   const deployerClient = getRichWalletClient({ chainId: requestChain.value!.id });
   const sessionKey = generatePrivateKey();
-  const sessionPublicKey = privateKeyToAddress(sessionKey);
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { address } = await deployAccount(deployerClient as any, {

@@ -96,7 +96,7 @@
 import { useTimeAgo } from "@vueuse/core";
 import type { SessionPreferences, SessionData } from "zksync-account";
 import type { GatewayRpcSchema, ExtractReturnType } from "zksync-account/client-gateway";
-import { formatUnits, getAddress, type Address } from "viem";
+import { formatUnits } from "viem";
 import { ClockIcon, FingerPrintIcon } from "@heroicons/vue/24/outline";
 import { privateKeyToAddress } from "viem/accounts";
 
@@ -111,27 +111,27 @@ const { appMeta, origin } = useAppMeta();
 const { respond, deny } = useRequestsStore();
 const { sessionKey } = storeToRefs(useAccountStore());
 const { responseInProgress, requestChain } = storeToRefs(useRequestsStore());
-const { fetchTokenInfo } = useTokenUtilities(computed(() => requestChain.value!.id));
+// const { fetchTokenInfo } = useTokenUtilities(computed(() => requestChain.value!.id));
 const { getClient } = useClientStore();
 
 const domain = computed(() => new URL(origin.value).host);
 const sessionExpiresIn = useTimeAgo(Number(props.session.expiry) * 1000);
 
 const { result: tokensList, inProgress: tokensLoading, execute: fetchTokens } = useAsync(async () => {
-  const fetchSingleToken = async (tokenAddress: Address): Promise<Token> => {
-    try {
-      return fetchTokenInfo(tokenAddress);
-    } catch (error) {
-      // eslint-disable-next-line no-console
-      console.error(`Failed to fetch token info for ${tokenAddress}`, error);
-      return {
-        address: tokenAddress,
-        name: "Unknown",
-        symbol: "unknown",
-        decimals: 0,
-      };
-    }
-  };
+  // const fetchSingleToken = async (tokenAddress: Address): Promise<Token> => {
+  //   try {
+  //     return fetchTokenInfo(tokenAddress);
+  //   } catch (error) {
+  //     // eslint-disable-next-line no-console
+  //     console.error(`Failed to fetch token info for ${tokenAddress}`, error);
+  //     return {
+  //       address: tokenAddress,
+  //       name: "Unknown",
+  //       symbol: "unknown",
+  //       decimals: 0,
+  //     };
+  //   }
+  // };
   // TODO: figure out if session has any spend limits for tokens.
   // const promises = Object.keys(props.session.spendLimit).map(async (tokenAddress) => fetchSingleToken(tokenAddress as Address));
   // if (!Object.keys(props.session.spendLimit).includes(BASE_TOKEN_ADDRESS)) { // Fetch base token info if not present
