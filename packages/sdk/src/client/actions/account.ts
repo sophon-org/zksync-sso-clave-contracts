@@ -86,8 +86,6 @@ export const deployAccount = async <
   const transactionReceipt = await waitForTransactionReceipt(client, { hash: transactionHash });
   if (transactionReceipt.status !== "success") throw new Error("Account deployment transaction reverted");
 
-  console.log(transactionReceipt);
-
   const proxyAccountAddress = transactionReceipt.contractAddress;
   if (!proxyAccountAddress) {
     throw new Error("No contract address in transaction receipt");
