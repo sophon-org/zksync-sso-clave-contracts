@@ -134,7 +134,7 @@ library SessionLib {
   struct LimitState {
     uint256 remaining;
     address target;
-    // ignored for trasnfer value
+    // ignored for transfer value
     bytes4 selector;
     // ignored for transfer and call value
     uint256 index;
