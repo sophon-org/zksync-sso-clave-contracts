@@ -33,7 +33,8 @@ export function zksyncAccountWalletActions<
         maxFeePerGas: tx.maxFeePerGas,
         maxPriorityFeePerGas: tx.maxPriorityFeePerGas,
       }, client); */
-      return await sendTransaction(client, tx);
+      const transaction = { ...tx, account: client.account.address };
+      return await sendTransaction(client, transaction);
     },
     signMessage: (args) => signMessage(client, args),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

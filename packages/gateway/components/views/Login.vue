@@ -121,11 +121,13 @@ const { inProgress: loginInProgress, error: accountDataFetchError, execute: conn
   const { username, address, passkeyPublicKey } = await fetchAccount(client as any, {
     contracts: contractsByChain[requestChain.value!.id],
   });
+  const sessionKey = generatePrivateKey();
 
   login({
     username,
     address,
     passkey: toHex(passkeyPublicKey),
+    sessionKey,
   });
 });
 </script>
