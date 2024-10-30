@@ -131,7 +131,7 @@ contract WebAuthValidator is PasskeyValidator, IModuleValidator {
   }
 
   /// @inheritdoc IERC165
-  function supportsInterface(bytes4 interfaceId) external override pure returns (bool) {
+  function supportsInterface(bytes4 interfaceId) external pure override returns (bool) {
     return
       interfaceId == type(IR1Validator).interfaceId ||
       interfaceId == type(IERC165).interfaceId ||
