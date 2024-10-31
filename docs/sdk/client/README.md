@@ -72,10 +72,12 @@ development principles in mind.
        sessionKey,
        expiry: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 7, // 1 week
        feeLimit: { limit: parseEther("0.01") },
-       transferPolicies: [{
-         target: transferTarget.address,
-         maxValuePerUse: parseEther("0.1"),
-       }],
-     }
+       transferPolicies: [
+         {
+           target: transferTarget.address,
+           maxValuePerUse: parseEther("0.1"),
+         },
+       ],
+     },
    });
    ```
