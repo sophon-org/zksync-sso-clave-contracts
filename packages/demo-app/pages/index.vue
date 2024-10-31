@@ -41,8 +41,9 @@
 <script setup>
 import { disconnect, getBalance, watchAccount, sendTransaction } from "@wagmi/core";
 import { createWeb3Modal, defaultWagmiConfig } from "@web3modal/wagmi/vue";
-import { parseEther } from "viem";
+import { http, parseEther, createWalletClient } from "viem";
 import { zksyncInMemoryNode } from "viem/chains";
+import { privateKeyToAccount } from "viem/accounts";
 import { zksyncAccountConnector } from "zksync-account/connector";
 
 const address = ref(null);
@@ -86,7 +87,7 @@ watchAccount(config, {
     // Send new account 1 ETH from a rich wallet
     if (!isAccountCreated.value) {
       const richClient = createWalletClient({
-        account: privateKeyToAccount("0x509ca2e9e6acf0ba086477910950125e698d4ea70fa6f63e000c5a22bda9361c"),
+        account: privateKeyToAccount("0x3eb15da85647edd9a1159a4a13b9e7c56877c4eb33f614546d4db06a51868b1c"),
         chain: zksyncInMemoryNode,
         transport: http(),
       });

@@ -42,7 +42,7 @@ test("Create account, session key, and send ETH", async ({ page }) => {
   // Ensure popup is displayed
   await page.waitForTimeout(2000);
   const popup = page.context().pages()[1];
-  await expect(popup.getByText("Create new account")).toBeVisible();
+  await expect(popup.getByText("Connect to")).toBeVisible();
 
   // Setup webauthn a Chrome Devtools Protocol session
   // NOTE: This needs to be done for every page of every test that uses WebAuthn
@@ -61,16 +61,9 @@ test("Create account, session key, and send ETH", async ({ page }) => {
   const authenticatorId = result.authenticatorId;
   console.log(`WebAuthn Authenticator ID: ${authenticatorId}`);
 
-  // Enter username for new account
-  // TODO: Check if error displays when name is taken
-  await expect(popup.getByText("Create new account")).toBeVisible();
-  await popup.getByRole("button", { name: "Create new account" }).click();
-  const randomUsername = `zksync.me.${Math.floor(Math.random() * 100000)}`;
-  console.log(`Username: ${randomUsername}`);
-  await popup.getByPlaceholder("Username").fill(randomUsername);
-  // TODO: Replace timeout that waits for name check to complete
-  await popup.waitForTimeout(300);
-  await popup.getByRole("button", { name: "Create new account" }).click();
+  await expect(popup.locator("#create-account")).toBeVisible();
+  await popup.locator("#create-account").click();
+
   // TODO: Replace timeout that waits for Account Creation transaction to complete
   await popup.waitForTimeout(3000);
 

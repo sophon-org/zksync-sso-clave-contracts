@@ -18,6 +18,7 @@
       <div className="highlight">
         <div className="inner">
           <ZkButton
+            id="create-account"
             class="w-full"
             :loading="registerInProgress"
             @click="createAccount"
@@ -28,6 +29,7 @@
       </div>
 
       <ZkButton
+        id="login-account"
         type="secondary"
         class="!text-slate-400"
         :loading="loginInProgress"
