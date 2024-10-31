@@ -24,24 +24,18 @@ development principles in mind.
 2. Deploy the account
 
    ```ts
-   import { generatePrivateKey, privateKeyToAccount } from "viem";
+   import { generatePrivateKey, privateKeyToAddress } from "viem";
    import { deployAccount } from "zksync-account/client";
 
    const deployerClient = ...; // Any client for deploying the account, make sure it has enough balance to cover the deployment cost
-   const sessionKey = generatePrivateKey();
-   const sessionPublicKey = privateKeyToAccount(sessionKey.value).address;
+   const sessionPrivateKey = generatePrivateKey();
+   const sessionKey = privateKeyToAddress(sessionPrivateKey.value);
 
    const { address } = await deployAccount(deployerClient, {
       credentialPublicKey,
-      initialSessions: [
-         {
-            sessionPublicKey,
-            expiresAt: (new Date(Date.now() + 1000 * 60 * 60 * 24)).toISOString(), // 1 day expiry
-            spendLimit: {
-               [Token.address]: "1000",
-            },
-         },
-      ],
+      // You can either create a session during deployment by passing a spec
+      // here, or create it later using `createSession` -- see step 4.
+      // initialSession: { ... },
       contracts,
    });
    ```
@@ -73,9 +67,15 @@ development principles in mind.
 4. Activating session key
 
    ```ts
-   await passkeyClient.addSessionKey({
-     sessionPublicKey,
-     token: Token.address, // Address of the token
-     expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24).toISOString(), // 1 day expiry
+   await passkeyClient.createSession({
+     session: {
+       sessionKey,
+       expiry: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 7, // 1 week
+       feeLimit: { limit: parseEther("0.01") },
+       transferPolicies: [{
+         target: transferTarget.address,
+         maxValuePerUse: parseEther("0.1"),
+       }],
+     }
    });
    ```

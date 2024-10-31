@@ -103,7 +103,7 @@ export const createSession = async <
   }
 
   const transactionReceipt = await waitForTransactionReceipt(client, { hash: transactionHash });
-  if (transactionReceipt.status !== "success") throw new Error("addSessionKey transaction reverted");
+  if (transactionReceipt.status !== "success") throw new Error("createSession transaction reverted");
 
   return {
     transactionReceipt,
