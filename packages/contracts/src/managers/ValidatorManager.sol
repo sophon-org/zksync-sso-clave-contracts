@@ -49,7 +49,7 @@ abstract contract ValidatorManager is IValidatorManager, Auth {
 
   ///@inheritdoc IValidatorManager
   function removeModuleValidator(address validator) external onlySelfOrModule {
-    _moduleValidatorsLinkedList().remove(validator);
+    _removeModuleValidator(validator);
   }
 
   /// @inheritdoc IValidatorManager
@@ -100,7 +100,7 @@ abstract contract ValidatorManager is IValidatorManager, Auth {
     _moduleValidatorsLinkedList().add(validator);
     IModuleValidator(validator).addValidationKey(accountValidationKey);
 
-    // emit AddModuleValidator(validator);
+    emit AddModuleValidator(validator);
   }
 
   function _k1AddValidator(address validator) internal {
@@ -127,6 +127,12 @@ abstract contract ValidatorManager is IValidatorManager, Auth {
     _k1ValidatorsLinkedList().remove(validator);
 
     emit K1RemoveValidator(validator);
+  }
+
+  function _removeModuleValidator(address validator) internal {
+    _moduleValidatorsLinkedList().remove(validator);
+
+    emit RemoveModuleValidator(validator);
   }
 
   function _r1IsValidator(address validator) internal view returns (bool) {

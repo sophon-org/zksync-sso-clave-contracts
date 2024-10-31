@@ -164,8 +164,6 @@ const confirmConnection = async () => {
       ...props.session,
     };
 
-    console.log(sessionData);
-
     const _session = await client.createSession({
       session: {
         sessionKey: privateKeyToAddress(sessionKey.value!),

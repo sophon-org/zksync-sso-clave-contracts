@@ -19,6 +19,12 @@ interface IValidatorManager {
   event K1AddValidator(address indexed validator);
 
   /**
+   * @notice Event emitted when a modular validator is added
+   * @param validator address - Address of the added modular validator
+   */
+  event AddModuleValidator(address indexed validator);
+
+  /**
    * @notice Event emitted when a r1 validator is removed
    * @param validator address - Address of the removed r1 validator
    */
@@ -29,6 +35,12 @@ interface IValidatorManager {
    * @param validator address - Address of the removed k1 validator
    */
   event K1RemoveValidator(address indexed validator);
+
+  /**
+   * @notice Event emitted when a modular validator is removed
+   * @param validator address - Address of the removed modular validator
+   */
+  event RemoveModuleValidator(address indexed validator);
 
   /**
    * @notice Adds a validator to the list of r1 validators

@@ -69,29 +69,6 @@ export const createSessionWithPasskey = async <
   return transactionHash;
 } */
 
-// export type GetRemainingTokenSpendLimitArgs =
-//  ({ sessionKey: Hash } | { sessionKeyPublicAddress: Address })
-//  & {
-//    tokenAddress: Address;
-//    contracts: { session: Address };
-//  };
-// export type GetRemainingTokenSpendLimitReturnType = bigint;
-// export const getRemainingTokenSpendLimit = async <
-//   transport extends Transport,
-//   chain extends Chain,
-//   account extends Account,
-// >(client: Client<transport, chain, account>, args: GetRemainingTokenSpendLimitArgs): Promise<Prettify<GetRemainingTokenSpendLimitReturnType>> => {
-//   const sessionKeyPublicAddress = "sessionKey" in args ? publicKeyToAddress(args.sessionKey) : args.sessionKeyPublicAddress;
-//   const remainingTokenSpendLimit = await readContract(client, {
-//     address: args.contracts.session,
-//     abi: SessionKeyModuleAbi,
-//     functionName: "getRemainingSpendLimit",
-//     args: [sessionKeyPublicAddress, args.tokenAddress],
-//   });
-//
-//   return remainingTokenSpendLimit;
-// };
-
 export type CreateSessionArgs = {
   session: SessionData;
   contracts: {
