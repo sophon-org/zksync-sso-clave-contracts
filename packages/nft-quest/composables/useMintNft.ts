@@ -27,21 +27,21 @@ export const useMintNft = async (_address: MaybeRef<Address>) => {
     });
 
     const transactionHash = await writeContract(wagmiConfig, {
-      account: account.value.address,
       address: runtimeConfig.public.contracts.nft as Address,
       abi: nftAbi,
       functionName: "mint",
       args: [mintingForAddress],
       gas: estimatedGas,
-      chainId: supportedChains[0].id,
       paymaster: runtimeConfig.public.contracts.paymaster as Address,
-      paymasterInput: getGeneralPaymasterInput({ innerInput: new Uint8Array() }),
+      paymasterInput: getGeneralPaymasterInput({ innerInput: "0x" }),
     });
 
+    if (!transactionHash) throw Error("write failed");
+
     const waitForReceipt = async () => {
-      console.log("TRANSACTION HASH", transactionHash.value);
+      console.log("TRANSACTION HASH", transactionHash);
       try {
-        const transactionReceipt = await waitForTransactionReceipt(wagmiConfig, { hash: transactionHash.value });
+        const transactionReceipt = await waitForTransactionReceipt(wagmiConfig, { hash: transactionHash });
         return transactionReceipt;
       } catch (error) {
         if (error instanceof Error && (error.message.includes("The Transaction may not be processed on a block yet") || error.message.includes("Cannot convert null to a BigInt"))) {
