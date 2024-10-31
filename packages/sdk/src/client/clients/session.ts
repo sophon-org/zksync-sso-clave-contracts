@@ -1,4 +1,4 @@
-import { type Account, type Address, type Chain, type Client, createClient, encodeAbiParameters, getAddress, type Hash, type Prettify, publicActions, type PublicRpcSchema, type RpcSchema, type Transport, type WalletClientConfig, type WalletRpcSchema } from "viem";
+import { type Account, type Address, type Chain, type Client, createClient, encodeAbiParameters, getAddress, type Prettify, publicActions, type PublicRpcSchema, type RpcSchema, type Transport, type WalletClientConfig, type WalletRpcSchema } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 
 import { type ZksyncAccountSessionActions, zksyncAccountSessionActions } from "../decorators/session.js";
@@ -29,7 +29,7 @@ export function createZksyncSessionClient<
       const hashSignature = await sessionKeySigner.sign({ hash });
       return encodeAbiParameters(
         [{ type: "bytes" }, { type: "address" }, { type: "bytes[]" }],
-        [hashSignature, parameters.contracts.session, []],
+        [hashSignature, parameters.contracts.session, ["0x"]], // FIXME: this is assuming there are no other hooks
       );
     },
   });
@@ -52,7 +52,7 @@ export type SessionRequiredContracts = {
   session: Address; // Session, spend limit, etc.
 };
 type ZksyncAccountSessionData = {
-  sessionKey?: Hash;
+  sessionKey?: Address;
   contracts: SessionRequiredContracts;
 };
 
@@ -86,7 +86,7 @@ export interface ZksyncAccountSessionClientConfig<
 > extends Omit<WalletClientConfig<transport, chain, Account, rpcSchema>, "account"> {
   chain: NonNullable<chain>;
   address: Address;
-  sessionKey?: Hash;
+  sessionKey?: Address;
   contracts: SessionRequiredContracts;
   key?: string;
   name?: string;

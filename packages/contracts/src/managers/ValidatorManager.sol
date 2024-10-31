@@ -47,6 +47,11 @@ abstract contract ValidatorManager is IValidatorManager, Auth {
     _k1RemoveValidator(validator);
   }
 
+  ///@inheritdoc IValidatorManager
+  function removeModuleValidator(address validator) external onlySelfOrModule {
+    _removeModuleValidator(validator);
+  }
+
   /// @inheritdoc IValidatorManager
   function r1IsValidator(address validator) external view override returns (bool) {
     return _r1IsValidator(validator);
@@ -58,6 +63,11 @@ abstract contract ValidatorManager is IValidatorManager, Auth {
   }
 
   /// @inheritdoc IValidatorManager
+  function isModuleValidator(address validator) external view override returns (bool) {
+    return _isModuleValidator(validator);
+  }
+
+  /// @inheritdoc IValidatorManager
   function r1ListValidators() external view override returns (address[] memory validatorList) {
     validatorList = _r1ValidatorsLinkedList().list();
   }
@@ -65,6 +75,11 @@ abstract contract ValidatorManager is IValidatorManager, Auth {
   /// @inheritdoc IValidatorManager
   function k1ListValidators() external view override returns (address[] memory validatorList) {
     validatorList = _k1ValidatorsLinkedList().list();
+  }
+
+  /// @inheritdoc IValidatorManager
+  function listModuleValidators() external view override returns (address[] memory validatorList) {
+    validatorList = _moduleValidatorsLinkedList().list();
   }
 
   function _r1AddValidator(address validator) internal {
@@ -78,8 +93,14 @@ abstract contract ValidatorManager is IValidatorManager, Auth {
   }
 
   function _addModuleValidator(address validator, bytes memory accountValidationKey) internal {
+    if (!_supportsModuleValidator(validator)) {
+      revert Errors.VALIDATOR_ERC165_FAIL();
+    }
+
     _moduleValidatorsLinkedList().add(validator);
     IModuleValidator(validator).addValidationKey(accountValidationKey);
+
+    emit AddModuleValidator(validator);
   }
 
   function _k1AddValidator(address validator) internal {
@@ -108,6 +129,12 @@ abstract contract ValidatorManager is IValidatorManager, Auth {
     emit K1RemoveValidator(validator);
   }
 
+  function _removeModuleValidator(address validator) internal {
+    _moduleValidatorsLinkedList().remove(validator);
+
+    emit RemoveModuleValidator(validator);
+  }
+
   function _r1IsValidator(address validator) internal view returns (bool) {
     return _r1ValidatorsLinkedList().exists(validator);
   }
@@ -126,6 +153,10 @@ abstract contract ValidatorManager is IValidatorManager, Auth {
 
   function _supportsK1(address validator) internal view returns (bool) {
     return validator.supportsInterface(type(IK1Validator).interfaceId);
+  }
+
+  function _supportsModuleValidator(address validator) internal view returns (bool) {
+    return validator.supportsInterface(type(IModuleValidator).interfaceId);
   }
 
   function _r1ValidatorsLinkedList() private view returns (mapping(address => address) storage r1Validators) {

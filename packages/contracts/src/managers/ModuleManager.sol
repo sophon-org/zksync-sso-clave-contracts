@@ -15,8 +15,6 @@ import { IModuleManager } from "../interfaces/IModuleManager.sol";
 import { IUserOpValidator } from "../interfaces/IERC7579Validator.sol";
 import { IERC7579Module, IExecutor } from "../interfaces/IERC7579Module.sol";
 
-import "../helpers/Logger.sol";
-
 /**
  * @title Manager contract for modules
  * @notice Abstract contract for managing the enabled modules of the account
@@ -66,10 +64,7 @@ abstract contract ModuleManager is IModuleManager, Auth {
 
   function _addNativeModule(address moduleAddress, bytes memory moduleData) internal {
     if (!_supportsModule(moduleAddress)) {
-      Logger.logString("module is not supported");
-      Logger.logAddress(moduleAddress);
-      // FIXME: support native modules on install
-      // revert Errors.MODULE_ERC165_FAIL();
+      revert Errors.MODULE_ERC165_FAIL();
     }
 
     _modulesLinkedList().add(moduleAddress);
@@ -173,6 +168,8 @@ abstract contract ModuleManager is IModuleManager, Auth {
   }
 
   function _supportsModule(address module) internal view returns (bool) {
+    // this is pretty dumb, since type(IModule).interfaceId is 0x00000000, but is correct as per ERC165
+    // context: https://github.com/ethereum/solidity/issues/7856#issuecomment-585337461
     return module.supportsInterface(type(IModule).interfaceId);
   }
 }

@@ -24,11 +24,30 @@ export const useRequestsStore = defineStore("requests", () => {
   const { inProgress: responseInProgress, execute: respond, error: responseError } = useAsync(async (responder: () => RPCResponseMessage<ExtractReturnType<Method>>["content"] | Promise<RPCResponseMessage<ExtractReturnType<Method>>["content"]>) => {
     if (!request.value) throw new Error("No request to confirm");
 
-    communicator.postMessage({
+    // TODO: is it ok to serialize BigInts here?
+    /* eslint-disable  @typescript-eslint/no-explicit-any */
+    const serializeBigInts = (obj: any): any => {
+      if (typeof obj === "bigint") {
+        return obj.toString();
+      } else if (Array.isArray(obj)) {
+        return obj.map((item) => serializeBigInts(item));
+      } else if (obj && typeof obj === "object") {
+        /* eslint-disable  @typescript-eslint/no-explicit-any */
+        return Object.entries(obj).reduce((acc: any, [key, value]) => {
+          acc[key] = serializeBigInts(value);
+          return acc;
+        }, {});
+      }
+      return obj;
+    };
+
+    const message = {
       id: crypto.randomUUID(),
       requestId: request.value.id,
       content: await responder(),
-    });
+    };
+
+    communicator.postMessage(serializeBigInts(message));
     communicator.disconnect();
   });
 
