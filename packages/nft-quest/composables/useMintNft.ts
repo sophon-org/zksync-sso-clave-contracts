@@ -39,13 +39,11 @@ export const useMintNft = async (_address: MaybeRef<Address>) => {
     if (!transactionHash) throw Error("write failed");
 
     const waitForReceipt = async () => {
-      console.log("TRANSACTION HASH", transactionHash);
       try {
         const transactionReceipt = await waitForTransactionReceipt(wagmiConfig, { hash: transactionHash });
         return transactionReceipt;
       } catch (error) {
         if (error instanceof Error && (error.message.includes("The Transaction may not be processed on a block yet") || error.message.includes("Cannot convert null to a BigInt"))) {
-          console.log(error.message);
           await new Promise((resolve) => setTimeout(resolve, 500));
           return await waitForReceipt();
         }

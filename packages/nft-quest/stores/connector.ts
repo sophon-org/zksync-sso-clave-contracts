@@ -38,7 +38,7 @@ export const useConnectorStore = defineStore("connector", () => {
   });
 
   const connectAccount = async () => {
-    await connect(wagmiConfig, {
+    return await connect(wagmiConfig, {
       connector,
       chainId: supportedChains[0].id,
     });

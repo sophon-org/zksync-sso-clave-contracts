@@ -61,7 +61,7 @@ const { execute: mintNFT, status, data } = await useMintNft(walletAddress);
 
 watch(status, () => {
   if (status.value === "pending") {
-    addressSentTo.value = walletAddress.value;
+    addressSentTo.value = useTruncateAddress(walletAddress.value as `0x${string}`) as string;
   }
 });
 
