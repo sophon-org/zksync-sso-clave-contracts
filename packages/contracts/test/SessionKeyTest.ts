@@ -257,9 +257,7 @@ describe("SessionKeyModule tests", function () {
     assert(factoryContract != null, "No AA Factory deployed");
     const authServerPaymaster = await fixtures.deployExampleAuthServerPaymaster(
       await factoryContract.getAddress(),
-      factoryContract.interface.getFunction("deployProxy7579Account").selector,
       await sessionModuleContract.getAddress(),
-      sessionModuleContract.interface.getFunction("createSession").selector,
     );
     assert(authServerPaymaster != null, "No Auth Server Paymaster deployed");
 

@@ -40,7 +40,7 @@ export default defineNuxtConfig({
   runtimeConfig: {
     public: {
       contracts: {
-        paymaster: "0xE5F955Ec331974a7329731c55b70cC963B7f1432",
+        paymaster: "0xe1577D1a1b86194A35079bC6Ee43151CeeA723F3",
       },
     },
   },

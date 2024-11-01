@@ -1,4 +1,4 @@
-import { type Account, type Address, type Chain, type Client, getAddress, type Hash, parseAbi, type Prettify, toHex, type TransactionReceipt, type Transport } from "viem";
+import { type Account, type Address, type Chain, type Client, getAddress, type Hash, type Hex, parseAbi, type Prettify, toHex, type TransactionReceipt, type Transport } from "viem";
 import { readContract, waitForTransactionReceipt, writeContract } from "viem/actions";
 import { getGeneralPaymasterInput } from "viem/zksync";
 
@@ -13,7 +13,7 @@ import { getPasskeySignatureFromPublicKeyBytes, getPublicKeyBytesFromPasskeySign
 export type DeployAccountArgs = {
   credentialPublicKey: Uint8Array; // Public key of the previously registered
   paymasterAddress?: Address; // Paymaster used to pay the fees of creating accounts
-  paymasterInput?: Hash; // Input for paymaster (if provided)
+  paymasterInput?: Hex; // Input for paymaster (if provided)
   expectedOrigin?: string; // Expected origin of the passkey
   uniqueAccountId?: string; // Unique account ID, can be omitted if you don't need it
   contracts: {

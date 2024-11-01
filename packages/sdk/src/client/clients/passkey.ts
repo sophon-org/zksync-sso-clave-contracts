@@ -1,4 +1,4 @@
-import { type Account, type Address, type Chain, type Client, createClient, getAddress, type Hash, type Prettify, type PublicActions, publicActions, type PublicRpcSchema, type RpcSchema, type Transport, type WalletActions, walletActions, type WalletClientConfig, type WalletRpcSchema } from "viem";
+import { type Account, type Address, type Chain, type Client, createClient, getAddress, type Hex, type Prettify, type PublicActions, publicActions, type PublicRpcSchema, type RpcSchema, type Transport, type WalletActions, walletActions, type WalletClientConfig, type WalletRpcSchema } from "viem";
 import { eip712WalletActions } from "viem/zksync";
 
 import { passkeyHashSignatureResponseFormat } from "../../utils/passkey.js";
@@ -65,7 +65,7 @@ type ZksyncAccountPasskeyData = {
   userDisplayName: string; // Also option required for webauthn
   contracts: PasskeyRequiredContracts;
   paymasterAddress?: Address;
-  paymasterInput?: Hash;
+  paymasterInput?: Hex;
 };
 
 export type ClientWithZksyncAccountPasskeyData<
@@ -102,7 +102,7 @@ export interface ZksyncAccountPasskeyClientConfig<
   userDisplayName: string;
   contracts: PasskeyRequiredContracts;
   paymasterAddress?: Address;
-  paymasterInput?: Hash;
+  paymasterInput?: Hex;
   key?: string;
   name?: string;
 }

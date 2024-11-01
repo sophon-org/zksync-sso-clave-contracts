@@ -100,9 +100,7 @@ export class ContractFixtures {
 
   async deployExampleAuthServerPaymaster(
     aaFactoryAddress: string,
-    deployAccountSelector: string,
     sessionKeyValidatorAddress: string,
-    createSessionSelector: string,
   ): Promise<ExampleAuthServerPaymaster> {
     const contract = await create2(
       "ExampleAuthServerPaymaster",
@@ -110,9 +108,7 @@ export class ContractFixtures {
       this.ethersStaticSalt,
       [
         aaFactoryAddress,
-        deployAccountSelector,
         sessionKeyValidatorAddress,
-        createSessionSelector,
       ],
     );
     const paymasterAddress = ExampleAuthServerPaymaster__factory.connect(await contract.getAddress(), this.wallet);
