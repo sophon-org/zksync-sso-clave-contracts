@@ -53,7 +53,7 @@ jobs:
     - uses: actions/upload-artifact@v4
       if: ${{ !cancelled() }}
       with:
-        name: playwright-report
+        name: demo-app-playwright-report
         path: packages/demo-app/playwright-report/
         retention-days: 3
 
@@ -107,7 +107,7 @@ jobs:
     - uses: actions/upload-artifact@v4
       if: ${{ !cancelled() }}
       with:
-        name: playwright-report
+        name: nft-quest-playwright-report
         path: packages/nft-quest/playwright-report/
         retention-days: 3
 
