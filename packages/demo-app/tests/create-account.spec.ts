@@ -83,28 +83,29 @@ test("Create account, session key, and send ETH", async ({ page }) => {
   await expect(popup.getByTestId("spinner")).toHaveCount(0, { timeout: 10_000 });
 
   // Add session
-  expect(popup.getByText("Authorize ZK NFT Quest")).toBeVisible();
-  expect(popup.getByText("Permissions")).toBeVisible();
+  await expect(popup.getByText("Authorize ZKsync SSO Demo")).toBeVisible();
+  await expect(popup.getByText("Permissions")).toBeVisible();
   await popup.getByRole("button", { name: "Connect" }).click();
 
   // Waits for session to complete and popup to close
   await page.waitForTimeout(2000);
 
   // Check address/balance is shown
-  expect(page.getByText("Disconnect")).toBeVisible();
+  await expect(page.getByText("Disconnect")).toBeVisible();
   const address = (await page.getByText("Connected Address:").innerText())
     .replace("Connected Address: ", "");
   console.log(`Public Address: ${address}`);
+  await expect(page.getByText("Balance:")).toBeVisible();
   const startBalance = +(await page.getByText("Balance:").innerText())
     .replace("Balance: ", "")
     .replace(" ETH", "");
 
   // Send some eth
   await page.getByRole("button", { name: "Send 0.1 ETH" }).click();
-  await expect(page.getByTestId("spinner")).not.toBeVisible();
+  await page.waitForTimeout(2000);
   const endBalance = +(await page.getByText("Balance:").innerText())
     .replace("Balance: ", "")
     .replace(" ETH", "");
-  expect(startBalance, "Balance after transfer should be ~0.1 ETH less")
+  await expect(startBalance, "Balance after transfer should be ~0.1 ETH less")
     .toBeGreaterThanOrEqual(endBalance + 0.1);
 });

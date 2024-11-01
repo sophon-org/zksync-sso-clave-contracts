@@ -18,6 +18,7 @@
     </div>
     <button
       class="ml-auto w-5 h-5 text-neutral-400 hover:text-white transition"
+      data-testid="logout"
       @click="logout()"
     >
       <ArrowLeftEndOnRectangleIcon />
