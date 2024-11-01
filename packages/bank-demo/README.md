@@ -38,5 +38,5 @@ The Bank demo app uses Demo Node (`https://node.nvillanueva.com`).
 4. Deploy the project to Firebase.
 
    ```bash
-   firebase deploy --only hosting:stake-demo-app --project stake-demo-app
+   pnpm nx deploy bank-demo
    ```

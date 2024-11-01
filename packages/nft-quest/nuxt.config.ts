@@ -19,6 +19,14 @@ export default defineNuxtConfig({
     preference: "dark",
   },
   devtools: { enabled: false },
+  // required for dealing with bigInt
+  nitro: {
+    esbuild: {
+      options: {
+        target: "esnext",
+      },
+    },
+  },
   app: {
     head: {
       link: [
