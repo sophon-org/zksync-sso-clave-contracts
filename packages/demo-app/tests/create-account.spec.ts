@@ -47,7 +47,6 @@ test.beforeEach(async ({ page }) => {
 test("Create account, session key, and send ETH", async ({ page }) => {
   // Click the Connect button
   await page.getByRole("button", { name: "Connect" }).click();
-  await page.getByRole("button", { name: "ZKsync Account" }).click();
 
   // Ensure popup is displayed
   await page.waitForTimeout(2000);
@@ -84,6 +83,8 @@ test("Create account, session key, and send ETH", async ({ page }) => {
 
   // Add session
   await expect(popup.getByText("Authorize ZKsync SSO Demo")).toBeVisible();
+  await expect(popup.getByText("Act on your behalf")).toBeVisible();
+  await expect(popup.getByText("Expires tomorrow")).toBeVisible();
   await expect(popup.getByText("Permissions")).toBeVisible();
   await popup.getByRole("button", { name: "Connect" }).click();
 

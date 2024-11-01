@@ -58,7 +58,6 @@
 
 <script lang="ts" setup>
 import { type Address, toHex } from "viem";
-import { generatePrivateKey } from "viem/accounts";
 import { zksyncInMemoryNode, zksyncLocalNode } from "viem/chains";
 import { deployAccount, fetchAccount } from "zksync-account/client";
 import { registerNewPasskey } from "zksync-account/client/passkey";
@@ -77,29 +76,27 @@ const { inProgress: registerInProgress, execute: createAccount } = useAsync(asyn
   }
 
   const {
-    newCredentialPublicKey: credentialPublicKey,
-    newCredentialId,
+    credentialPublicKey,
+    credentialId,
   } = await registerNewPasskey({
     userName: name,
     userDisplayName: name,
   });
 
-  const throwAwayClient = getThrowAwayClient({ chainId: requestChain.value!.id });
-  const sessionKey = generatePrivateKey();
+  const deployerClient = getThrowAwayClient({ chainId: requestChain.value!.id });
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { address } = await deployAccount(throwAwayClient as any, {
+  const { address } = await deployAccount(deployerClient as any, {
     credentialPublicKey,
-    uniqueAccountId: newCredentialId,
+    uniqueAccountId: credentialId,
     contracts: contractsByChain[requestChain.value!.id],
     paymasterAddress: runtimeConfig.public.contracts.paymaster as Address,
   });
 
   login({
-    username: newCredentialId,
+    username: credentialId,
     address: address,
     passkey: toHex(credentialPublicKey),
-    sessionKey,
   });
 });
 
@@ -109,13 +106,11 @@ const { inProgress: loginInProgress, error: accountDataFetchError, execute: conn
   const { username, address, passkeyPublicKey } = await fetchAccount(client as any, {
     contracts: contractsByChain[requestChain.value!.id],
   });
-  const sessionKey = generatePrivateKey();
 
   login({
     username,
     address,
     passkey: toHex(passkeyPublicKey),
-    sessionKey,
   });
 });
 </script>

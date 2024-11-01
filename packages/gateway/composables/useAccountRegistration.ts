@@ -1,5 +1,4 @@
 import { type Address, parseEther, toHex } from "viem";
-import { generatePrivateKey, privateKeyToAddress } from "viem/accounts";
 import { zksyncInMemoryNode } from "viem/chains";
 import { deployAccount } from "zksync-account/client";
 import { registerNewPasskey } from "zksync-account/client/passkey";
@@ -32,10 +31,6 @@ export async function useAccountRegistration(_username: MaybeRef<string>) {
     });
 
     const deployerClient = getThrowAwayClient({ chainId: chainId });
-    const sessionKey = generatePrivateKey();
-    const _sessionPublicKey = privateKeyToAddress(sessionKey);
-
-    // Breaks at this following step
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { address } = await deployAccount(deployerClient as any, {
@@ -58,7 +53,6 @@ export async function useAccountRegistration(_username: MaybeRef<string>) {
       username: username.value,
       address: address,
       passkey: toHex(newCredentialPublicKey),
-      sessionKey,
     });
 
     return true;
