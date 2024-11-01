@@ -10,12 +10,11 @@ import {
   UserRejectedRequestError,
 } from "viem";
 
-import { type AppMetadata, type ProviderInterface, type SessionPreferences, WalletProvider } from "../index.js";
-import { getFavicon, getWebsiteName } from "../utils/helpers.js";
+import { type AppMetadata, type ProviderInterface, WalletProvider, type WalletProviderSessionPreferences } from "../index.js";
 
 export type ZksyncAccountConnectorOptions = {
   metadata?: Partial<AppMetadata>;
-  session?: SessionPreferences | (() => SessionPreferences | Promise<SessionPreferences>);
+  session?: WalletProviderSessionPreferences | (() => WalletProviderSessionPreferences | Promise<WalletProviderSessionPreferences>);
   gatewayUrl?: string;
 };
 
@@ -48,10 +47,10 @@ export const zksyncAccountConnector = (parameters: ZksyncAccountConnectorOptions
 
   return createConnector<Provider>((config) => ({
     icon: "https://zksync.io/favicon.ico",
-    id: "zksyncAccount",
-    name: "ZKsync Account",
+    id: "zksync-sso",
+    name: "ZKsync",
     // supportsSimulation: true,
-    type: "zksync-account",
+    type: "zksync-sso",
     async connect({ chainId } = {}) {
       try {
         const provider = await this.getProvider();
@@ -121,8 +120,8 @@ export const zksyncAccountConnector = (parameters: ZksyncAccountConnectorOptions
       if (!walletProvider) {
         walletProvider = new WalletProvider({
           metadata: {
-            name: parameters.metadata?.name || getWebsiteName() || "Unknown DApp",
-            icon: parameters.metadata?.icon || getFavicon(),
+            name: parameters.metadata?.name,
+            icon: parameters.metadata?.icon,
           },
           gatewayUrl: parameters.gatewayUrl,
           session: parameters.session,
