@@ -35,7 +35,7 @@
         Funds will not leave your account without your confirmation
       </li>
     </ul>
-    <div class="mt-auto flex gap-4">
+    <div class="mt-auto flex gap-4 p-2">
       <CommonButton
         class="w-full"
         variant="neutral"
@@ -55,9 +55,9 @@
 </template>
 
 <script lang="ts" setup>
-import Web3Avatar from "web3-avatar-vue";
 import { CheckIcon } from "@heroicons/vue/24/outline";
-import type { GatewayRpcSchema, ExtractReturnType } from "zksync-account/client-gateway";
+import Web3Avatar from "web3-avatar-vue";
+import type { ExtractReturnType, GatewayRpcSchema } from "zksync-account/client-gateway";
 
 const { appMeta, domain } = useAppMeta();
 const { respond, deny } = useRequestsStore();

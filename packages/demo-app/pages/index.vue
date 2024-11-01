@@ -41,8 +41,9 @@
 <script setup>
 import { disconnect, getBalance, watchAccount, sendTransaction } from "@wagmi/core";
 import { createWeb3Modal, defaultWagmiConfig } from "@web3modal/wagmi/vue";
-import { parseEther } from "viem";
+import { http, parseEther, createWalletClient } from "viem";
 import { zksyncInMemoryNode } from "viem/chains";
+import { privateKeyToAccount } from "viem/accounts";
 import { zksyncAccountConnector } from "zksync-account/connector";
 import { getSession } from "zksync-account/utils";
 
@@ -85,9 +86,28 @@ watchAccount(config, {
       return;
     }
 
-    const currentBalance = await getBalance(config, {
+    let currentBalance = await getBalance(config, {
       address: data.address,
     });
+
+    if (currentBalance.value < parseEther("0.2")) {
+      // Send new account 1 ETH from a rich wallet
+      const richClient = createWalletClient({
+        account: privateKeyToAccount("0x3eb15da85647edd9a1159a4a13b9e7c56877c4eb33f614546d4db06a51868b1c"),
+        chain: zksyncInMemoryNode,
+        transport: http(),
+      });
+
+      await richClient.sendTransaction({
+        to: data.address,
+        value: parseEther("1"),
+      });
+
+      currentBalance = await getBalance(config, {
+        address: data.address,
+      });
+    }
+
     balance.value = `${currentBalance.formatted} ${currentBalance.symbol}`;
   },
 });
@@ -128,6 +148,7 @@ const sendTokens = async () => {
     });
     balance.value = `${currentBalance.formatted} ${currentBalance.symbol}`;
   } catch (error) {
+    console.error("Transaction failed:", error);
     let transactionFailureDetails = error.cause?.cause?.cause?.data?.originalError?.cause?.details;
     if (!transactionFailureDetails) {
       transactionFailureDetails = error.cause?.cause?.data?.originalError?.cause?.details;
@@ -137,8 +158,6 @@ const sendTokens = async () => {
       errorMessage.value = transactionFailureDetails;
     } else {
       errorMessage.value = "Transaction failed, see console for more info.";
-      // eslint-disable-next-line no-console
-      console.error("Transaction failed:", error);
     }
   }
 };

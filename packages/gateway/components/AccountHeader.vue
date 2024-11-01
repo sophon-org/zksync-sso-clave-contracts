@@ -1,5 +1,5 @@
 <template>
-  <div class="flex items-center gap-4 -mx-4 -mt-4 border-b border-neutral-900 p-4 mb-4">
+  <div class="flex items-center gap-4 p-2 border-b border-neutral-900 mb-4">
     <div class="text-sm flex items-center whitespace-nowrap truncate">
       <span class="text-neutral-400">{{ message }}&nbsp;</span>
       <Web3Avatar
@@ -18,6 +18,7 @@
     </div>
     <button
       class="ml-auto w-5 h-5 text-neutral-400 hover:text-white transition"
+      data-testid="logout"
       @click="logout()"
     >
       <ArrowLeftEndOnRectangleIcon />
@@ -26,8 +27,8 @@
 </template>
 
 <script lang="ts" setup>
-import Web3Avatar from "web3-avatar-vue";
 import { ArrowLeftEndOnRectangleIcon } from "@heroicons/vue/24/outline";
+import Web3Avatar from "web3-avatar-vue";
 
 defineProps({
   message: {
