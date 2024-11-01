@@ -18,6 +18,22 @@
       },
       "dependsOn": ["^build"]
     },
+    "deploy": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "packages/bank-demo",
+        "command": "firebase deploy --only hosting:stake-demo-app --project stake-demo-app"
+      },
+      "dependsOn": ["build"]
+    },
+    "deploy:preview": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "packages/nft-quest",
+        "command": "firebase hosting:channel:deploy --only stake-demo-app --project stake-demo-app"
+      },
+      "dependsOn": ["build"]
+    },
     "preview": {
       "executor": "nx:run-commands",
       "options": {
