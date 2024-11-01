@@ -40,8 +40,7 @@
       >
         <div class="h-full">
           <p class=" mt-8 text-neutral-400 max-w-prose">
-            You can now find your NFT in your account on testnet.
-            Wasn't that easy? Even I can do it. And I'm a cat. Now share the Zeek.
+            Now share the Zeek. Wasn't that easy? Even I can do it. And I'm a cat.
           </p>
           <ZkLink
             :to="transactionURL"
@@ -55,6 +54,10 @@
               class="ml-2"
             />
           </ZkLink>
+          <p class="mt-4 text-xs text-neutral-500">
+            The NFT you have minted is available on the testnet only; <br>
+            it has no monetary value, and cannot be transferred to the mainnet.
+          </p>
 
           <p class="mt-10 text-neutral-400">
             Your session is still active! You can mint another NFT and send it to your friend without having to approve any more transactions! Try it below!
