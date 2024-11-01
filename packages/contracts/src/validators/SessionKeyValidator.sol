@@ -313,13 +313,17 @@ contract SessionKeyValidator is IHook, IValidationHook, IModuleValidator, IModul
   // mapping(address => EnumerableSet.Bytes32Set) private sessionHashes;
   mapping(address => uint256) private sessionCounter;
   // session hash => session state
-  mapping(bytes32 => SessionLib.SessionStorage) private sessionStates;
+  mapping(bytes32 => SessionLib.SessionStorage) private sessions;
 
   function sessionState(
     address account,
     SessionLib.SessionSpec calldata spec
   ) external view returns (SessionLib.SessionState memory) {
-    return sessionStates[keccak256(abi.encode(spec))].getState(account, spec);
+    return sessions[keccak256(abi.encode(spec))].getState(account, spec);
+  }
+
+  function sessionStatus(address account, bytes32 sessionHash) external view returns (SessionLib.Status) {
+    return sessions[sessionHash].status[account];
   }
 
   function handleValidation(bytes32 signedHash, bytes memory signature) external view returns (bool) {
@@ -340,14 +344,11 @@ contract SessionKeyValidator is IHook, IValidationHook, IModuleValidator, IModul
     bytes32 sessionHash = keccak256(abi.encode(sessionSpec));
     require(_isInitialized(msg.sender), "Account not initialized");
     require(sessionSpec.signer != address(0), "Invalid signer");
-    require(
-      sessionStates[sessionHash].status[msg.sender] == SessionLib.Status.NotInitialized,
-      "Session already exists"
-    );
+    require(sessions[sessionHash].status[msg.sender] == SessionLib.Status.NotInitialized, "Session already exists");
     require(sessionSpec.feeLimit.limitType != SessionLib.LimitType.Unlimited, "Unlimited fee allowance is not safe");
     // sessionHashes[msg.sender].add(sessionHash);
     sessionCounter[msg.sender]++;
-    sessionStates[sessionHash].status[msg.sender] = SessionLib.Status.Active;
+    sessions[sessionHash].status[msg.sender] = SessionLib.Status.Active;
     emit SessionCreated(msg.sender, sessionHash, sessionSpec);
   }
 
@@ -396,8 +397,8 @@ contract SessionKeyValidator is IHook, IValidationHook, IModuleValidator, IModul
 
   // TODO: make the session owner able revoke its own key, in case it was leaked, to prevent further misuse?
   function revokeKey(bytes32 sessionHash) public {
-    require(sessionStates[sessionHash].status[msg.sender] == SessionLib.Status.Active, "Nothing to revoke");
-    sessionStates[sessionHash].status[msg.sender] = SessionLib.Status.Closed;
+    require(sessions[sessionHash].status[msg.sender] == SessionLib.Status.Active, "Nothing to revoke");
+    sessions[sessionHash].status[msg.sender] = SessionLib.Status.Closed;
     // sessionHashes[msg.sender].remove(sessionHash);
     sessionCounter[msg.sender]--;
     emit SessionRevoked(msg.sender, sessionHash);
@@ -441,7 +442,7 @@ contract SessionKeyValidator is IHook, IValidationHook, IModuleValidator, IModul
     (address recoveredAddress, ) = ECDSA.tryRecover(signedHash, signature);
     require(recoveredAddress == spec.signer, "Invalid signer");
     bytes32 sessionHash = keccak256(abi.encode(spec));
-    sessionStates[sessionHash].validate(transaction, spec);
+    sessions[sessionHash].validate(transaction, spec);
   }
 
   /**
