@@ -1,20 +1,20 @@
-import { test, expect, type Page } from "@playwright/test";
+import { expect, type Page, test } from "@playwright/test";
 
 async function waitForServicesToLoad(page: Page): Promise<void> {
-  const maxRetryAttempts = 10;
+  const maxRetryAttempts = 30;
   let retryCount = 0;
 
-  // Wait for demo-app to finish loading
+  // Wait for nft-quest to finish loading
   await page.goto("/");
-  let demoHeader = page.getByText("ZKsync SSO Demo");
-  while (!(await demoHeader.isVisible()) && retryCount < maxRetryAttempts) {
+  let demoButton = page.getByText("Let's Go");
+  while (!(await demoButton.isVisible()) && retryCount < maxRetryAttempts) {
     await page.waitForTimeout(1000);
-    demoHeader = page.getByText("ZKsync SSO Demo");
+    demoButton = page.getByText("Let's Go");
     retryCount++;
 
-    console.log(`Waiting for demo app to load (retry ${retryCount})...`);
+    console.log(`Waiting for nft quest app to load (retry ${retryCount})...`);
   }
-  console.log("Demo App loaded");
+  console.log("NFT Quest App loaded");
 
   // Wait for auth server to finish loading
   retryCount = 0;
@@ -41,18 +41,17 @@ test.beforeEach(async ({ page }) => {
 
   await waitForServicesToLoad(page);
   await page.goto("/");
-  await expect(page.getByText("ZKsync SSO Demo")).toBeVisible();
+  await expect(page.getByText("Let's Go")).toBeVisible();
 });
 
-test("Create account, session key, and send ETH", async ({ page }) => {
-  // Click the Connect button
-  await page.getByRole("button", { name: "Connect" }).click();
-  await page.getByRole("button", { name: "ZKsync Account" }).click();
+test("Create account, session key, and mint NFT", async ({ page }) => {
+  // Click the Let's Go button
+  await page.getByRole("button", { name: "Let's Go" }).click();
 
   // Ensure popup is displayed
   await page.waitForTimeout(2000);
   const popup = page.context().pages()[1];
-  await expect(popup.getByText("Connect to")).toBeVisible();
+  await expect(popup.getByText("Connect to ZK NFT Quest")).toBeVisible();
   popup.on("console", (msg) => {
     if (msg.type() === "error")
       console.log(`Auth server error console: "${msg.text()}"`);
@@ -90,21 +89,15 @@ test("Create account, session key, and send ETH", async ({ page }) => {
   // Waits for session to complete and popup to close
   await page.waitForTimeout(2000);
 
-  // Check address/balance is shown
-  expect(page.getByText("Disconnect")).toBeVisible();
-  const address = (await page.getByText("Connected Address:").innerText())
-    .replace("Connected Address: ", "");
-  console.log(`Public Address: ${address}`);
-  const startBalance = +(await page.getByText("Balance:").innerText())
-    .replace("Balance: ", "")
-    .replace(" ETH", "");
-
-  // Send some eth
-  await page.getByRole("button", { name: "Send 0.1 ETH" }).click();
+  // Mint your NFT
+  await page.getByRole("button", { name: "Mint 100% free NFT" }).click();
   await expect(page.getByTestId("spinner")).not.toBeVisible();
-  const endBalance = +(await page.getByText("Balance:").innerText())
-    .replace("Balance: ", "")
-    .replace(" ETH", "");
-  expect(startBalance, "Balance after transfer should be ~0.1 ETH less")
-    .toBeGreaterThanOrEqual(endBalance + 0.1);
+
+  // Send a friend the NFT
+  expect(page.getByText("You've got Zeek.")).toBeVisible();
+  const richWallet0 = "0x36615Cf349d7F6344891B1e7CA7C72883F5dc049";
+  await page.getByPlaceholder("Wallet address").fill(richWallet0);
+  await page.getByRole("button", { name: "Mint and send" }).click();
+  await expect(page.getByTestId("spinner")).not.toBeVisible();
+  expect(page.getByText("You've sent the minted copy to")).toBeVisible();
 });

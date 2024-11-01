@@ -1,7 +1,7 @@
 <template>
   <ZkButton
     :type
-    :ui="buttonUI"
+    :ui="buttonUI!"
   >
     <ZkIcon
       :ui="iconUI"
@@ -18,7 +18,7 @@ import type { ButtonTypes, ButtonUI } from "./Button.vue";
 const {
   type = "ghost",
   icon,
-
+  // eslint-disable-next-line vue/require-valid-default-prop
   ui = { button: {}, icon: "" },
 } = defineProps<{
   type?: ButtonTypes;

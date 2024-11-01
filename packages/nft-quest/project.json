@@ -17,6 +17,36 @@
           }
         ]
       }
+    },
+    "e2e:setup": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "packages/nft-quest",
+        "command": "pnpm exec playwright install"
+      }
+    },
+    "e2e": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "packages/nft-quest",
+        "command": "playwright test --timeout 60000"
+      },
+      "dependsOn": ["e2e:setup"]
+    },
+    "e2e:debug": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "packages/nft-quest",
+        "command": "playwright test --ui"
+      },
+      "dependsOn": ["e2e:setup"]
+    },
+    "show-report": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "packages/nft-quest",
+        "command": "playwright show-report"
+      }
     }
   }
 }

@@ -23,4 +23,6 @@ export default withNuxt(
       "sort-imports": "off",
     },
   },
-);
+).prepend({
+  ignores: ["**/playwright-report"],
+});
