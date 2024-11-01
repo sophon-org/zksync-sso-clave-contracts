@@ -300,14 +300,14 @@ contract SessionKeyValidator is IHook, IValidationHook, IModuleValidator, IModul
   using SessionLib for SessionLib.SessionStorage;
   using EnumerableSet for EnumerableSet.Bytes32Set;
 
-  // TODO: add more events for session state changes
   event SessionCreated(address indexed account, bytes32 indexed sessionHash, SessionLib.SessionSpec sessionSpec);
+  event SessionRevoked(address indexed account, bytes32 indexed sessionHash);
 
   bytes4 constant EIP1271_SUCCESS_RETURN_VALUE = 0x1626ba7e;
 
   // account => hashes of session specs
-  // Can be used to trustlessly revoke all session keys.
-  // TODO: Is emitting an event sufficient?
+  // Can be used to revoke all session keys in case offchain storage is not available.
+  // TODO: Is emitting an event sufficient instead?
   // mapping(address => EnumerableSet.Bytes32Set) private sessionHashes;
   mapping(address => uint256) private sessionCounter;
   // session hash => session state
@@ -398,6 +398,7 @@ contract SessionKeyValidator is IHook, IValidationHook, IModuleValidator, IModul
     sessionStates[sessionHash].status[msg.sender] = SessionLib.Status.Closed;
     // sessionHashes[msg.sender].remove(sessionHash);
     sessionCounter[msg.sender]--;
+    emit SessionRevoked(msg.sender, sessionHash);
   }
 
   function revokeKeys(bytes32[] calldata sessionHashes) external {
@@ -425,12 +426,7 @@ contract SessionKeyValidator is IHook, IValidationHook, IModuleValidator, IModul
    */
   function isValidSignature(bytes32 hash, bytes memory signature) public view returns (bytes4 magic) {
     magic = EIP1271_SUCCESS_RETURN_VALUE;
-    // TODO: Does this method have to work standalone? If not, validtionHook is sufficient for validation.
-    // (address recoveredAddress, ) = ECDSA.tryRecover(hash, signature);
-    // SessionLib.Status status = sessions[recoveredAddress].status[msg.sender];
-    // if (status != SessionLib.Status.Active) {
-    //   magic = bytes4(0);
-    // }
+    // TODO: Does this method have to work standalone? If not, validationHook is sufficient for validation.
   }
 
   function validationHook(bytes32 signedHash, Transaction calldata transaction, bytes calldata hookData) external {
@@ -441,7 +437,7 @@ contract SessionKeyValidator is IHook, IValidationHook, IModuleValidator, IModul
     }
     SessionLib.SessionSpec memory spec = abi.decode(hookData, (SessionLib.SessionSpec));
     (address recoveredAddress, ) = ECDSA.tryRecover(signedHash, signature);
-    require(recoveredAddress != address(0), "Invalid signer");
+    require(recoveredAddress == spec.signer, "Invalid signer");
     bytes32 sessionHash = keccak256(abi.encode(spec));
     sessionStates[sessionHash].validate(transaction, spec);
   }
