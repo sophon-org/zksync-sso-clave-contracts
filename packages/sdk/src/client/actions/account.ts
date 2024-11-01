@@ -1,5 +1,6 @@
 import { type Account, type Address, type Chain, type Client, getAddress, type Hash, parseAbi, type Prettify, toHex, type TransactionReceipt, type Transport } from "viem";
 import { readContract, waitForTransactionReceipt, writeContract } from "viem/actions";
+import { getGeneralPaymasterInput } from "viem/zksync";
 
 import { FactoryAbi } from "../../abi/Factory.js";
 import type { SessionData } from "../../client-gateway/interface.js";
@@ -11,6 +12,8 @@ import { getPasskeySignatureFromPublicKeyBytes, getPublicKeyBytesFromPasskeySign
 /* it should come from factory, not passed manually each time */
 export type DeployAccountArgs = {
   credentialPublicKey: Uint8Array; // Public key of the previously registered
+  paymasterAddress?: Address; // Paymaster used to pay the fees of creating accounts
+  paymasterInput?: Hash; // Input for paymaster (if provided)
   expectedOrigin?: string; // Expected origin of the passkey
   uniqueAccountId?: string; // Unique account ID, can be omitted if you don't need it
   contracts: {
@@ -82,7 +85,7 @@ export const deployAccount = async <
     parameters: args.initialSession == null ? "0x" : encodeCreateSessionParameters(args.initialSession),
   });
 
-  const transactionHash = await writeContract(client, {
+  let deployProxyArgs = {
     account: client.account!,
     chain: client.chain!,
     address: args.contracts.accountFactory,
@@ -96,7 +99,17 @@ export const deployAccount = async <
       [encodedSessionKeyModuleData],
       [],
     ],
-  } as any);
+  } as any;
+
+  if (args.paymasterAddress) {
+    deployProxyArgs = {
+      ...deployProxyArgs,
+      paymaster: args.paymasterAddress,
+      paymasterInput: args.paymasterInput ?? getGeneralPaymasterInput({ innerInput: "0x" }),
+    };
+  }
+
+  const transactionHash = await writeContract(client, deployProxyArgs);
   if (args.onTransactionSent) {
     noThrow(() => args.onTransactionSent?.(transactionHash));
   }

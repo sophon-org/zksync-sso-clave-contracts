@@ -33,10 +33,14 @@ development principles in mind.
 
    const { address } = await deployAccount(deployerClient, {
       credentialPublicKey,
+      contracts,
+
       // You can either create a session during deployment by passing a spec
       // here, or create it later using `createSession` -- see step 4.
       // initialSession: { ... },
-      contracts,
+
+      // You also have the option of providing a paymaster to cover the cost of creating the account.
+      // paymasterAddress: "0x123..."
    });
    ```
 
@@ -54,6 +58,9 @@ development principles in mind.
      userDisplayName: "Alice",
      userName: "alice",
      contracts, // Addresses of service contracts. See types for more information
+
+     // You have the option of providing a paymaster to cover the cost of creating the new sessions.
+     // paymasterAddress: "0x123..."
 
      // Other default viem client options
      chain: zksync,
