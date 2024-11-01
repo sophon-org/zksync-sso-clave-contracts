@@ -3,6 +3,7 @@ pragma solidity ^0.8.24;
 
 import { Base64 } from "../helpers/Base64.sol";
 import { IR1Validator, IERC165 } from "../interfaces/IValidator.sol";
+import { IModule } from "../interfaces/IModule.sol";
 import { Errors } from "../libraries/Errors.sol";
 import { VerifierCaller } from "../helpers/VerifierCaller.sol";
 import { JsmnSolLib } from "../libraries/JsmnSolLib.sol";
@@ -41,7 +42,7 @@ contract PasskeyValidator is IR1Validator, VerifierCaller {
   }
 
   /// @inheritdoc IERC165
-  function supportsInterface(bytes4 interfaceId) external pure override returns (bool) {
+  function supportsInterface(bytes4 interfaceId) public pure virtual returns (bool) {
     return interfaceId == type(IR1Validator).interfaceId || interfaceId == type(IERC165).interfaceId;
   }
 

@@ -45,6 +45,7 @@ import { http, parseEther, createWalletClient } from "viem";
 import { zksyncInMemoryNode } from "viem/chains";
 import { privateKeyToAccount } from "viem/accounts";
 import { zksyncAccountConnector } from "zksync-account/connector";
+import { getSession } from "zksync-account/utils";
 
 const address = ref(null);
 const balance = ref(null);
@@ -63,17 +64,19 @@ const config = defaultWagmiConfig({
         icon: "http://localhost:3004/favicon.ico",
       },
       gatewayUrl: "http://localhost:3002/confirm",
-      session: {
-        expiresAt: Date.now() + 1000 * 60 * 60 * 24, // Expires in 24 hours (1 day) from now
-        spendLimit: {
-          ["0x000000000000000000000000000000000000800A"]: 1000000000000000000,
-        },
-      },
+      session: getSession({
+        feeLimit: { limit: parseEther("0.01") },
+        transferPolicies: [{
+          target: sessionTarget,
+          maxValuePerUse: parseEther("0.1"),
+        }],
+      }),
     }),
   ],
 });
 
 const web3modal = createWeb3Modal({ wagmiConfig: config, projectId });
+const sessionTarget = "0x55bE1B079b53962746B2e86d12f158a41DF294A6"; // Rich Account 1
 
 // Check for updates to the current account
 watchAccount(config, {
@@ -133,8 +136,9 @@ const sendTokens = async () => {
 
   try {
     await sendTransaction(config, {
-      to: "0x55bE1B079b53962746B2e86d12f158a41DF294A6", // Rich Account 1
+      to: sessionTarget,
       value: parseEther("0.1"),
+      gas: 100_000_000n,
     });
 
     const currentBalance = await getBalance(config, {

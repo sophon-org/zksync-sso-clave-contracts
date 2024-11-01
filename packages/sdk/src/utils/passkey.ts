@@ -207,7 +207,7 @@ export function passkeyHashSignatureResponseFormat(
     [
       fatSignature,
       contracts.passkey,
-      [],
+      ["0x"], // FIXME: this is assuming there are no other hooks
     ],
   );
 

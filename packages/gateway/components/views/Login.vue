@@ -58,7 +58,7 @@
 
 <script lang="ts" setup>
 import { parseEther, toHex } from "viem";
-import { generatePrivateKey, privateKeyToAddress } from "viem/accounts";
+import { generatePrivateKey } from "viem/accounts";
 import { zksyncInMemoryNode, zksyncLocalNode } from "viem/chains";
 import { deployAccount, fetchAccount } from "zksync-account/client";
 import { registerNewPasskey } from "zksync-account/client/passkey";
@@ -85,22 +85,11 @@ const { inProgress: registerInProgress, execute: createAccount } = useAsync(asyn
 
   const deployerClient = getRichWalletClient({ chainId: requestChain.value!.id });
   const sessionKey = generatePrivateKey();
-  const sessionPublicKey = privateKeyToAddress(sessionKey);
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { address } = await deployAccount(deployerClient as any, {
     credentialPublicKey,
     uniqueAccountId: newCredentialId,
-    /* TODO: Remove spend limit, right now deployment fails without initial data */
-    initialSessions: [
-      {
-        sessionPublicKey,
-        expiresAt: new Date(new Date().getTime() + 1000 * 60 * 60 * 24).toISOString(), // 24 hours
-        spendLimit: {
-          "0x111C3E89Ce80e62EE88318C2804920D4c96f92bb": "10000",
-        },
-      },
-    ],
     contracts: contractsByChain[requestChain.value!.id],
   });
 

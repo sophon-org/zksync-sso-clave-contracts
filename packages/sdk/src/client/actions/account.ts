@@ -2,7 +2,8 @@ import { type Account, type Address, type Chain, type Client, getAddress, type H
 import { readContract, waitForTransactionReceipt, writeContract } from "viem/actions";
 
 import { FactoryAbi } from "../../abi/Factory.js";
-import { encodeModuleData, encodePasskeyModuleParameters, encodeSessionSpendLimitParameters } from "../../utils/encoding.js";
+import type { SessionData } from "../../client-gateway/interface.js";
+import { encodeCreateSessionParameters, encodeModuleData, encodePasskeyModuleParameters } from "../../utils/encoding.js";
 import { noThrow } from "../../utils/helpers.js";
 import { getPasskeySignatureFromPublicKeyBytes, getPublicKeyBytesFromPasskeySignature } from "../../utils/passkey.js";
 
@@ -18,12 +19,8 @@ export type DeployAccountArgs = {
     passkey: Address;
     session: Address;
   };
+  initialSession?: SessionData;
   salt?: Uint8Array; // Random 32 bytes
-  initialSessions?: { // Initial spend limit if no initial module is provided
-    sessionPublicKey: Address;
-    expiresAt: string; // ISO string
-    spendLimit: { [tokenAddress: Address]: string }; // tokenAddress => amount
-  }[];
   onTransactionSent?: (hash: Hash) => void;
 };
 export type DeployAccountReturnType = {
@@ -80,14 +77,9 @@ export const deployAccount = async <
   });
   const accountId = args.uniqueAccountId || encodedPasskeyParameters;
 
-  const encodedSessionSpendLimitParameters = encodeSessionSpendLimitParameters((args.initialSessions || []).map((session) => ({
-    sessionKey: session.sessionPublicKey,
-    expiresAt: session.expiresAt,
-    spendLimit: session.spendLimit,
-  })));
-  const encodedSessionSpendLimitModuleData = encodeModuleData({
+  const encodedSessionKeyModuleData = encodeModuleData({
     address: args.contracts.session,
-    parameters: encodedSessionSpendLimitParameters,
+    parameters: args.initialSession == null ? "0x" : encodeCreateSessionParameters(args.initialSession),
   });
 
   const transactionHash = await writeContract(client, {
@@ -100,8 +92,8 @@ export const deployAccount = async <
       toHex(args.salt),
       args.contracts.accountImplementation,
       accountId,
-      [encodedPasskeyModuleData, encodedSessionSpendLimitModuleData],
-      [],
+      [encodedPasskeyModuleData],
+      [encodedSessionKeyModuleData],
       [],
     ],
   } as any);

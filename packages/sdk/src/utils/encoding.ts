@@ -1,31 +1,83 @@
 import { type Address, encodeAbiParameters, type Hash, parseAbiParameters, toHex } from "viem";
 
 import type { SessionData } from "../client-gateway/interface.js";
+import { getSession } from "../utils/session.js";
 
-export const encodeSessionSpendLimitParameters = (sessions: SessionData[]) => {
-  const spendLimitTypes = [
-    { type: "address", name: "tokenAddress" },
-    { type: "uint256", name: "limit" },
-  ] as const;
-
-  const sessionKeyTypes = [
-    { type: "address", name: "sessionKey" },
-    { type: "uint256", name: "expiresAt" },
-    { type: "tuple[]", name: "spendLimits", components: spendLimitTypes },
-  ] as const;
+export const encodeCreateSessionParameters = (session: SessionData) => {
+  const sessionSpec = {
+    components: [
+      { name: "signer", type: "address" },
+      { name: "expiry", type: "uint256" },
+      {
+        components: [
+          { name: "limitType", type: "uint8" },
+          { name: "limit", type: "uint256" },
+          { name: "period", type: "uint256" },
+        ],
+        name: "feeLimit",
+        type: "tuple",
+      },
+      {
+        components: [
+          { name: "target", type: "address" },
+          { name: "selector", type: "bytes4" },
+          { name: "maxValuePerUse", type: "uint256" },
+          {
+            components: [
+              { name: "limitType", type: "uint8" },
+              { name: "limit", type: "uint256" },
+              { name: "period", type: "uint256" },
+            ],
+            name: "valueLimit",
+            type: "tuple",
+          },
+          {
+            components: [
+              { name: "condition", type: "uint8" },
+              { name: "index", type: "uint64" },
+              { name: "refValue", type: "bytes32" },
+              {
+                components: [
+                  { name: "limitType", type: "uint8" },
+                  { name: "limit", type: "uint256" },
+                  { name: "period", type: "uint256" },
+                ],
+                name: "limit",
+                type: "tuple",
+              },
+            ],
+            name: "constraints",
+            type: "tuple[]",
+          },
+        ],
+        name: "callPolicies",
+        type: "tuple[]",
+      },
+      {
+        components: [
+          { name: "target", type: "address" },
+          { name: "maxValuePerUse", type: "uint256" },
+          {
+            components: [
+              { name: "limitType", type: "uint8" },
+              { name: "limit", type: "uint256" },
+              { name: "period", type: "uint256" },
+            ],
+            name: "valueLimit",
+            type: "tuple",
+          },
+        ],
+        name: "transferPolicies",
+        type: "tuple[]",
+      },
+    ],
+    name: "newSession",
+    type: "tuple",
+  };
 
   return encodeAbiParameters(
-    [{ type: "tuple[]", components: sessionKeyTypes }],
-    [
-      sessions.map((sessionData) => ({
-        sessionKey: sessionData.sessionKey,
-        expiresAt: BigInt(Math.floor(new Date(sessionData.expiresAt).getTime() / 1000)),
-        spendLimits: Object.entries(sessionData.spendLimit).map(([tokenAddress, limit]) => ({
-          tokenAddress: tokenAddress as Address,
-          limit: BigInt(limit),
-        })),
-      })),
-    ],
+    [sessionSpec],
+    [{ ...getSession(session), signer: session.sessionKey }],
   );
 };
 

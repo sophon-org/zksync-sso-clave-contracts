@@ -103,13 +103,14 @@ contract ClaveAccount is
     bytes32 suggestedSignedHash,
     Transaction calldata transaction
   ) external payable override onlyBootloader returns (bytes4 magic) {
+    // FIXME session txs have their own nonce managers,
+    // so they have to not alter this nonce
     _incrementNonce(transaction.nonce);
 
     // The fact there is enough balance for the account
     // should be checked explicitly to prevent user paying for fee for a
     // transaction that wouldn't be included on Ethereum.
     if (transaction.totalRequiredBalance() > address(this).balance) {
-      Logger.logString("revert Errors.INSUFFICIENT_FUNDS()");
       revert Errors.INSUFFICIENT_FUNDS();
     }
 
@@ -209,13 +210,10 @@ contract ClaveAccount is
     bytes32 signedHash,
     Transaction calldata transaction
   ) internal returns (bytes4 magicValue) {
-    Logger.logString("_validateTransaction");
     if (transaction.signature.length == 65) {
-      Logger.logString("transaction.signature.length == 65");
       (address signer, ) = ECDSA.tryRecover(signedHash, transaction.signature);
-      Logger.logString("recovered signer");
+      Logger.logString("recovered EOA signer");
       Logger.logAddress(signer);
-      // gas estimation?
       if (signer == address(0)) {
         return bytes4(0);
       }
