@@ -20,9 +20,6 @@ library SessionLib {
   using SessionLib for SessionLib.Constraint;
   using SessionLib for SessionLib.UsageLimit;
 
-  // TODO: we don't need to store constraints, so we can remove this restriction
-  uint256 constant MAX_CONSTRAINTS = 16;
-
   // We do not permit session keys to be reused to open multiple sessions
   // (after one expires or is closed, e.g.).
   // For each session key, its session status can only be changed
@@ -240,9 +237,14 @@ library SessionLib {
     address account,
     SessionSpec calldata spec
   ) internal view returns (SessionState memory) {
+    uint256 totalConstraints = 0;
+    for (uint256 i = 0; i < spec.callPolicies.length; i++) {
+      totalConstraints += spec.callPolicies[i].constraints.length;
+    }
+
     LimitState[] memory transferValue = new LimitState[](spec.transferPolicies.length);
     LimitState[] memory callValue = new LimitState[](spec.callPolicies.length);
-    LimitState[] memory callParams = new LimitState[](MAX_CONSTRAINTS * spec.callPolicies.length); // there will be empty ones at the end
+    LimitState[] memory callParams = new LimitState[](totalConstraints); // there will be empty ones at the end
     uint256 paramLimitIndex = 0;
 
     for (uint256 i = 0; i < transferValue.length; i++) {
