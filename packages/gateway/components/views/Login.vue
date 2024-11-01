@@ -96,7 +96,7 @@ const { inProgress: registerInProgress, execute: createAccount } = useAsync(asyn
   // TODO: Replace the cost of session key creation with a Paymaster
   await deployerClient.sendTransaction({
     to: address,
-    value: parseEther("0.001"),
+    value: parseEther("0.1"),
   });
 
   login({

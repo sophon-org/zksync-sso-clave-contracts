@@ -2,14 +2,14 @@ import { estimateGas, waitForTransactionReceipt, writeContract } from "@wagmi/co
 import { type Address, encodeFunctionData } from "viem";
 import { getGeneralPaymasterInput } from "viem/zksync";
 
-import { supportedChains, wagmiConfig } from "~/stores/connector";
+import { supportedChains } from "~/stores/connector";
 
 export const useMintNft = async (_address: MaybeRef<Address>) => {
   const address = toRef(_address);
 
   return await useAsyncData("mintZeek", async () => {
     const runtimeConfig = useRuntimeConfig();
-    const { account } = storeToRefs(useConnectorStore());
+    const { account, wagmiConfig } = storeToRefs(useConnectorStore());
 
     const mintingForAddress = address.value || account.value.address;
 
@@ -19,14 +19,14 @@ export const useMintNft = async (_address: MaybeRef<Address>) => {
       args: [mintingForAddress],
     });
 
-    const estimatedGas = await estimateGas(wagmiConfig, {
+    const estimatedGas = await estimateGas(wagmiConfig.value, {
       account: account.value.address,
       to: runtimeConfig.public.contracts.nft as Address,
       chainId: supportedChains[0].id,
       data,
     });
 
-    const transactionHash = await writeContract(wagmiConfig, {
+    const transactionHash = await writeContract(wagmiConfig.value, {
       address: runtimeConfig.public.contracts.nft as Address,
       abi: nftAbi,
       functionName: "mint",
@@ -40,7 +40,7 @@ export const useMintNft = async (_address: MaybeRef<Address>) => {
 
     const waitForReceipt = async () => {
       try {
-        const transactionReceipt = await waitForTransactionReceipt(wagmiConfig, { hash: transactionHash });
+        const transactionReceipt = await waitForTransactionReceipt(wagmiConfig.value, { hash: transactionHash });
         return transactionReceipt;
       } catch (error) {
         if (error instanceof Error && (error.message.includes("The Transaction may not be processed on a block yet") || error.message.includes("Cannot convert null to a BigInt"))) {

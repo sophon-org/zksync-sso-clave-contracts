@@ -51,11 +51,13 @@
 </template>
 
 <script setup lang="ts">
-const { execute: mintNFT, status, data } = await useMintNft();
+const { error: mintNFTError, execute: mintNFT, status, data } = await useMintNft();
 
 watch(status, (status) => {
   if (status === "success") {
     navigateTo({ path: "mint/share", query: { trxn: data.value.transactionHash } });
+  } else if (status === "error") {
+    console.error(mintNFTError.value);
   }
 });
 </script>

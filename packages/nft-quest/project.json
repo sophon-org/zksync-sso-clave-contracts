@@ -29,7 +29,7 @@
       "executor": "nx:run-commands",
       "options": {
         "cwd": "packages/nft-quest",
-        "command": "playwright test --timeout 60000"
+        "command": "playwright test"
       },
       "dependsOn": ["e2e:setup"]
     },
