@@ -58,7 +58,6 @@
 
 <script lang="ts" setup>
 import { parseEther, toHex } from "viem";
-import { generatePrivateKey } from "viem/accounts";
 import { zksyncInMemoryNode, zksyncLocalNode } from "viem/chains";
 import { deployAccount, fetchAccount } from "zksync-account/client";
 import { registerNewPasskey } from "zksync-account/client/passkey";
@@ -76,34 +75,32 @@ const { inProgress: registerInProgress, execute: createAccount } = useAsync(asyn
   }
 
   const {
-    newCredentialPublicKey: credentialPublicKey,
-    newCredentialId,
+    credentialPublicKey,
+    credentialId,
   } = await registerNewPasskey({
     userName: name,
     userDisplayName: name,
   });
 
   const deployerClient = getRichWalletClient({ chainId: requestChain.value!.id });
-  const sessionKey = generatePrivateKey();
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { address } = await deployAccount(deployerClient as any, {
     credentialPublicKey,
-    uniqueAccountId: newCredentialId,
+    uniqueAccountId: credentialId,
     contracts: contractsByChain[requestChain.value!.id],
   });
 
   // TODO: Replace the cost of session key creation with a Paymaster
   await deployerClient.sendTransaction({
     to: address,
-    value: parseEther("0.1"),
+    value: parseEther("1"),
   });
 
   login({
-    username: newCredentialId,
+    username: credentialId,
     address: address,
     passkey: toHex(credentialPublicKey),
-    sessionKey,
   });
 });
 
@@ -113,13 +110,11 @@ const { inProgress: loginInProgress, error: accountDataFetchError, execute: conn
   const { username, address, passkeyPublicKey } = await fetchAccount(client as any, {
     contracts: contractsByChain[requestChain.value!.id],
   });
-  const sessionKey = generatePrivateKey();
 
   login({
     username,
     address,
     passkey: toHex(passkeyPublicKey),
-    sessionKey,
   });
 });
 </script>

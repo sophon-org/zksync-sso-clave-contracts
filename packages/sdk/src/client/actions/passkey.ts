@@ -77,8 +77,8 @@ export type RegisterNewPasskeyReturnType = {
   passkeyRegistrationOptions: PublicKeyCredentialCreationOptionsJSON;
   passkeyRegistrationResponse: RegistrationResponseJSON;
   verificationResponse: VerifiedRegistrationResponse;
-  newCredentialPublicKey: Uint8Array;
-  newCredentialId: string;
+  credentialPublicKey: Uint8Array;
+  credentialId: string;
 };
 export const registerNewPasskey = async (args: RegisterNewPasskeyArgs): Promise<RegisterNewPasskeyReturnType> => {
   let { origin } = identifyPasskeyParams();
@@ -98,8 +98,8 @@ export const registerNewPasskey = async (args: RegisterNewPasskeyArgs): Promise<
     passkeyRegistrationOptions,
     passkeyRegistrationResponse: registrationResponse,
     verificationResponse: verification,
-    newCredentialPublicKey: verification.registrationInfo.credentialPublicKey,
-    newCredentialId: verification.registrationInfo.credentialID,
+    credentialPublicKey: verification.registrationInfo.credentialPublicKey,
+    credentialId: verification.registrationInfo.credentialID,
   };
 };
 

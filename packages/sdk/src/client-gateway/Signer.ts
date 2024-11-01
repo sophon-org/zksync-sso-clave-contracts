@@ -2,14 +2,16 @@ import { type Address, type Chain, type Hash, hexToNumber, http, type RpcSchema 
 
 import { createZksyncSessionClient, type ZksyncAccountSessionClient } from "../client/index.js";
 import type { Communicator } from "../communicator/index.js";
+import { getSession } from "../utils/session.js";
 import { StorageItem } from "../utils/storage.js";
-import type { AppMetadata, RequestArguments, SessionData, SessionPreferences } from "./interface.js";
+import type { AppMetadata, RequestArguments, SessionPreferences } from "./interface.js";
 import type { ExtractParams, ExtractReturnType, GatewayRpcSchema, Method, RPCRequestMessage, RPCResponseMessage, RpcSchema } from "./rpc.js";
+import type { WalletProviderSessionPreferences } from "./WalletProvider.js";
 
 type Account = {
   address: Address;
   activeChainId: Chain["id"];
-  session?: SessionData | undefined;
+  session?: SessionPreferences & { sessionKey: Hash } | undefined;
 };
 
 interface SignerInterface {
@@ -26,23 +28,23 @@ type UpdateListener = {
 };
 
 type SignerConstructorParams = {
-  metadata: AppMetadata;
+  metadata: () => AppMetadata;
   communicator: Communicator;
   updateListener: UpdateListener;
   chains: readonly Chain[];
   transports?: Record<number, Transport>;
-  session?: () => SessionPreferences | Promise<SessionPreferences>;
+  session?: () => WalletProviderSessionPreferences | Promise<WalletProviderSessionPreferences>;
 };
 
 type ChainsInfo = ExtractReturnType<"eth_requestAccounts", GatewayRpcSchema>["chainsInfo"];
 
 export class Signer implements SignerInterface {
-  private readonly metadata: AppMetadata;
+  private readonly getMetadata: () => AppMetadata;
   private readonly communicator: Communicator;
   private readonly updateListener: UpdateListener;
   private readonly chains: readonly Chain[];
   private readonly transports: Record<number, Transport> = {};
-  private readonly sessionParameters?: () => SessionPreferences | Promise<SessionPreferences>;
+  private readonly sessionParameters?: () => (WalletProviderSessionPreferences | Promise<WalletProviderSessionPreferences>);
 
   private _account: StorageItem<Account | null>;
   private _chainsInfo = new StorageItem<ChainsInfo>(StorageItem.scopedStorageKey("chainsInfo"), []);
@@ -51,7 +53,7 @@ export class Signer implements SignerInterface {
   constructor({ metadata, communicator, updateListener, session, chains, transports }: SignerConstructorParams) {
     if (!chains.length) throw new Error("At least one chain must be included in the config");
 
-    this.metadata = metadata;
+    this.getMetadata = metadata;
     this.communicator = communicator;
     this.updateListener = updateListener;
     this.sessionParameters = session;
@@ -69,7 +71,13 @@ export class Signer implements SignerInterface {
         }
       },
     });
-    if (this.account) this.createWalletClient();
+    try {
+      if (this.account) this.createWalletClient();
+    } catch (error) {
+      console.error("Failed to create wallet client", error);
+      console.error("Logging out to prevent crash loop");
+      this.clearState();
+    }
   }
 
   private get account(): Account | null {
@@ -116,9 +124,29 @@ export class Signer implements SignerInterface {
 
   async handshake(): Promise<Address[]> {
     let session: SessionPreferences | undefined;
+    let metadata: AppMetadata = {
+      name: "Unknown DApp",
+      icon: null,
+    };
+    try {
+      metadata = this.getMetadata();
+    } catch (error) {
+      console.error("Failed to get website metadata. Proceeding with default one.", error);
+    }
     if (this.sessionParameters) {
       try {
-        session = await this.sessionParameters();
+        const sessionParameters = await this.sessionParameters();
+        session = {
+          ...sessionParameters,
+          expiresAt: undefined,
+        };
+        if (sessionParameters.expiresAt) {
+          if (sessionParameters.expiresAt instanceof Date) {
+            session.expiresAt = BigInt(Math.ceil(sessionParameters.expiresAt.getTime() / 1000));
+          } else {
+            session.expiresAt = sessionParameters.expiresAt;
+          }
+        }
       } catch (error) {
         console.error("Failed to get session data. Proceeding connection with no session.", error);
       }
@@ -126,8 +154,8 @@ export class Signer implements SignerInterface {
     const responseMessage = await this.sendRpcRequest<"eth_requestAccounts", GatewayRpcSchema>({
       method: "eth_requestAccounts",
       params: {
-        metadata: this.metadata,
-        session,
+        metadata,
+        session: session ? getSession(session) : undefined,
       },
     });
     const handshakeData = responseMessage.content.result!;
