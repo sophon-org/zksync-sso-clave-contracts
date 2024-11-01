@@ -12,7 +12,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 /// @author Matter Labs
 /// @notice This contract does not include any validations other than using the paymaster general flow.
 contract NFTQuestPaymaster is IPaymaster, Ownable {
-  address public ZEEK_NFT_CONTRACT_ADDRESS;
+  address public immutable ZEEK_NFT_CONTRACT_ADDRESS;
   bytes4 public constant MINT_SELECTOR = bytes4(keccak256("mint(address)"));
 
   modifier onlyBootloader() {
