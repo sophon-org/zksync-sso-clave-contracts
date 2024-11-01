@@ -1,7 +1,7 @@
 <template>
   <ZkButton
     :type
-    :ui="buttonUI!"
+    :ui="buttonUI"
   >
     <ZkIcon
       :ui="iconUI"
