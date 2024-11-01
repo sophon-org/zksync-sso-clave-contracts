@@ -30,7 +30,7 @@
         Your authorized session for the NFT quest is now active! You can mint your NFT without any additional transaction approvals.
       </p>
       <p class="mt-8 text-neutral-400 max-w-prose">
-        Also, it's free. ZKsync SSO can leverage paymasters to enable app developers to choose a custom gas token or even entirely sponsor gas fees for their users.
+        Also, it's free. ZKsync can leverage paymasters to enable app developers to choose a custom gas token or even entirely sponsor gas fees for their users.
       </p>
       <ZkButton
         type="primary"
