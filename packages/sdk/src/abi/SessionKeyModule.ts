@@ -48,23 +48,209 @@ export const SessionKeyModuleAbi = [
     type: "event",
   },
   {
+    anonymous: false,
     inputs: [
       {
+        indexed: true,
         internalType: "address",
         name: "account",
         type: "address",
       },
-    ],
-    name: "activeSigners",
-    outputs: [
       {
-        internalType: "address[]",
-        name: "",
-        type: "address[]",
+        indexed: true,
+        internalType: "bytes32",
+        name: "sessionHash",
+        type: "bytes32",
+      },
+      {
+        components: [
+          {
+            internalType: "address",
+            name: "signer",
+            type: "address",
+          },
+          {
+            internalType: "uint256",
+            name: "expiresAt",
+            type: "uint256",
+          },
+          {
+            components: [
+              {
+                internalType: "enum SessionLib.LimitType",
+                name: "limitType",
+                type: "uint8",
+              },
+              {
+                internalType: "uint256",
+                name: "limit",
+                type: "uint256",
+              },
+              {
+                internalType: "uint256",
+                name: "period",
+                type: "uint256",
+              },
+            ],
+            internalType: "struct SessionLib.UsageLimit",
+            name: "feeLimit",
+            type: "tuple",
+          },
+          {
+            components: [
+              {
+                internalType: "address",
+                name: "target",
+                type: "address",
+              },
+              {
+                internalType: "bytes4",
+                name: "selector",
+                type: "bytes4",
+              },
+              {
+                internalType: "uint256",
+                name: "maxValuePerUse",
+                type: "uint256",
+              },
+              {
+                components: [
+                  {
+                    internalType: "enum SessionLib.LimitType",
+                    name: "limitType",
+                    type: "uint8",
+                  },
+                  {
+                    internalType: "uint256",
+                    name: "limit",
+                    type: "uint256",
+                  },
+                  {
+                    internalType: "uint256",
+                    name: "period",
+                    type: "uint256",
+                  },
+                ],
+                internalType: "struct SessionLib.UsageLimit",
+                name: "valueLimit",
+                type: "tuple",
+              },
+              {
+                components: [
+                  {
+                    internalType: "enum SessionLib.Condition",
+                    name: "condition",
+                    type: "uint8",
+                  },
+                  {
+                    internalType: "uint64",
+                    name: "index",
+                    type: "uint64",
+                  },
+                  {
+                    internalType: "bytes32",
+                    name: "refValue",
+                    type: "bytes32",
+                  },
+                  {
+                    components: [
+                      {
+                        internalType: "enum SessionLib.LimitType",
+                        name: "limitType",
+                        type: "uint8",
+                      },
+                      {
+                        internalType: "uint256",
+                        name: "limit",
+                        type: "uint256",
+                      },
+                      {
+                        internalType: "uint256",
+                        name: "period",
+                        type: "uint256",
+                      },
+                    ],
+                    internalType: "struct SessionLib.UsageLimit",
+                    name: "limit",
+                    type: "tuple",
+                  },
+                ],
+                internalType: "struct SessionLib.Constraint[]",
+                name: "constraints",
+                type: "tuple[]",
+              },
+            ],
+            internalType: "struct SessionLib.CallSpec[]",
+            name: "callPolicies",
+            type: "tuple[]",
+          },
+          {
+            components: [
+              {
+                internalType: "address",
+                name: "target",
+                type: "address",
+              },
+              {
+                internalType: "uint256",
+                name: "maxValuePerUse",
+                type: "uint256",
+              },
+              {
+                components: [
+                  {
+                    internalType: "enum SessionLib.LimitType",
+                    name: "limitType",
+                    type: "uint8",
+                  },
+                  {
+                    internalType: "uint256",
+                    name: "limit",
+                    type: "uint256",
+                  },
+                  {
+                    internalType: "uint256",
+                    name: "period",
+                    type: "uint256",
+                  },
+                ],
+                internalType: "struct SessionLib.UsageLimit",
+                name: "valueLimit",
+                type: "tuple",
+              },
+            ],
+            internalType: "struct SessionLib.TransferSpec[]",
+            name: "transferPolicies",
+            type: "tuple[]",
+          },
+        ],
+        indexed: false,
+        internalType: "struct SessionLib.SessionSpec",
+        name: "sessionSpec",
+        type: "tuple",
       },
     ],
-    stateMutability: "view",
-    type: "function",
+    name: "SessionCreated",
+    type: "event",
+  },
+  {
+    anonymous: false,
+    inputs: [
+      {
+        indexed: true,
+        internalType: "address",
+        name: "account",
+        type: "address",
+      },
+      {
+        indexed: true,
+        internalType: "bytes32",
+        name: "sessionHash",
+        type: "bytes32",
+      },
+    ],
+    name: "SessionRevoked",
+    type: "event",
   },
   {
     inputs: [
@@ -250,7 +436,7 @@ export const SessionKeyModuleAbi = [
           },
         ],
         internalType: "struct SessionLib.SessionSpec",
-        name: "newSession",
+        name: "sessionSpec",
         type: "tuple",
       },
     ],
@@ -449,9 +635,9 @@ export const SessionKeyModuleAbi = [
   {
     inputs: [
       {
-        internalType: "address",
-        name: "sessionOwner",
-        type: "address",
+        internalType: "bytes32",
+        name: "sessionHash",
+        type: "bytes32",
       },
     ],
     name: "revokeKey",
@@ -462,9 +648,9 @@ export const SessionKeyModuleAbi = [
   {
     inputs: [
       {
-        internalType: "address[]",
-        name: "owners",
-        type: "address[]",
+        internalType: "bytes32[]",
+        name: "sessionHashes",
+        type: "bytes32[]",
       },
     ],
     name: "revokeKeys",
@@ -479,292 +665,6 @@ export const SessionKeyModuleAbi = [
         name: "account",
         type: "address",
       },
-    ],
-    name: "sessionList",
-    outputs: [
-      {
-        components: [
-          {
-            internalType: "enum SessionLib.Status",
-            name: "status",
-            type: "uint8",
-          },
-          {
-            internalType: "uint256",
-            name: "fee",
-            type: "uint256",
-          },
-          {
-            components: [
-              {
-                internalType: "uint256",
-                name: "remaining",
-                type: "uint256",
-              },
-              {
-                internalType: "address",
-                name: "target",
-                type: "address",
-              },
-              {
-                internalType: "bytes4",
-                name: "selector",
-                type: "bytes4",
-              },
-              {
-                internalType: "uint256",
-                name: "index",
-                type: "uint256",
-              },
-            ],
-            internalType: "struct SessionLib.LimitState[]",
-            name: "transferValue",
-            type: "tuple[]",
-          },
-          {
-            components: [
-              {
-                internalType: "uint256",
-                name: "remaining",
-                type: "uint256",
-              },
-              {
-                internalType: "address",
-                name: "target",
-                type: "address",
-              },
-              {
-                internalType: "bytes4",
-                name: "selector",
-                type: "bytes4",
-              },
-              {
-                internalType: "uint256",
-                name: "index",
-                type: "uint256",
-              },
-            ],
-            internalType: "struct SessionLib.LimitState[]",
-            name: "callValue",
-            type: "tuple[]",
-          },
-          {
-            components: [
-              {
-                internalType: "uint256",
-                name: "remaining",
-                type: "uint256",
-              },
-              {
-                internalType: "address",
-                name: "target",
-                type: "address",
-              },
-              {
-                internalType: "bytes4",
-                name: "selector",
-                type: "bytes4",
-              },
-              {
-                internalType: "uint256",
-                name: "index",
-                type: "uint256",
-              },
-            ],
-            internalType: "struct SessionLib.LimitState[]",
-            name: "callParams",
-            type: "tuple[]",
-          },
-        ],
-        internalType: "struct SessionLib.SessionState[]",
-        name: "states",
-        type: "tuple[]",
-      },
-      {
-        components: [
-          {
-            internalType: "address",
-            name: "signer",
-            type: "address",
-          },
-          {
-            internalType: "uint256",
-            name: "expiresAt",
-            type: "uint256",
-          },
-          {
-            components: [
-              {
-                internalType: "enum SessionLib.LimitType",
-                name: "limitType",
-                type: "uint8",
-              },
-              {
-                internalType: "uint256",
-                name: "limit",
-                type: "uint256",
-              },
-              {
-                internalType: "uint256",
-                name: "period",
-                type: "uint256",
-              },
-            ],
-            internalType: "struct SessionLib.UsageLimit",
-            name: "feeLimit",
-            type: "tuple",
-          },
-          {
-            components: [
-              {
-                internalType: "address",
-                name: "target",
-                type: "address",
-              },
-              {
-                internalType: "bytes4",
-                name: "selector",
-                type: "bytes4",
-              },
-              {
-                internalType: "uint256",
-                name: "maxValuePerUse",
-                type: "uint256",
-              },
-              {
-                components: [
-                  {
-                    internalType: "enum SessionLib.LimitType",
-                    name: "limitType",
-                    type: "uint8",
-                  },
-                  {
-                    internalType: "uint256",
-                    name: "limit",
-                    type: "uint256",
-                  },
-                  {
-                    internalType: "uint256",
-                    name: "period",
-                    type: "uint256",
-                  },
-                ],
-                internalType: "struct SessionLib.UsageLimit",
-                name: "valueLimit",
-                type: "tuple",
-              },
-              {
-                components: [
-                  {
-                    internalType: "enum SessionLib.Condition",
-                    name: "condition",
-                    type: "uint8",
-                  },
-                  {
-                    internalType: "uint64",
-                    name: "index",
-                    type: "uint64",
-                  },
-                  {
-                    internalType: "bytes32",
-                    name: "refValue",
-                    type: "bytes32",
-                  },
-                  {
-                    components: [
-                      {
-                        internalType: "enum SessionLib.LimitType",
-                        name: "limitType",
-                        type: "uint8",
-                      },
-                      {
-                        internalType: "uint256",
-                        name: "limit",
-                        type: "uint256",
-                      },
-                      {
-                        internalType: "uint256",
-                        name: "period",
-                        type: "uint256",
-                      },
-                    ],
-                    internalType: "struct SessionLib.UsageLimit",
-                    name: "limit",
-                    type: "tuple",
-                  },
-                ],
-                internalType: "struct SessionLib.Constraint[]",
-                name: "constraints",
-                type: "tuple[]",
-              },
-            ],
-            internalType: "struct SessionLib.CallSpec[]",
-            name: "callPolicies",
-            type: "tuple[]",
-          },
-          {
-            components: [
-              {
-                internalType: "address",
-                name: "target",
-                type: "address",
-              },
-              {
-                internalType: "uint256",
-                name: "maxValuePerUse",
-                type: "uint256",
-              },
-              {
-                components: [
-                  {
-                    internalType: "enum SessionLib.LimitType",
-                    name: "limitType",
-                    type: "uint8",
-                  },
-                  {
-                    internalType: "uint256",
-                    name: "limit",
-                    type: "uint256",
-                  },
-                  {
-                    internalType: "uint256",
-                    name: "period",
-                    type: "uint256",
-                  },
-                ],
-                internalType: "struct SessionLib.UsageLimit",
-                name: "valueLimit",
-                type: "tuple",
-              },
-            ],
-            internalType: "struct SessionLib.TransferSpec[]",
-            name: "transferPolicies",
-            type: "tuple[]",
-          },
-        ],
-        internalType: "struct SessionLib.SessionSpec[]",
-        name: "specs",
-        type: "tuple[]",
-      },
-    ],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
-        internalType: "address",
-        name: "account",
-        type: "address",
-      },
-      {
-        internalType: "address",
-        name: "signer",
-        type: "address",
-      },
-    ],
-    name: "sessionSpec",
-    outputs: [
       {
         components: [
           {
@@ -932,22 +832,6 @@ export const SessionKeyModuleAbi = [
         type: "tuple",
       },
     ],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
-        internalType: "address",
-        name: "account",
-        type: "address",
-      },
-      {
-        internalType: "address",
-        name: "signer",
-        type: "address",
-      },
-    ],
     name: "sessionState",
     outputs: [
       {
@@ -959,7 +843,7 @@ export const SessionKeyModuleAbi = [
           },
           {
             internalType: "uint256",
-            name: "fee",
+            name: "feesRemaining",
             type: "uint256",
           },
           {
@@ -1047,6 +931,30 @@ export const SessionKeyModuleAbi = [
         internalType: "struct SessionLib.SessionState",
         name: "",
         type: "tuple",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "address",
+        name: "account",
+        type: "address",
+      },
+      {
+        internalType: "bytes32",
+        name: "sessionHash",
+        type: "bytes32",
+      },
+    ],
+    name: "sessionStatus",
+    outputs: [
+      {
+        internalType: "enum SessionLib.Status",
+        name: "",
+        type: "uint8",
       },
     ],
     stateMutability: "view",
@@ -1167,7 +1075,7 @@ export const SessionKeyModuleAbi = [
       },
       {
         internalType: "bytes",
-        name: "_hookData",
+        name: "hookData",
         type: "bytes",
       },
     ],
