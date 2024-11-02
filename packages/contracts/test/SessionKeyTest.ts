@@ -142,12 +142,14 @@ class SessionTester {
       ...await this.aaTxTemplate(),
       ...txRequest,
     };
-    // FIXME gas estimation is incorrect
+    // TODO: uncomment once gas estimation is fixed one era-test-node.
+    // It works fine with the local server.
     // aaTx.gasLimit = await provider.estimateGas(aaTx);
 
     const signedTransaction = await this.sessionAccount.signTransaction(aaTx);
     const tx = await provider.broadcastTransaction(signedTransaction);
-    await tx.wait();
+    const receipt = await tx.wait();
+    logInfo(`\`sessionTx\` gas used: ${receipt.gasUsed}`);
   }
 
   async sendTxFail(tx: ethers.TransactionRequest = {}) {
@@ -216,7 +218,13 @@ class SessionTester {
       chainId: (await provider.getNetwork()).chainId,
       nonce: await provider.getTransactionCount(this.proxyAccountAddress),
       gasPrice: await provider.getGasPrice(),
-      customData: { gasPerPubdata: utils.DEFAULT_GAS_PER_PUBDATA_LIMIT },
+      customData: {
+        gasPerPubdata: utils.DEFAULT_GAS_PER_PUBDATA_LIMIT,
+        customSignature: abiCoder.encode(
+          ["bytes", "address", "bytes[]"],
+          [ethers.zeroPadValue("0x1b", 65), await fixtures.getSessionKeyModuleAddress(), [await this.encodeSession()]],
+        ),
+      },
       gasLimit: 0n,
     };
   }
