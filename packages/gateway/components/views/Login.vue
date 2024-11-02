@@ -90,7 +90,7 @@ const { inProgress: registerInProgress, execute: createAccount } = useAsync(asyn
     credentialPublicKey,
     uniqueAccountId: credentialId,
     contracts: contractsByChain[requestChain.value!.id],
-    paymasterAddress: runtimeConfig.public.contracts.paymaster as Address,
+    paymasterAddress: runtimeConfig.public.paymaster as Address,
   });
 
   login({

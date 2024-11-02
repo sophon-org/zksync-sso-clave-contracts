@@ -72,7 +72,7 @@ export const useClientStore = defineStore("client", () => {
       userName: username.value!,
       userDisplayName: username.value!,
       contracts,
-      paymasterAddress: runtimeConfig.public.contracts.paymaster as Address,
+      paymasterAddress: runtimeConfig.public.paymaster as Address,
       chain: chain,
       transport: http(),
     });

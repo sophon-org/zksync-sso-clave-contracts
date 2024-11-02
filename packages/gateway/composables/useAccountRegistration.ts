@@ -37,7 +37,7 @@ export async function useAccountRegistration(_username: MaybeRef<string>) {
       credentialPublicKey: newCredentialPublicKey,
       uniqueAccountId: username.value,
       contracts: contractsByChain[chainId],
-      paymasterAddress: runtimeConfig.public.contracts.paymaster as Address,
+      paymasterAddress: runtimeConfig.public.paymaster as Address,
     }).catch(() => {
       throw new Error("Failed to create a new account.");
     });
