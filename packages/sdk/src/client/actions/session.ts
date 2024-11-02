@@ -1,6 +1,6 @@
 import { type Account, type Address, type Chain, type Client, encodeFunctionData, type Hash, type Prettify, type TransactionReceipt, type Transport } from "viem";
 import { waitForTransactionReceipt } from "viem/actions";
-import { sendTransaction } from "viem/zksync";
+import { getGeneralPaymasterInput, sendTransaction } from "viem/zksync";
 
 import { SessionKeyModuleAbi } from "../../abi/SessionKeyModule.js";
 import type { SessionData } from "../../client-gateway/interface.js";
@@ -93,11 +93,22 @@ export const createSession = async <
     }],
   });
 
-  const transactionHash = await sendTransaction(client, {
+  let sendTransactionArgs = {
     to: args.contracts.session,
     data: callData,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  } as any);
+  } as any;
+
+  if ((client as any).paymasterAddress) {
+    sendTransactionArgs = {
+      ...sendTransactionArgs,
+      account: client.account,
+      paymaster: (client as any).paymasterAddress,
+      paymasterInput: (client as any).paymasterInput ?? getGeneralPaymasterInput({ innerInput: "0x" }),
+    };
+  }
+
+  const transactionHash = await sendTransaction(client, sendTransactionArgs);
   if (args.onTransactionSent) {
     noThrow(() => args.onTransactionSent?.(transactionHash));
   }

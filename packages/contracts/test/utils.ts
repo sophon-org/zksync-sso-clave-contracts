@@ -2,15 +2,15 @@ import "@matterlabs/hardhat-zksync-node/dist/type-extensions";
 import "@matterlabs/hardhat-zksync-verify/dist/src/type-extensions";
 
 import dotenv from "dotenv";
-import { ethers } from "ethers";
+import { ethers, parseEther } from "ethers";
 import { readFileSync } from "fs";
 import { promises } from "fs";
 import * as hre from "hardhat";
 import { base64UrlToUint8Array, getPublicKeyBytesFromPasskeySignature, unwrapEC2Signature } from "zksync-account/utils";
 import { ContractFactory, Provider, utils, Wallet } from "zksync-ethers";
 
-import type { AAFactory, ERC20, ERC7579Account, SessionKeyValidator, WebAuthValidator } from "../typechain-types";
-import { AAFactory__factory, ERC20__factory, ERC7579Account__factory, SessionKeyValidator__factory, WebAuthValidator__factory } from "../typechain-types";
+import { AAFactory, ERC20, ERC7579Account, ExampleAuthServerPaymaster, SessionKeyValidator, WebAuthValidator } from "../typechain-types";
+import { AAFactory__factory, ERC20__factory, ERC7579Account__factory, ExampleAuthServerPaymaster__factory, SessionKeyValidator__factory, WebAuthValidator__factory } from "../typechain-types";
 
 export class ContractFixtures {
   // NOTE: CHANGING THE READONLY VALUES WILL REQUIRE UPDATING THE STATIC SIGNATURE
@@ -96,6 +96,32 @@ export class ContractFixtures {
   async deployERC20(mintTo: string): Promise<ERC20> {
     const contract = await create2("TestERC20", this.wallet, this.ethersStaticSalt, [mintTo]);
     return ERC20__factory.connect(await contract.getAddress(), this.wallet);
+  }
+
+  async deployExampleAuthServerPaymaster(
+    aaFactoryAddress: string,
+    sessionKeyValidatorAddress: string,
+  ): Promise<ExampleAuthServerPaymaster> {
+    const contract = await create2(
+      "ExampleAuthServerPaymaster",
+      this.wallet,
+      this.ethersStaticSalt,
+      [
+        aaFactoryAddress,
+        sessionKeyValidatorAddress,
+      ],
+    );
+    const paymasterAddress = ExampleAuthServerPaymaster__factory.connect(await contract.getAddress(), this.wallet);
+
+    // Fund the paymaster with 1 ETH
+    await (
+      await this.wallet.sendTransaction({
+        to: paymasterAddress,
+        value: parseEther("1"),
+      })
+    ).wait();
+
+    return paymasterAddress;
   }
 }
 

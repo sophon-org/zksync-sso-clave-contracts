@@ -1,6 +1,7 @@
-import { createPublicClient, createWalletClient, http, publicActions, walletActions } from "viem";
-import { privateKeyToAccount } from "viem/accounts";
+import { type Address, createPublicClient, createWalletClient, http, publicActions, walletActions } from "viem";
+import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
 import { zksync, zksyncInMemoryNode, zksyncLocalNode, zksyncSepoliaTestnet } from "viem/chains";
+import { eip712WalletActions } from "viem/zksync";
 import { createZksyncPasskeyClient, type PasskeyRequiredContracts } from "zksync-account/client/passkey";
 
 export const supportedChains = [zksync, zksyncSepoliaTestnet, zksyncInMemoryNode, zksyncLocalNode];
@@ -45,6 +46,7 @@ export const contractsByChain: Record<SupportedChainId, ChainContracts> = {
 
 export const useClientStore = defineStore("client", () => {
   const { address, username, passkey } = storeToRefs(useAccountStore());
+  const runtimeConfig = useRuntimeConfig();
 
   const getPublicClient = ({ chainId }: { chainId: SupportedChainId }) => {
     const chain = supportedChains.find((chain) => chain.id === chainId);
@@ -64,18 +66,13 @@ export const useClientStore = defineStore("client", () => {
     if (!chain) throw new Error(`Chain with id ${chainId} is not supported`);
     const contracts = contractsByChain[chainId];
 
-    /*
-      TODO: remove any
-      `any` are set due to using zksync-account via `npm link`
-      which makes it use same packages from different folders
-      types are too complex to compare so it fails
-    */
     const client = createZksyncPasskeyClient({
       address: address.value,
       credentialPublicKey: passkey.value!,
       userName: username.value!,
       userDisplayName: username.value!,
       contracts,
+      paymasterAddress: runtimeConfig.public.paymaster as Address,
       chain: chain,
       transport: http(),
     });
@@ -83,24 +80,24 @@ export const useClientStore = defineStore("client", () => {
     return client;
   };
 
-  /* TODO: remove. Temp for local dev and debugging */
-  const getRichWalletClient = ({ chainId }: { chainId: SupportedChainId }) => {
+  const getThrowAwayClient = ({ chainId }: { chainId: SupportedChainId }) => {
     const chain = supportedChains.find((chain) => chain.id === chainId);
     if (!chain) throw new Error(`Chain with id ${chainId} is not supported`);
 
-    const richWalletClient = createWalletClient({
-      account: privateKeyToAccount("0x3d3cbc973389cb26f657686445bcc75662b415b656078503592ac8c1abb8810e"),
+    const throwAwayClient = createWalletClient({
+      account: privateKeyToAccount(generatePrivateKey()),
       chain,
       transport: http(),
     })
       .extend(publicActions)
-      .extend(walletActions);
-    return richWalletClient;
+      .extend(walletActions)
+      .extend(eip712WalletActions());
+    return throwAwayClient;
   };
 
   return {
     getPublicClient,
     getClient,
-    getRichWalletClient,
+    getThrowAwayClient,
   };
 });

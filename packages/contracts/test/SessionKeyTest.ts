@@ -255,12 +255,18 @@ describe("SessionKeyModule tests", function () {
     assert(erc7579Contract != null, "No ERC7579 deployed");
     const factoryContract = await fixtures.getAaFactory();
     assert(factoryContract != null, "No AA Factory deployed");
+    const authServerPaymaster = await fixtures.deployExampleAuthServerPaymaster(
+      await factoryContract.getAddress(),
+      await sessionModuleContract.getAddress(),
+    );
+    assert(authServerPaymaster != null, "No Auth Server Paymaster deployed");
 
     logInfo(`Session Address                : ${await sessionModuleContract.getAddress()}`);
     logInfo(`Passkey Address                : ${await verifierContract.getAddress()}`);
     logInfo(`Account Factory Address        : ${await factoryContract.getAddress()}`);
     logInfo(`Account Implementation Address : ${await erc7579Contract.getAddress()}`);
     logInfo(`Proxy Account Address          : ${await proxyContract.getAddress()}`);
+    logInfo(`Auth Server Paymaster Address  : ${await authServerPaymaster.getAddress()}`);
   });
 
   it("should deploy proxy account via factory", async () => {

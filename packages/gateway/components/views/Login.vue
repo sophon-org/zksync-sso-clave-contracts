@@ -57,15 +57,16 @@
 </template>
 
 <script lang="ts" setup>
-import { parseEther, toHex } from "viem";
+import { type Address, toHex } from "viem";
 import { zksyncInMemoryNode, zksyncLocalNode } from "viem/chains";
 import { deployAccount, fetchAccount } from "zksync-account/client";
 import { registerNewPasskey } from "zksync-account/client/passkey";
 
 const { appMeta } = useAppMeta();
 const { login } = useAccountStore();
-const { getRichWalletClient, getPublicClient } = useClientStore();
+const { getPublicClient, getThrowAwayClient } = useClientStore();
 const { requestChain } = storeToRefs(useRequestsStore());
+const runtimeConfig = useRuntimeConfig();
 
 const { inProgress: registerInProgress, execute: createAccount } = useAsync(async () => {
   let name = `ZK Auth ${(new Date()).toLocaleDateString("en-US")}`;
@@ -82,19 +83,14 @@ const { inProgress: registerInProgress, execute: createAccount } = useAsync(asyn
     userDisplayName: name,
   });
 
-  const deployerClient = getRichWalletClient({ chainId: requestChain.value!.id });
+  const deployerClient = getThrowAwayClient({ chainId: requestChain.value!.id });
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { address } = await deployAccount(deployerClient as any, {
     credentialPublicKey,
     uniqueAccountId: credentialId,
     contracts: contractsByChain[requestChain.value!.id],
-  });
-
-  // TODO: Replace the cost of session key creation with a Paymaster
-  await deployerClient.sendTransaction({
-    to: address,
-    value: parseEther("1"),
+    paymasterAddress: runtimeConfig.public.paymaster as Address,
   });
 
   login({

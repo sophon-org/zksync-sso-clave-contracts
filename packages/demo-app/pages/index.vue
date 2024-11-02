@@ -70,15 +70,7 @@ reconnect(wagmiConfig);
 const address = ref<Address | null>(null);
 const balance = ref<GetBalanceReturnType | null>(null);
 const errorMessage = ref<string | null>(null);
-const updateBalance = async () => {
-  if (!address.value) {
-    balance.value = null;
-    return;
-  }
-  balance.value = await getBalance(wagmiConfig, {
-    address: address.value,
-  });
-};
+
 const fundAccount = async () => {
   if (!address.value) throw new Error("Not connected");
 
@@ -94,17 +86,29 @@ const fundAccount = async () => {
   });
 };
 
-// Check for updates to the current account
 watchAccount(wagmiConfig, {
   async onChange(data) {
     address.value = data.address || null;
   },
 });
+
 watch(address, async () => {
-  await updateBalance();
-  if (balance.value && balance.value.value < parseEther("0.2")) {
-    await fundAccount();
+  if (!address.value) {
+    balance.value = null;
+    return;
   }
+
+  let currentBalance = await getBalance(wagmiConfig, {
+    address: address.value,
+  });
+  if (currentBalance && currentBalance.value < parseEther("0.2")) {
+    await fundAccount();
+    currentBalance = await getBalance(wagmiConfig, {
+      address: address.value,
+    });
+  }
+
+  balance.value = currentBalance;
 }, { immediate: true });
 
 const connectWallet = async () => {
@@ -136,7 +140,9 @@ const sendTokens = async () => {
       gas: 100_000_000n,
     });
 
-    await updateBalance();
+    balance.value = await getBalance(wagmiConfig, {
+      address: address.value,
+    });
   } catch (error) {
     // eslint-disable-next-line no-console
     console.error("Transaction failed:", error);
