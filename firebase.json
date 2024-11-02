@@ -11,6 +11,12 @@
       "trailingSlash": false,
       "public": "packages/bank-demo/.output/public",
       "ignore": ["firebase.json", "**/.*", "**/node_modules/**"]
+    },
+    {
+      "target": "nft-quest-testnet",
+      "trailingSlash": false,
+      "public": "packages/nft-quest/.output/public",
+      "ignore": ["firebase.json", "**/.*", "**/node_modules/**"]
     }
   ]
 }

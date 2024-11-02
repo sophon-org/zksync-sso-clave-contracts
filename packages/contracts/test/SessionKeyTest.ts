@@ -36,7 +36,7 @@ type PartialLimit = {
 };
 
 type PartialSession = {
-  expiry?: number;
+  expiresAt?: number;
   feeLimit?: PartialLimit;
   callPolicies?: {
     target: string;
@@ -184,7 +184,7 @@ class SessionTester {
   getSession(session: PartialSession): SessionLib.SessionSpecStruct {
     return {
       signer: this.sessionOwner.address,
-      expiry: session.expiry ?? Math.floor(Date.now() / 1000) + 60 * 60 * 24,
+      expiresAt: session.expiresAt ?? Math.floor(Date.now() / 1000) + 60 * 60 * 24,
       // unlimited fees are not safe
       feeLimit: session.feeLimit ? this.getLimit(session.feeLimit) : this.getLimit({ limit: parseEther("0.1") }),
       callPolicies: session.callPolicies?.map((policy) => ({
@@ -244,12 +244,18 @@ describe("SessionKeyModule tests", function () {
     assert(erc7579Contract != null, "No ERC7579 deployed");
     const factoryContract = await fixtures.getAaFactory();
     assert(factoryContract != null, "No AA Factory deployed");
+    const authServerPaymaster = await fixtures.deployExampleAuthServerPaymaster(
+      await factoryContract.getAddress(),
+      await sessionModuleContract.getAddress(),
+    );
+    assert(authServerPaymaster != null, "No Auth Server Paymaster deployed");
 
     logInfo(`Session Address                : ${await sessionModuleContract.getAddress()}`);
     logInfo(`Passkey Address                : ${await verifierContract.getAddress()}`);
     logInfo(`Account Factory Address        : ${await factoryContract.getAddress()}`);
     logInfo(`Account Implementation Address : ${await erc7579Contract.getAddress()}`);
     logInfo(`Proxy Account Address          : ${await proxyContract.getAddress()}`);
+    logInfo(`Auth Server Paymaster Address  : ${await authServerPaymaster.getAddress()}`);
   });
 
   it("should deploy proxy account via factory", async () => {
@@ -395,7 +401,7 @@ describe("SessionKeyModule tests", function () {
   });
 
   // TODO: module uninstall tests
-  // TODO: session expiry tests
+  // TODO: session expiresAt tests
   // TODO: session fee limit tests
   // TODO: allowance tests
 });

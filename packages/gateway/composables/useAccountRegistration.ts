@@ -1,13 +1,13 @@
-import { registerNewPasskey } from "zksync-account/client/passkey";
-import { generatePrivateKey, privateKeyToAddress } from "viem/accounts";
-import { deployAccount } from "zksync-account/client";
+import { type Address, parseEther, toHex } from "viem";
 import { zksyncInMemoryNode } from "viem/chains";
-import { parseEther, toHex } from "viem";
+import { deployAccount } from "zksync-account/client";
+import { registerNewPasskey } from "zksync-account/client/passkey";
+
 import { useAccountFetch } from "./useAccountFetch";
 
 export async function useAccountRegistration(_username: MaybeRef<string>) {
   const username = toRef(_username);
-  const { getRichWalletClient } = useClientStore();
+  const { getThrowAwayClient } = useClientStore();
   const chainId = zksyncInMemoryNode.id;
   const { login } = useAccountStore();
 
@@ -17,39 +17,27 @@ export async function useAccountRegistration(_username: MaybeRef<string>) {
     error: registerError,
   } = await useAsyncData(async () => {
     const { accountData, fetchAccountData } = await useAccountFetch("registration", username, chainId);
+    const runtimeConfig = useRuntimeConfig();
     await fetchAccountData();
     if (accountData.value) {
       throw new Error("Username is taken.");
     }
 
-    const { credentialPublicKey } = await registerNewPasskey({
+    const { newCredentialPublicKey } = await registerNewPasskey({
       userName: username.value,
       userDisplayName: username.value,
     }).catch(() => {
       throw new Error("Failed to register new passkey.");
     });
 
-    const deployerClient = getRichWalletClient({ chainId: chainId });
-    const sessionKey = generatePrivateKey();
-    const sessionPublicKey = privateKeyToAddress(sessionKey);
-
-    // Breaks at this following step
+    const deployerClient = getThrowAwayClient({ chainId: chainId });
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { address } = await deployAccount(deployerClient as any, {
-      credentialPublicKey,
+      credentialPublicKey: newCredentialPublicKey,
       uniqueAccountId: username.value,
-      /* TODO: Remove spend limit, right now deployment fails without initial data */
-      initialSessions: [
-        {
-          sessionPublicKey,
-          expiresAt: new Date(new Date().getTime() + 1000 * 60 * 60 * 24).toISOString(), // 24 hours
-          spendLimit: {
-            "0x111C3E89Ce80e62EE88318C2804920D4c96f92bb": "10000",
-          },
-        },
-      ],
       contracts: contractsByChain[chainId],
+      paymasterAddress: runtimeConfig.public.paymaster as Address,
     }).catch(() => {
       throw new Error("Failed to create a new account.");
     });
@@ -64,8 +52,7 @@ export async function useAccountRegistration(_username: MaybeRef<string>) {
     login({
       username: username.value,
       address: address,
-      passkey: toHex(credentialPublicKey),
-      sessionKey,
+      passkey: toHex(newCredentialPublicKey),
     });
 
     return true;

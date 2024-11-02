@@ -4,6 +4,7 @@ import { toHex } from "viem";
 
 import { PopupCommunicator } from "../communicator/PopupCommunicator.js";
 import { serializeError, standardErrors } from "../errors/index.js";
+import { getFavicon, getWebsiteName } from "../utils/helpers.js";
 import type {
   AppMetadata,
   ProviderInterface,
@@ -15,11 +16,15 @@ import { Signer } from "./Signer.js";
 
 const DEFAULT_GATEWAY_URL = "http://localhost:3002/confirm";
 
+export type WalletProviderSessionPreferences = Omit<SessionPreferences, "expiresAt"> & {
+  expiresAt?: Date | bigint;
+};
+
 export type WalletProviderConstructorOptions = {
-  metadata: AppMetadata;
+  metadata: Partial<AppMetadata> | undefined;
   chains: readonly Chain[];
   transports?: Record<number, Transport>;
-  session?: SessionPreferences | (() => SessionPreferences | Promise<SessionPreferences>);
+  session?: WalletProviderSessionPreferences | (() => WalletProviderSessionPreferences | Promise<WalletProviderSessionPreferences>);
   gatewayUrl?: string;
 };
 
@@ -31,7 +36,10 @@ export class WalletProvider extends EventEmitter implements ProviderInterface {
     super();
     const communicator = new PopupCommunicator(gatewayUrl || DEFAULT_GATEWAY_URL);
     this.signer = new Signer({
-      metadata,
+      metadata: () => ({
+        name: metadata?.name || getWebsiteName() || "Unknown DApp",
+        icon: metadata?.icon || getFavicon(),
+      }),
       updateListener: this.updateListener,
       communicator: communicator,
       chains,

@@ -1,5 +1,5 @@
 <template>
-  <div class="h-full flex flex-col">
+  <div class="h-full flex flex-col px-4">
     <AccountHeader message="Connecting with" />
     <div class="flex justify-center items-center isolate mt-6">
       <Web3Avatar
@@ -18,7 +18,7 @@
     <h1 class="text-white text-center text-2xl mt-4 font-semibold">
       Connect to {{ appMeta.name }}
     </h1>
-    <p class="text-neutral-400 text-center mt-2">
+    <p class="text-center border border-neutral-900 mt-2 mx-auto w-max px-4 py-1 rounded-3xl">
       {{ domain }}
     </p>
     <ul class="mt-6 text-neutral-300">
@@ -35,29 +35,32 @@
         Funds will not leave your account without your confirmation
       </li>
     </ul>
-    <div class="mt-auto flex gap-4">
-      <CommonButton
-        class="w-full"
-        variant="neutral"
-        @click="deny()"
-      >
-        Cancel
-      </CommonButton>
-      <CommonButton
-        class="w-full"
-        :loading="!appMeta || responseInProgress"
-        @click="confirmConnection()"
-      >
-        Connect
-      </CommonButton>
+
+    <div class="mt-auto">
+      <div class="-mx-3 px-3 border-t border-neutral-900 flex gap-4 py-4 mt-2">
+        <CommonButton
+          class="w-full"
+          variant="neutral"
+          @click="deny()"
+        >
+          Cancel
+        </CommonButton>
+        <CommonButton
+          class="w-full"
+          :loading="!appMeta || responseInProgress"
+          @click="confirmConnection()"
+        >
+          Connect
+        </CommonButton>
+      </div>
     </div>
   </div>
 </template>
 
 <script lang="ts" setup>
-import Web3Avatar from "web3-avatar-vue";
 import { CheckIcon } from "@heroicons/vue/24/outline";
-import type { GatewayRpcSchema, ExtractReturnType } from "zksync-account/client-gateway";
+import Web3Avatar from "web3-avatar-vue";
+import type { ExtractReturnType, GatewayRpcSchema } from "zksync-account/client-gateway";
 
 const { appMeta, domain } = useAppMeta();
 const { respond, deny } = useRequestsStore();

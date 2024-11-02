@@ -1,6 +1,8 @@
 <template>
-  <div class="h-full flex flex-col">
-    <AccountHeader message="Sending from" />
+  <div class="h-dvh flex flex-col px-4">
+    <AccountHeader
+      message="Sending from"
+    />
     <h2 class="flex items-center justify-center text-white text-center text-3xl mt-6 font-semibold">
       <span v-if="preparingTransaction">
         <CommonContentLoader :length="15" />
@@ -12,12 +14,12 @@
         -{{ formatAmount(transactionValue, chainBaseToken.decimals) }}
       </span>
       <span>
-        &nbsp;
+      &nbsp;
         <span v-if="preparingTransaction">
           <CommonContentLoader :length="8" />
         </span>
         <span v-else>{{ chainBaseToken.symbol }}</span>
-        &nbsp;
+      &nbsp;
       </span>
       <div class="w-8 h-8 rounded-full overflow-hidden">
         <CommonContentLoader
@@ -56,7 +58,7 @@
           />
         </div>
         <span class="font-medium">
-          &nbsp;
+        &nbsp;
           <span v-if="preparingTransaction">
             <CommonContentLoader :length="20" />
           </span>
@@ -75,7 +77,7 @@
         <span
           v-else
         >{{ formatUnits(totalFee, 18) }} ETH</span>
-        &nbsp;
+      &nbsp;
         <div class="w-5 h-5 rounded-full bg-neutral-800">
           <CommonContentLoader
             v-if="preparingTransaction"
@@ -96,32 +98,53 @@
     >
       {{ preparingFailed || responseError }}
     </div>
-    <div class="mt-auto flex gap-4">
-      <CommonButton
-        class="w-full"
-        variant="neutral"
-        @click="deny()"
-      >
-        Cancel
-      </CommonButton>
-      <CommonButton
-        class="w-full"
-        :disabled="preparingTransaction"
-        :loading="!appMeta || responseInProgress"
-        @click="confirmTransaction()"
-      >
-        Confirm
-      </CommonButton>
+
+    <button
+      class="mx-auto mt-4 text-center w-max px-4 py-2 flex items-center gap-1 text-sm text-neutral-800 hover:text-neutral-600 transition-colors"
+      @click="advancedInfoOpened = !advancedInfoOpened"
+    >
+      <span>{{ advancedInfoOpened ? 'Hide' : 'Show' }} advanced transaction info</span>
+      <ChevronDownIcon
+        class="w-4 h-4 transition-transform"
+        :class="{ 'rotate-180': advancedInfoOpened }"
+        aria-hidden="true"
+      />
+    </button>
+    <CommonHeightTransition :opened="advancedInfoOpened">
+      <CommonLine>
+        <pre class="p-3 text-xs overflow-auto">{{ JSON.stringify(transactionParams, null, 4) }}</pre>
+      </CommonLine>
+    </CommonHeightTransition>
+
+    <div class="mt-auto">
+      <div class="-mx-3 px-3 border-t border-neutral-900 flex gap-4 py-4 mt-2">
+        <CommonButton
+          class="w-full"
+          variant="neutral"
+          @click="deny()"
+        >
+          Cancel
+        </CommonButton>
+        <CommonButton
+          class="w-full"
+          :disabled="preparingTransaction"
+          :loading="!appMeta || responseInProgress"
+          @click="confirmTransaction()"
+        >
+          Confirm
+        </CommonButton>
+      </div>
     </div>
   </div>
 </template>
 
 <script lang="ts" setup>
-import Web3Avatar from "web3-avatar-vue";
-import { formatUnits, type Address } from "viem";
-import type { ExtractParams } from "zksync-account/client-gateway";
-import { chainConfig, type ZksyncRpcTransaction } from "viem/zksync";
+import { ChevronDownIcon } from "@heroicons/vue/24/outline";
 import { useIntervalFn } from "@vueuse/core";
+import { type Address, formatUnits } from "viem";
+import { chainConfig, type ZksyncRpcTransaction } from "viem/zksync";
+import Web3Avatar from "web3-avatar-vue";
+import type { ExtractParams } from "zksync-account/client-gateway";
 
 const { appMeta } = useAppMeta();
 const { respond, deny } = useRequestsStore();
@@ -134,6 +157,8 @@ const transactionParams = computed(() => {
   const formatted = chainConfig.formatters.transaction.format(params[0] as ZksyncRpcTransaction);
   return formatted;
 });
+
+const advancedInfoOpened = ref(false);
 
 const { result: preparedTransaction, inProgress: preparingTransaction, error: preparingFailed, execute: prepareTransaction } = useAsync(async () => {
   if (!request.value) return null;

@@ -86,7 +86,7 @@ library SessionLib {
 
   struct SessionSpec {
     address signer;
-    uint256 expiry;
+    uint256 expiresAt;
     UsageLimit feeLimit;
     CallSpec[] callPolicies;
     TransferSpec[] transferPolicies;
@@ -122,7 +122,7 @@ library SessionLib {
   // Info about remaining session limits and its status
   struct SessionState {
     Status status;
-    uint256 fee;
+    uint256 feesRemaining;
     LimitState[] transferValue;
     LimitState[] callValue;
     LimitState[] callParams;
@@ -168,7 +168,7 @@ library SessionLib {
     require(state.status[msg.sender] == Status.Active, "Session is not active");
 
     // TODO uncomment when it's possible to check timestamps during validation
-    // require(block.timestamp <= state.expiry);
+    // require(block.timestamp <= session.expiresAt);
 
     // TODO: update fee allowance with the gasleft/refund at the end of execution
     uint256 fee = transaction.maxFeePerGas * transaction.gasLimit;
@@ -227,6 +227,7 @@ library SessionLib {
       return limit.limit - tracker.lifetimeUsage[account];
     }
     if (limit.limitType == LimitType.Allowance) {
+      // this is not used during validation, so it's fine to use block.timestamp
       uint256 period = block.timestamp / limit.period;
       return limit.limit - tracker.allowanceUsage[period][account];
     }
@@ -290,7 +291,7 @@ library SessionLib {
     return
       SessionState({
         status: session.status[account],
-        fee: remainingLimit(spec.feeLimit, session.fee, account),
+        feesRemaining: remainingLimit(spec.feeLimit, session.fee, account),
         transferValue: transferValue,
         callValue: callValue,
         callParams: callParams

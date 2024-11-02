@@ -3,8 +3,14 @@ import { defineNuxtConfig } from "nuxt/config";
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
   compatibilityDate: "2024-07-08",
-  devtools: { enabled: true },
+  devtools: { enabled: false },
   modules: ["@nuxt/eslint", "@pinia/nuxt", "@nuxtjs/tailwindcss", "@nuxtjs/google-fonts", "@vueuse/nuxt", "radix-vue/nuxt", "@nuxtjs/color-mode"],
+  app: {
+    head: {
+      title: "ZKsync SSO",
+      link: [{ rel: "icon", type: "image/x-icon", href: "/favicon.ico" }],
+    },
+  },
 
   ssr: false,
   devServer: {
@@ -16,6 +22,9 @@ export default defineNuxtConfig({
       Inter: [400, 500, 600, 700],
     },
   },
+  colorMode: {
+    preference: "dark",
+  },
   eslint: {
     config: {
       stylistic: {
@@ -26,6 +35,11 @@ export default defineNuxtConfig({
         quoteProps: "as-needed",
         braceStyle: "1tbs",
       },
+    },
+  },
+  runtimeConfig: {
+    public: {
+      paymaster: "0xe1577D1a1b86194A35079bC6Ee43151CeeA723F3",
     },
   },
 });
