@@ -145,6 +145,7 @@ class SessionTester {
     // TODO: uncomment once gas estimation is fixed one era-test-node.
     // It works fine with the local server.
     // aaTx.gasLimit = await provider.estimateGas(aaTx);
+    logInfo(`\`sessionTx\` gas estimated: ${await provider.estimateGas(aaTx)}`);
 
     const signedTransaction = await this.sessionAccount.signTransaction(aaTx);
     const tx = await provider.broadcastTransaction(signedTransaction);
