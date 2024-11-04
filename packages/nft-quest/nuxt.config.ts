@@ -1,5 +1,5 @@
 import { defineNuxtConfig } from "nuxt/config";
-import { zksyncInMemoryNode } from "viem/chains";
+import { zksyncInMemoryNode, zksyncSepoliaTestnet } from "viem/chains";
 
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
@@ -72,6 +72,18 @@ export default defineNuxtConfig({
         paymaster: "0x4B5DF730c2e6b28E17013A1485E5d9BC41Efe021",
       },
       explorerURL: "http://localhost:3010",
+    },
+  },
+  $production: {
+    runtimeConfig: {
+      public: {
+        chain: zksyncSepoliaTestnet,
+        contracts: {
+          nft: "0x4D533d3B20b50b57268f189F93bFaf8B39c36AB6",
+          paymaster: "0x60eef092977DF2738480a6986e2aCD10236b1FA7",
+        },
+        explorerURL: "https://sepolia.explorer.zksync.io",
+      },
     },
   },
 });

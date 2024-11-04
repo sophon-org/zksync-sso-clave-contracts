@@ -42,4 +42,11 @@ export default defineNuxtConfig({
       paymaster: "0xe1577D1a1b86194A35079bC6Ee43151CeeA723F3",
     },
   },
+  $production: {
+    runtimeConfig: {
+      public: {
+        paymaster: "0x384Cac169CDcb7c515ff3A9e7f1236D2a1e8924C",
+      },
+    },
+  },
 });
