@@ -1,6 +1,9 @@
 name: "Preview Auth Server"
 on:
   pull_request:
+    paths:
+      - "packages/gateway/**"
+      - "packages/sdk/**"
   workflow_dispatch:
 
 env:

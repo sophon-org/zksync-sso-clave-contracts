@@ -1,4 +1,4 @@
-name: "Deploy Gateway Testnet"
+name: "Deploy Auth Server Testnet"
 on:
   push:
     branches: [ "main" ]
