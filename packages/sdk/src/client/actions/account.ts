@@ -3,7 +3,7 @@ import { readContract, waitForTransactionReceipt, writeContract } from "viem/act
 import { getGeneralPaymasterInput } from "viem/zksync";
 
 import { FactoryAbi } from "../../abi/Factory.js";
-import type { SessionData } from "../../client-gateway/interface.js";
+import type { SessionData } from "../../client-auth-server/interface.js";
 import { encodeCreateSessionParameters, encodeModuleData, encodePasskeyModuleParameters } from "../../utils/encoding.js";
 import { noThrow } from "../../utils/helpers.js";
 import { getPasskeySignatureFromPublicKeyBytes, getPublicKeyBytesFromPasskeySignature } from "../../utils/passkey.js";

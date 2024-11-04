@@ -1,11 +1,11 @@
 {
-  "name": "gateway",
+  "name": "auth-server",
   "tags": ["type:app"],
   "targets": {
     "dev": {
       "executor": "nx:run-commands",
       "options": {
-        "cwd": "packages/gateway",
+        "cwd": "packages/auth-server",
         "command": "PORT=3002 nuxt dev"
       },
       "dependsOn": []
@@ -13,7 +13,7 @@
     "build": {
       "executor": "nx:run-commands",
       "options": {
-        "cwd": "packages/gateway",
+        "cwd": "packages/auth-server",
         "commands": [
           {
             "command": "pnpm nuxt generate"
@@ -24,7 +24,7 @@
     "deploy": {
       "executor": "nx:run-commands",
       "options": {
-        "cwd": "packages/gateway",
+        "cwd": "packages/auth-server",
         "command": "firebase deploy --only hosting:zksync-auth-server-staging --project zksync-auth-server-staging"
       },
       "dependsOn": ["build"]
@@ -32,7 +32,7 @@
     "deploy:preview": {
       "executor": "nx:run-commands",
       "options": {
-        "cwd": "packages/gateway",
+        "cwd": "packages/auth-server",
         "command": "firebase hosting:channel:deploy --only zksync-auth-server-staging --project zksync-auth-server-staging"
       },
       "dependsOn": ["build"]

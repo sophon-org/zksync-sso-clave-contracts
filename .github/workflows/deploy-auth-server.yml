@@ -3,7 +3,7 @@ on:
   push:
     branches: [ "main" ]
     paths:
-      - "packages/gateway/**"
+      - "packages/auth-server/**"
       - "packages/sdk/**"
   workflow_dispatch:
 
@@ -32,7 +32,7 @@ jobs:
         run: pnpm install -r --frozen-lockfile
 
       - name: Build apps
-        run: pnpm nx build gateway
+        run: pnpm nx build auth-server
 
       - name: Deploy firebase hosting
         uses: matter-labs/action-hosting-deploy@main

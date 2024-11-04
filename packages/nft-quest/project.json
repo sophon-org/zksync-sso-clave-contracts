@@ -8,8 +8,8 @@
         "cwd": "packages/nft-quest",
         "commands": [
           {
-            "command": "pnpm nx dev gateway",
-            "prefix": "Gateway:"
+            "command": "pnpm nx dev auth-server",
+            "prefix": "Auth-Server:"
           },
 
           {

@@ -3,7 +3,7 @@ import { waitForTransactionReceipt } from "viem/actions";
 import { getGeneralPaymasterInput, sendTransaction } from "viem/zksync";
 
 import { SessionKeyModuleAbi } from "../../abi/SessionKeyModule.js";
-import type { SessionData } from "../../client-gateway/interface.js";
+import type { SessionData } from "../../client-auth-server/interface.js";
 import { noThrow } from "../../utils/helpers.js";
 import { getSession } from "../../utils/session.js";
 

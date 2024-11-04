@@ -48,7 +48,7 @@ import { privateKeyToAccount } from "viem/accounts";
 
 const testTransferTarget = "0x55bE1B079b53962746B2e86d12f158a41DF294A6";
 const zksyncConnector = zksyncAccountConnector({
-  gatewayUrl: "http://localhost:3002/confirm",
+  authServerUrl: "http://localhost:3002/confirm",
   session: {
     feeLimit: parseEther("0.1"),
     transferPolicies: [

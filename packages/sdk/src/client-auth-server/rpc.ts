@@ -5,7 +5,7 @@ import type { Message } from "../communicator/index.js";
 import type { SerializedEthereumRpcError } from "../errors/index.js";
 import type { AppMetadata, RequestArguments, SessionPreferences } from "./interface.js";
 
-export type GatewayRpcSchema = [
+export type AuthServerRpcSchema = [
   {
     Method: "eth_requestAccounts";
     Parameters: {
@@ -26,7 +26,7 @@ export type GatewayRpcSchema = [
     };
   },
 ];
-export type RpcSchema = WalletRpcSchema | PublicRpcSchema | GatewayRpcSchema;
+export type RpcSchema = WalletRpcSchema | PublicRpcSchema | AuthServerRpcSchema;
 export type Method<TSchema extends RpcSchemaGeneric = RpcSchema> = TSchema[number]["Method"];
 export type ExtractParams<
   TMethod extends Method<TSchema>,

@@ -1,6 +1,6 @@
 import type { Hex } from "viem";
 
-import type { Limit, SessionPreferences } from "../client-gateway/interface.js";
+import type { Limit, SessionPreferences } from "../client-auth-server/interface.js";
 
 enum LimitType {
   Unlimited = 0,

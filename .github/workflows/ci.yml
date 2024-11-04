@@ -32,7 +32,7 @@ jobs:
         node-version: lts/Iron
         cache: 'pnpm'
 
-    # Install dependencies for contracts/gateway/sdk
+    # Install dependencies for repo
     - name: Install dependencies
       run: pnpm install -r --frozen-lockfile
 
@@ -82,7 +82,7 @@ jobs:
         node-version: lts/Iron
         cache: 'pnpm'
 
-    # Install dependencies for contracts/gateway/sdk
+    # Install dependencies for repo
     - name: Install dependencies
       run: pnpm install -r --frozen-lockfile
 
@@ -136,7 +136,7 @@ jobs:
         node-version: lts/Iron
         cache: 'pnpm'
 
-    # Install dependencies for contracts/gateway/sdk
+    # Install dependencies for repo
     - name: Install dependencies
       run: pnpm install -r --frozen-lockfile
 
