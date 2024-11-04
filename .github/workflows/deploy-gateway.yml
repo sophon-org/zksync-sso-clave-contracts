@@ -2,6 +2,9 @@ name: "Deploy Gateway Testnet"
 on:
   push:
     branches: [ "main" ]
+    paths:
+      - "packages/gateway/**/*.*"
+      - "packages/sdk/**/*.*"
   workflow_dispatch:
 
 env:
