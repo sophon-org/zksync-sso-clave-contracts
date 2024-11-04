@@ -1,12 +1,12 @@
 <template>
   <div class="h-dvh flex flex-col px-4">
     <AccountHeader message="Connecting with" />
-    <div class="w-14 h-14 rounded-full bg-neutral-950 mx-auto flex-shrink-0">
+    <div class="w-14 h-14 rounded-md bg-neutral-950 mx-auto flex-shrink-0">
       <img
         v-if="appMeta.icon"
         :src="appMeta.icon"
         :alt="appMeta.name"
-        class="h-full w-full object-cover rounded-full"
+        class="h-full w-full object-cover rounded-md"
       >
     </div>
     <h1 class="text-white text-center text-xl mt-2 font-semibold">
