@@ -9,10 +9,13 @@ export default defineNuxtConfig({
   app: {
     head: {
       title: "ZKsync SSO",
-      link: [{ rel: "icon", type: "image/x-icon", href: "/favicon.ico" }],
+      link: [
+        { rel: "icon", type: "image/x-icon", href: "/favicon.ico" },
+        { rel: "icon", type: "image/png", href: "/favicon-96x96.png", sizes: "96x96" },
+        { rel: "icon", type: "image/svg+xml", href: "/favicon.svg" },
+      ],
     },
   },
-
   ssr: false,
   devServer: {
     port: 3002,
