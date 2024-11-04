@@ -1,5 +1,6 @@
 {
   "name": "nft-quest",
+  "tags": ["type:app"],
   "targets": {
     "dev": {
       "executor": "nx:run-commands",
