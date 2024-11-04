@@ -7,6 +7,7 @@ declare module "nuxt/schema" {
       nft: `0x${string}`;
       paymaster: `0x${string}`;
     };
+    baseUrl: string;
     gatewayUrl: string;
     explorerUrl: string;
   }

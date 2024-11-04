@@ -13,7 +13,7 @@ export const useConnectorStore = defineStore("connector", () => {
   const connector = zksyncAccountConnector({
     metadata: {
       name: "ZK NFT Quest",
-      icon: `${window.location.origin}/favicon.svg`,
+      icon: `${runtimeConfig.public.baseUrl}/favicon.svg`,
     },
     gatewayUrl: runtimeConfig.public.gatewayUrl,
     session: getSession({
