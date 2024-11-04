@@ -1,12 +1,12 @@
 <template>
   <div class="h-full flex flex-col justify-center px-4">
     <div class="h-[40%] justify-center items-center flex flex-col">
-      <div class="mx-auto mt-6 w-20 h-20 rounded-full bg-neutral-800">
+      <div class="mx-auto mt-6 w-20 h-20 bg-neutral-800 rounded-md">
         <img
           v-if="appMeta && appMeta.icon"
           :src="appMeta.icon"
           :alt="appMeta.name"
-          class="h-full w-full object-cover rounded-full"
+          class="h-full w-full object-cover rounded-md"
         >
       </div>
       <h1 class="text-white text-center text-2xl mt-4 font-semibold">
@@ -124,7 +124,7 @@ const { inProgress: loginInProgress, error: accountDataFetchError, execute: conn
   left: 0;
   bottom: 0;
   right: 0;
-  background: linear-gradient(45deg, #ff595e, #ffca3a, #8ac926, #1982c4, #6a4c93, #ff6700);
+  background: linear-gradient(90deg, rgba(0,11,163,1) 0%, rgba(62,134,255,1) 26%, rgba(0,11,163,1) 52%, rgba(100,220,255,1) 78%, rgba(0,11,163,1) 100%);
   background-size: 400%;
   z-index: -1;
   animation: glow 5s linear infinite;
