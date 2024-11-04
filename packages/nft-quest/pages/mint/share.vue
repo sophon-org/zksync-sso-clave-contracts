@@ -93,6 +93,6 @@ const route = useRoute();
 const runtimeConfig = useRuntimeConfig();
 
 const transactionURL = computed(() => {
-  return `${runtimeConfig.public.explorerURL}/tx/${route.query.trxn}`;
+  return `${runtimeConfig.public.explorerUrl}/tx/${route.query.trxn}`;
 });
 </script>

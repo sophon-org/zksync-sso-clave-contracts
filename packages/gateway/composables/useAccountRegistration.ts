@@ -1,5 +1,4 @@
 import { type Address, parseEther, toHex } from "viem";
-import { zksyncInMemoryNode } from "viem/chains";
 import { deployAccount } from "zksync-sso/client";
 import { registerNewPasskey } from "zksync-sso/client/passkey";
 
@@ -8,7 +7,8 @@ import { useAccountFetch } from "./useAccountFetch";
 export async function useAccountRegistration(_username: MaybeRef<string>) {
   const username = toRef(_username);
   const { getThrowAwayClient } = useClientStore();
-  const chainId = zksyncInMemoryNode.id;
+  const runtimeConfig = useRuntimeConfig();
+  const chainId = runtimeConfig.public.chain.id as SupportedChainId;
   const { login } = useAccountStore();
 
   const {

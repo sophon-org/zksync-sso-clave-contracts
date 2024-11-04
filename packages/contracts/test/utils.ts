@@ -153,13 +153,25 @@ export async function deployFactory(factoryName: string, wallet: Wallet, expecte
   const proxyAaArtifact = JSON.parse(await promises.readFile("artifacts-zk/src/AccountProxy.sol/AccountProxy.json", "utf8"));
 
   const deployer = new ContractFactory(factoryArtifact.abi, factoryArtifact.bytecode, wallet);
-  const factory = await deployer.deploy(utils.hashBytecode(proxyAaArtifact.bytecode));
+  const proxyAaBytecodeHash = utils.hashBytecode(proxyAaArtifact.bytecode);
+  const factory = await deployer.deploy(proxyAaBytecodeHash);
   const factoryAddress = await factory.getAddress();
 
   if (expectedAddress && factoryAddress != expectedAddress) {
     console.warn(`${factoryName}.sol address is not the expected default address (${expectedAddress}).`);
     console.warn(`Please update the default value in your tests or restart Era Test Node. Proceeding with expected default address...`);
     return AAFactory__factory.connect(expectedAddress, wallet);
+  }
+
+  if (hre.network.config.verifyURL) {
+    logInfo(`Requesting contract verification...`);
+    logInfo(`src/${factoryName}.sol:${factoryName}`);
+    await verifyContract({
+      address: factoryAddress,
+      contract: `src/${factoryName}.sol:${factoryName}`,
+      constructorArguments: deployer.interface.encodeDeploy([proxyAaBytecodeHash]),
+      bytecode: factoryArtifact.bytecode,
+    });
   }
 
   return AAFactory__factory.connect(factoryAddress, wallet);
@@ -211,6 +223,18 @@ export const create2 = async (contractName: string, wallet: Wallet, salt: ethers
   const standardCreate2Address = utils.create2Address(wallet.address, bytecodeHash, salt, args ? constructorArgs : "0x");
   const accountCode = await wallet.provider.getCode(standardCreate2Address);
   if (accountCode != "0x") {
+    logInfo(`${contractArtifact.sourceName}:${contractName}`);
+    logInfo("Contract already exists!");
+    // if (hre.network.config.verifyURL) {
+    //   logInfo(`Requesting contract verification...`);
+    //   await verifyContract({
+    //     address: standardCreate2Address,
+    //     contract: `${contractArtifact.sourceName}:${contractName}`,
+    //     constructorArguments: constructorArgs,
+    //     bytecode: accountCode,
+    //   });
+    // }
+
     return new ethers.Contract(standardCreate2Address, contractArtifact.abi, wallet);
   }
 
@@ -223,6 +247,17 @@ export const create2 = async (contractName: string, wallet: Wallet, salt: ethers
     logWarning("Unexpected Create2 address, perhaps salt is misconfigured?");
     logWarning(`addressFromCreate2: ${standardCreate2Address}`);
     logWarning(`deployedContractAddress: ${deployedContractAddress}`);
+  }
+
+  if (hre.network.config.verifyURL) {
+    logInfo(`Requesting contract verification...`);
+    logInfo(`${contractArtifact.sourceName}:${contractName}`);
+    await verifyContract({
+      address: deployedContractAddress,
+      contract: `${contractArtifact.sourceName}:${contractName}`,
+      constructorArguments: constructorArgs,
+      bytecode: accountCode,
+    });
   }
 
   return new ethers.Contract(deployedContractAddress, contractArtifact.abi, wallet);

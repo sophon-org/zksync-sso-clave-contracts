@@ -25,10 +25,10 @@ export const contractsByChain: Record<SupportedChainId, ChainContracts> = {
     accountImplementation: "0x",
   },
   [zksyncSepoliaTestnet.id]: {
-    session: "0x",
-    passkey: "0x",
-    accountFactory: "0x",
-    accountImplementation: "0x",
+    session: "0x64AEB39926631F9601D78E3024D32632564C057B",
+    passkey: "0x7AC1718A54372B5D5fDAca2B7aB6dC6019078d20",
+    accountFactory: "0x35b135308f93B8d13811b2193F84B4a4dAbecAe1",
+    accountImplementation: "0xCcACB2451dAAdCA7f3A9e4fB5931551F32dEe849",
   },
   [zksyncLocalNode.id]: {
     session: "0x",
