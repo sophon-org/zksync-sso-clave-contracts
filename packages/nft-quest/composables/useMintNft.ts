@@ -2,8 +2,6 @@ import { estimateGas, waitForTransactionReceipt, writeContract } from "@wagmi/co
 import { type Address, encodeFunctionData } from "viem";
 import { getGeneralPaymasterInput } from "viem/zksync";
 
-import { supportedChains } from "~/stores/connector";
-
 export const useMintNft = async (_address: MaybeRef<Address>) => {
   const address = toRef(_address);
 
@@ -22,7 +20,7 @@ export const useMintNft = async (_address: MaybeRef<Address>) => {
     const estimatedGas = await estimateGas(wagmiConfig.value, {
       account: account.value.address,
       to: runtimeConfig.public.contracts.nft as Address,
-      chainId: supportedChains[0].id,
+      chainId: runtimeConfig.public.chain.id,
       data,
     });
 

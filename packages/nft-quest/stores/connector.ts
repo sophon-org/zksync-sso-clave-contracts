@@ -1,14 +1,17 @@
 import { connect, createConfig, type CreateConnectorFn, disconnect, getAccount, http, reconnect, watchAccount } from "@wagmi/core";
 import { type Address, type Hash, parseEther, toFunctionSelector } from "viem";
-import { zksyncInMemoryNode } from "viem/zksync";
+import { zksyncInMemoryNode, zksyncLocalNode, zksyncSepoliaTestnet } from "viem/chains";
 import { zksyncAccountConnector } from "zksync-sso/connector";
 import { getSession } from "zksync-sso/utils";
 
-export const supportedChains = [zksyncInMemoryNode] as const;
-export type SupportedChainId = (typeof supportedChains)[number]["id"];
-
 export const useConnectorStore = defineStore("connector", () => {
   const runtimeConfig = useRuntimeConfig();
+  const supportedChains = [
+    zksyncSepoliaTestnet,
+    zksyncInMemoryNode,
+    zksyncLocalNode,
+  ].filter((x) => x.id == runtimeConfig.public.chain.id);
+  type SupportedChainId = (typeof supportedChains)[number]["id"];
 
   const connector = zksyncAccountConnector({
     metadata: {
