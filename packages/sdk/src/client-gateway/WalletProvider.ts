@@ -14,7 +14,7 @@ import type {
 import { type ExtractReturnType, type Method } from "./rpc.js";
 import { Signer } from "./Signer.js";
 
-const DEFAULT_GATEWAY_URL = "http://localhost:3002/confirm";
+const DEFAULT_GATEWAY_URL = "https://auth-test.zksync.dev/confirm";
 
 export type WalletProviderSessionPreferences = Omit<SessionPreferences, "expiresAt"> & {
   expiresAt?: Date | bigint;

@@ -71,7 +71,7 @@ const successMint = computed(() => {
 
 const runtimeConfig = useRuntimeConfig();
 const transactionURL = computed(() => {
-  return `${runtimeConfig.public.explorerURL}/tx/${data.value.transactionHash}`;
+  return `${runtimeConfig.public.explorerUrl}/tx/${data.value.transactionHash}`;
 });
 
 const disabled = computed(() => {

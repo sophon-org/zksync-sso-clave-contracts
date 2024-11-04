@@ -39,13 +39,12 @@
 </template>
 
 <script setup lang="ts">
-import { zksyncInMemoryNode } from "viem/chains";
-
 definePageMeta({
   middleware: ["logged-in"],
 });
 
-const chainId = zksyncInMemoryNode.id;
+const runtimeConfig = useRuntimeConfig();
+const chainId = runtimeConfig.public.chain.id as SupportedChainId;
 const username = ref("");
 
 const { accountDataFetchInProgress, accountDataFetchError, accountData } = await useAccountFetch(
