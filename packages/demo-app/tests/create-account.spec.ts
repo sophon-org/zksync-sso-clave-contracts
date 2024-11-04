@@ -103,7 +103,7 @@ test("Create account, session key, and send ETH", async ({ page }) => {
 
   // Send some eth
   await page.getByRole("button", { name: "Send 0.1 ETH" }).click();
-  await page.waitForTimeout(2000);
+  await expect(page.getByRole("button", { name: "Send 0.1 ETH" })).toBeEnabled();
   const endBalance = +(await page.getByText("Balance:").innerText())
     .replace("Balance: ", "")
     .replace(" ETH", "");

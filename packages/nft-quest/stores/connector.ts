@@ -1,8 +1,8 @@
 import { connect, createConfig, type CreateConnectorFn, disconnect, getAccount, http, reconnect, watchAccount } from "@wagmi/core";
 import { type Address, type Hash, parseEther, toFunctionSelector } from "viem";
 import { zksyncInMemoryNode } from "viem/zksync";
-import { zksyncAccountConnector } from "zksync-account/connector";
-import { getSession } from "zksync-account/utils";
+import { zksyncAccountConnector } from "zksync-sso/connector";
+import { getSession } from "zksync-sso/utils";
 
 export const supportedChains = [zksyncInMemoryNode] as const;
 export type SupportedChainId = (typeof supportedChains)[number]["id"];

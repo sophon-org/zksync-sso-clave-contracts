@@ -25,6 +25,6 @@
     "viem": "^2.21.14",
     "vue": "latest",
     "vue-router": "latest",
-    "zksync-account": "workspace:*"
+    "zksync-sso": "workspace:*"
   }
 }

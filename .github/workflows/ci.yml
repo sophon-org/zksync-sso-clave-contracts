@@ -45,8 +45,8 @@ jobs:
       run: pnpm nx deploy contracts
 
     # Run E2E tests
-    - name: Install Playwright Browsers
-      run: pnpm exec playwright install --with-deps
+    - name: Install Playwright Chromium Browser
+      run: pnpm exec playwright install chromium
       working-directory: packages/demo-app
     - name: Run e2e tests
       run: pnpm nx e2e demo-app
@@ -99,8 +99,8 @@ jobs:
       run: pnpm nx deploy:local nft-quest-contracts
 
     # Run E2E tests
-    - name: Install Playwright Browsers
-      run: pnpm exec playwright install --with-deps
+    - name: Install Playwright Chromium Browser
+      run: pnpm exec playwright install chromium
       working-directory: packages/nft-quest
     - name: Run e2e tests
       run: pnpm nx e2e nft-quest
