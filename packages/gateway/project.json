@@ -1,5 +1,6 @@
 {
   "name": "gateway",
+  "tags": ["type:app"],
   "targets": {
     "dev": {
       "executor": "nx:run-commands",
@@ -8,6 +9,33 @@
         "command": "PORT=3002 nuxt dev"
       },
       "dependsOn": []
+    },
+    "build": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "packages/gateway",
+        "commands": [
+          {
+            "command": "pnpm nuxt generate"
+          }
+        ]
+      }
+    },
+    "deploy": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "packages/gateway",
+        "command": "firebase deploy --only hosting:nft-quest-testnet --project nft-quest-testnet"
+      },
+      "dependsOn": ["build"]
+    },
+    "deploy:preview": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "packages/gateway",
+        "command": "firebase hosting:channel:deploy --only nft-quest-testnet --project nft-quest-testnet"
+      },
+      "dependsOn": ["build"]
     }
   }
 }
