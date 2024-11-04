@@ -115,9 +115,9 @@ import { ChevronDownIcon } from "@heroicons/vue/24/outline";
 import { useTimeAgo } from "@vueuse/core";
 import { type Address, formatUnits } from "viem";
 import { generatePrivateKey, privateKeyToAddress } from "viem/accounts";
-import type { SessionPreferences } from "zksync-account";
-import type { ExtractReturnType, GatewayRpcSchema } from "zksync-account/client-gateway";
-import { getSession } from "zksync-account/utils";
+import type { SessionPreferences } from "zksync-sso";
+import type { ExtractReturnType, GatewayRpcSchema } from "zksync-sso/client-gateway";
+import { getSession } from "zksync-sso/utils";
 
 const props = defineProps({
   session: {

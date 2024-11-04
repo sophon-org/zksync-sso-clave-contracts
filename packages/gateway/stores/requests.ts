@@ -1,4 +1,4 @@
-import type { ExtractParams, ExtractReturnType, GatewayRpcSchema, Method, RPCRequestMessage, RPCResponseMessage } from "zksync-account/client-gateway";
+import type { ExtractParams, ExtractReturnType, GatewayRpcSchema, Method, RPCRequestMessage, RPCResponseMessage } from "zksync-sso/client-gateway";
 
 export const useRequestsStore = defineStore("requests", () => {
   const { appMeta } = useAppMeta();

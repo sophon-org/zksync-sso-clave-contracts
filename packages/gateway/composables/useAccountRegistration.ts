@@ -1,7 +1,7 @@
 import { type Address, parseEther, toHex } from "viem";
 import { zksyncInMemoryNode } from "viem/chains";
-import { deployAccount } from "zksync-account/client";
-import { registerNewPasskey } from "zksync-account/client/passkey";
+import { deployAccount } from "zksync-sso/client";
+import { registerNewPasskey } from "zksync-sso/client/passkey";
 
 import { useAccountFetch } from "./useAccountFetch";
 

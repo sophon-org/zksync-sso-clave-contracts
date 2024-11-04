@@ -1,4 +1,4 @@
-import type { Message, PopupConfigMessage } from "zksync-account/communicator";
+import type { Message, PopupConfigMessage } from "zksync-sso/communicator";
 
 /**
  * Communicates within a popup window to receive and respond to messages.

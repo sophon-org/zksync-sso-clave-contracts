@@ -52,7 +52,7 @@
     "typescript-eslint": "8.7.0",
     "viem": "^2.21.14",
     "verdaccio": "6.0.0",
-    "zksync-account": "workspace:*"
+    "zksync-sso": "workspace:*"
   },
   "nx": {
     "includedScripts": []

@@ -9,7 +9,7 @@ application. It's built on top of [client SDK](../client/README.md) and
 ```ts
 import { zksync } from "viem/chains";
 import { createConfig, connect } from "@wagmi/core";
-import { zksyncAccountConnector } from "zksync-account/connector";
+import { zksyncAccountConnector } from "zksync-sso/connector";
 
 const ssoConnector = zksyncAccountConnector({
   // Optional session configuration

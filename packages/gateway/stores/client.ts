@@ -2,7 +2,7 @@ import { type Address, createPublicClient, createWalletClient, http, publicActio
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
 import { zksync, zksyncInMemoryNode, zksyncLocalNode, zksyncSepoliaTestnet } from "viem/chains";
 import { eip712WalletActions } from "viem/zksync";
-import { createZksyncPasskeyClient, type PasskeyRequiredContracts } from "zksync-account/client/passkey";
+import { createZksyncPasskeyClient, type PasskeyRequiredContracts } from "zksync-sso/client/passkey";
 
 export const supportedChains = [zksync, zksyncSepoliaTestnet, zksyncInMemoryNode, zksyncLocalNode];
 export type SupportedChainId = (typeof supportedChains)[number]["id"];

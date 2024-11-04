@@ -7,7 +7,7 @@
 </template>
 
 <script lang="ts" setup>
-import type { SessionPreferences } from "zksync-account";
+import type { SessionPreferences } from "zksync-sso";
 
 const { request } = storeToRefs(useRequestsStore());
 

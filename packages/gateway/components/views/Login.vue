@@ -59,8 +59,8 @@
 <script lang="ts" setup>
 import { type Address, toHex } from "viem";
 import { zksyncInMemoryNode, zksyncLocalNode } from "viem/chains";
-import { deployAccount, fetchAccount } from "zksync-account/client";
-import { registerNewPasskey } from "zksync-account/client/passkey";
+import { deployAccount, fetchAccount } from "zksync-sso/client";
+import { registerNewPasskey } from "zksync-sso/client/passkey";
 
 const { appMeta } = useAppMeta();
 const { login } = useAccountStore();
