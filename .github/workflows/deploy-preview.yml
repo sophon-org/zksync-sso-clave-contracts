@@ -2,7 +2,7 @@ name: "Preview Auth Server"
 on:
   pull_request:
     paths:
-      - "packages/gateway/**"
+      - "packages/auth-server/**"
       - "packages/sdk/**"
   workflow_dispatch:
 
@@ -33,8 +33,8 @@ jobs:
       - name: Install dependencies
         run: pnpm install -r --frozen-lockfile
 
-      - name: Build gateway
-        run: pnpm nx build gateway
+      - name: Build Auth Server
+        run: pnpm nx build auth-server
 
       - name: Deploy preview
         uses: matter-labs/action-hosting-deploy@main

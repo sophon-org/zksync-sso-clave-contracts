@@ -14,7 +14,7 @@ import type {
 import { type ExtractReturnType, type Method } from "./rpc.js";
 import { Signer } from "./Signer.js";
 
-const DEFAULT_GATEWAY_URL = "https://auth-test.zksync.dev/confirm";
+const DEFAULT_AUTH_SERVER_URL = "https://auth-test.zksync.dev/confirm";
 
 export type WalletProviderSessionPreferences = Omit<SessionPreferences, "expiresAt"> & {
   expiresAt?: Date | bigint;
@@ -25,16 +25,16 @@ export type WalletProviderConstructorOptions = {
   chains: readonly Chain[];
   transports?: Record<number, Transport>;
   session?: WalletProviderSessionPreferences | (() => WalletProviderSessionPreferences | Promise<WalletProviderSessionPreferences>);
-  gatewayUrl?: string;
+  authServerUrl?: string;
 };
 
 export class WalletProvider extends EventEmitter implements ProviderInterface {
   readonly isZksyncAccount = true;
   private signer: Signer;
 
-  constructor({ metadata, chains, transports, session, gatewayUrl }: WalletProviderConstructorOptions) {
+  constructor({ metadata, chains, transports, session, authServerUrl }: WalletProviderConstructorOptions) {
     super();
-    const communicator = new PopupCommunicator(gatewayUrl || DEFAULT_GATEWAY_URL);
+    const communicator = new PopupCommunicator(authServerUrl || DEFAULT_AUTH_SERVER_URL);
     this.signer = new Signer({
       metadata: () => ({
         name: metadata?.name || getWebsiteName() || "Unknown DApp",

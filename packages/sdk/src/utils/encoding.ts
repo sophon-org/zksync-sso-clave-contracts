@@ -1,6 +1,6 @@
 import { type Address, encodeAbiParameters, type Hash, parseAbiParameters, toHex } from "viem";
 
-import type { SessionData } from "../client-gateway/interface.js";
+import type { SessionData } from "../client-auth-server/interface.js";
 import { getSession } from "../utils/session.js";
 
 export const encodeCreateSessionParameters = (session: SessionData) => {

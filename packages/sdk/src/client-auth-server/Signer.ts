@@ -5,7 +5,7 @@ import type { Communicator } from "../communicator/index.js";
 import { getSession } from "../utils/session.js";
 import { StorageItem } from "../utils/storage.js";
 import type { AppMetadata, RequestArguments, SessionPreferences } from "./interface.js";
-import type { ExtractParams, ExtractReturnType, GatewayRpcSchema, Method, RPCRequestMessage, RPCResponseMessage, RpcSchema } from "./rpc.js";
+import type { AuthServerRpcSchema, ExtractParams, ExtractReturnType, Method, RPCRequestMessage, RPCResponseMessage, RpcSchema } from "./rpc.js";
 import type { WalletProviderSessionPreferences } from "./WalletProvider.js";
 
 type Account = {
@@ -36,7 +36,7 @@ type SignerConstructorParams = {
   session?: () => WalletProviderSessionPreferences | Promise<WalletProviderSessionPreferences>;
 };
 
-type ChainsInfo = ExtractReturnType<"eth_requestAccounts", GatewayRpcSchema>["chainsInfo"];
+type ChainsInfo = ExtractReturnType<"eth_requestAccounts", AuthServerRpcSchema>["chainsInfo"];
 
 export class Signer implements SignerInterface {
   private readonly getMetadata: () => AppMetadata;
@@ -151,7 +151,7 @@ export class Signer implements SignerInterface {
         console.error("Failed to get session data. Proceeding connection with no session.", error);
       }
     }
-    const responseMessage = await this.sendRpcRequest<"eth_requestAccounts", GatewayRpcSchema>({
+    const responseMessage = await this.sendRpcRequest<"eth_requestAccounts", AuthServerRpcSchema>({
       method: "eth_requestAccounts",
       params: {
         metadata,

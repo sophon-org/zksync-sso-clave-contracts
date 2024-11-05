@@ -8,7 +8,7 @@ declare module "nuxt/schema" {
       paymaster: `0x${string}`;
     };
     baseUrl: string;
-    gatewayUrl: string;
+    authServerUrl: string;
     explorerUrl: string;
   }
 }

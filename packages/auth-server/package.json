@@ -1,5 +1,5 @@
 {
-  "name": "smart-account-gateway",
+  "name": "zksync-sso-auth-server",
   "private": true,
   "type": "module",
   "scripts": {

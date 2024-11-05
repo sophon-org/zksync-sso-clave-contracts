@@ -60,10 +60,10 @@
       "import": "./dist/_esm/connector/index.js",
       "require": "./dist/_cjs/connector/index.js"
     },
-    "./client-gateway": {
-      "types": "./dist/_types/client-gateway/index.d.ts",
-      "import": "./dist/_esm/client-gateway/index.js",
-      "require": "./dist/_cjs/client-gateway/index.js"
+    "./client-auth-server": {
+      "types": "./dist/_types/client-auth-server/index.d.ts",
+      "import": "./dist/_esm/client-auth-server/index.js",
+      "require": "./dist/_cjs/client-auth-server/index.js"
     },
     "./client": {
       "types": "./dist/_types/client/index.d.ts",
@@ -115,8 +115,8 @@
       "client": [
         "./dist/_types/client/index.d.ts"
       ],
-      "client-gateway": [
-        "./dist/_types/client-gateway/index.d.ts"
+      "client-auth-server": [
+        "./dist/_types/client-auth-server/index.d.ts"
       ],
       "communicator": [
         "./dist/_types/communicator/index.d.ts"

@@ -1,4 +1,4 @@
-import type { ExtractParams, ExtractReturnType, GatewayRpcSchema, Method, RPCRequestMessage, RPCResponseMessage } from "zksync-sso/client-gateway";
+import type { AuthServerRpcSchema, ExtractParams, ExtractReturnType, Method, RPCRequestMessage, RPCResponseMessage } from "zksync-sso/client-auth-server";
 
 export const useRequestsStore = defineStore("requests", () => {
   const { appMeta } = useAppMeta();
@@ -15,7 +15,7 @@ export const useRequestsStore = defineStore("requests", () => {
   communicator.onMessage<RPCRequestMessage<Method>>((message) => "content" in message)
     .then(async (message) => {
       if (message.content.action.method === "eth_requestAccounts" && message.content.action.params && "metadata" in message.content.action.params) {
-        const handshakeData = message.content.action.params as ExtractParams<"eth_requestAccounts", GatewayRpcSchema>;
+        const handshakeData = message.content.action.params as ExtractParams<"eth_requestAccounts", AuthServerRpcSchema>;
         appMeta.value = handshakeData.metadata;
       }
       request.value = message;

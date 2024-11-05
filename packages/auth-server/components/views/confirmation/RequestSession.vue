@@ -116,7 +116,7 @@ import { useTimeAgo } from "@vueuse/core";
 import { type Address, formatUnits } from "viem";
 import { generatePrivateKey, privateKeyToAddress } from "viem/accounts";
 import type { SessionPreferences } from "zksync-sso";
-import type { ExtractReturnType, GatewayRpcSchema } from "zksync-sso/client-gateway";
+import type { AuthServerRpcSchema, ExtractReturnType } from "zksync-sso/client-auth-server";
 import { getSession } from "zksync-sso/utils";
 
 const props = defineProps({
@@ -196,7 +196,7 @@ const confirmConnection = async () => {
         sessionPublicKey: privateKeyToAddress(sessionKey),
       },
     });
-    const response: ExtractReturnType<"eth_requestAccounts", GatewayRpcSchema> = {
+    const response: ExtractReturnType<"eth_requestAccounts", AuthServerRpcSchema> = {
       account: {
         address: client.account.address,
         activeChainId: client.chain.id,

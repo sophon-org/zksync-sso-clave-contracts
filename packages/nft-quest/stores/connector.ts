@@ -18,7 +18,7 @@ export const useConnectorStore = defineStore("connector", () => {
       name: "ZK NFT Quest",
       icon: `${runtimeConfig.public.baseUrl}/favicon.svg`,
     },
-    gatewayUrl: runtimeConfig.public.gatewayUrl,
+    authServerUrl: runtimeConfig.public.authServerUrl,
     session: getSession({
       feeLimit: parseEther("0.1"),
       callPolicies: [{
