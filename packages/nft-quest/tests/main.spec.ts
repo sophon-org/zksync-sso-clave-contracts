@@ -19,10 +19,10 @@ async function waitForServicesToLoad(page: Page): Promise<void> {
   // Wait for auth server to finish loading
   retryCount = 0;
   await page.goto("http://localhost:3002");
-  let authServerHeader = page.getByText("Login to your ZK Account");
+  let authServerHeader = page.getByText("Sign Up");
   while (!(await authServerHeader.isVisible()) && retryCount < maxRetryAttempts) {
     await page.waitForTimeout(1000);
-    authServerHeader = page.getByText("Login to your ZK Account");
+    authServerHeader = page.getByText("Sign Up");
     retryCount++;
 
     console.log(`Waiting for auth server to load (retry ${retryCount})...`);
