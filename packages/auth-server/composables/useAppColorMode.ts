@@ -10,8 +10,8 @@ export const useAppColorMode = () => {
 
   const isDark = ref(mode.value === "dark");
 
-  watchEffect(() => {
-    mode.value = isDark.value ? "dark" : "light";
+  watch(isDark, (dark) => {
+    mode.value = dark ? "dark" : "light";
   });
 
   return {

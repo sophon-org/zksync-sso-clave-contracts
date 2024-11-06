@@ -32,6 +32,8 @@ jobs:
         run: pnpm install -r --frozen-lockfile
 
       - name: Build apps
+        env:
+          NUXT_PUBLIC_DEFAULT_CHAIN_ID: 300
         run: pnpm nx build auth-server
 
       - name: Deploy firebase hosting
