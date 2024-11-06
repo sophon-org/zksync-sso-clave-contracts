@@ -28,7 +28,7 @@ export const useAccountCreate = (_chainId: MaybeRef<SupportedChainId>) => {
       credentialPublicKey,
       uniqueAccountId: credentialId,
       contracts: contractsByChain[chainId.value],
-      paymasterAddress: contractsByChain[chainId.value].accountFactoryPaymaster,
+      paymasterAddress: contractsByChain[chainId.value].accountPaymaster,
     });
 
     login({
