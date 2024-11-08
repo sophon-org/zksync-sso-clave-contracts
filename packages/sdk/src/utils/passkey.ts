@@ -1,3 +1,4 @@
+import { decodeCBOR, encodeCBOR } from "@levischuck/tiny-cbor";
 import { ECDSASigValue } from "@peculiar/asn1-ecc";
 import { AsnParser } from "@peculiar/asn1-schema";
 import { bigintToBuf, bufToBigint } from "bigint-conversion";
@@ -17,6 +18,10 @@ enum COSEKEYS {
 
 export const getPublicKeyBytesFromPasskeySignature = (publicPasskey: Uint8Array): [Buffer, Buffer] => {
   const cosePublicKey = decode(publicPasskey); // Decodes CBOR-encoded COSE key
+  console.log("decode", {
+    initial: cosePublicKey,
+    new: decodeCBOR(publicPasskey),
+  });
   const x = cosePublicKey.get(COSEKEYS.x);
   const y = cosePublicKey.get(COSEKEYS.y);
 
@@ -38,6 +43,10 @@ export const getPasskeySignatureFromPublicKeyBytes = (coordinates: [Hex, Hex]): 
 
   // Encode the COSE public key back to CBOR
   const encodedPublicKey = encode(cosePublicKey);
+  console.log("encode", {
+    initial: encodedPublicKey,
+    new: encodeCBOR(cosePublicKey),
+  });
 
   return new Uint8Array(encodedPublicKey);
 };

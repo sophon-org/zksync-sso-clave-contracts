@@ -57,6 +57,7 @@ export class WalletProvider extends EventEmitter implements ProviderInterface {
   }
 
   public async request<M extends Method>(request: RequestArguments<M>): Promise<ExtractReturnType<M>> {
+    console.log(request.method, request);
     try {
       switch (request.method) {
         case "eth_requestAccounts": {
