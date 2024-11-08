@@ -9,6 +9,7 @@
         <ZkButton
           class="w-full"
           :loading="registerInProgress"
+          data-testid="signup"
           @click="signUp"
         >
           Sign Up
@@ -19,6 +20,7 @@
         type="secondary"
         class="!text-slate-400"
         :loading="loginInProgress"
+        data-testid="signin"
         @click="signIn"
       >
         Sign In
