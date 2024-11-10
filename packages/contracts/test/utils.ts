@@ -147,8 +147,9 @@ export async function deployFactory(wallet: Wallet, implAddress: string, expecte
   const proxyAaArtifact = JSON.parse(await promises.readFile("artifacts-zk/src/AccountProxy.sol/AccountProxy.json", "utf8"));
 
   const deployer = new ContractFactory(factoryArtifact.abi, factoryArtifact.bytecode, wallet);
+  const bytecodeHash = utils.hashBytecode(proxyAaArtifact.bytecode);
   const factory = await deployer.deploy(
-    utils.hashBytecode(proxyAaArtifact.bytecode),
+    bytecodeHash,
     implAddress,
     { customData: { factoryDeps: [proxyAaArtifact.bytecode] } },
   );
@@ -162,11 +163,11 @@ export async function deployFactory(wallet: Wallet, implAddress: string, expecte
 
   if (hre.network.config.verifyURL) {
     logInfo(`Requesting contract verification...`);
-    logInfo(`src/${factoryName}.sol:${factoryName}`);
+    logInfo(`src/AAFactory.sol:AAFactory`);
     await verifyContract({
       address: factoryAddress,
-      contract: `src/${factoryName}.sol:${factoryName}`,
-      constructorArguments: deployer.interface.encodeDeploy([proxyAaBytecodeHash]),
+      contract: `src/AAFactory.sol:AAFactory`,
+      constructorArguments: deployer.interface.encodeDeploy([bytecodeHash, implAddress]),
       bytecode: factoryArtifact.bytecode,
     });
   }
