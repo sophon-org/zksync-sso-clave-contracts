@@ -1,13 +1,13 @@
 import { type Address, encodeAbiParameters, type Hash, parseAbiParameters, toHex } from "viem";
 
-import type { SessionData } from "../client-gateway/interface.js";
+import type { SessionData } from "../client-auth-server/interface.js";
 import { getSession } from "../utils/session.js";
 
 export const encodeCreateSessionParameters = (session: SessionData) => {
   const sessionSpec = {
     components: [
       { name: "signer", type: "address" },
-      { name: "expiry", type: "uint256" },
+      { name: "expiresAt", type: "uint256" },
       {
         components: [
           { name: "limitType", type: "uint8" },
@@ -77,7 +77,7 @@ export const encodeCreateSessionParameters = (session: SessionData) => {
 
   return encodeAbiParameters(
     [sessionSpec],
-    [{ ...getSession(session), signer: session.sessionKey }],
+    [{ ...getSession(session), signer: session.sessionPublicKey }],
   );
 };
 

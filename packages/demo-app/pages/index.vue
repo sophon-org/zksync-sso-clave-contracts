@@ -5,7 +5,7 @@
     </h1>
     <button
       class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
-      @click="connectWallet"
+      @click="address ? disconnectWallet() : connectWallet()"
     >
       {{ address ? "Disconnect" : "Connect" }}
     </button>
@@ -19,11 +19,12 @@
       v-if="address && balance"
       class="mt-4"
     >
-      <p>Balance: {{ balance }}</p>
+      <p>Balance: {{ balance.formatted }} {{ balance.symbol }}</p>
     </div>
     <button
       v-if="address"
       class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+      :disabled="isSendingEth"
       @click="sendTokens()"
     >
       Send 0.1 ETH
@@ -38,108 +39,130 @@
   </div>
 </template>
 
-<script setup>
-import { disconnect, getBalance, watchAccount, sendTransaction } from "@wagmi/core";
-import { createWeb3Modal, defaultWagmiConfig } from "@web3modal/wagmi/vue";
-import { parseEther } from "viem";
-import { zksyncInMemoryNode } from "viem/chains";
-import { zksyncAccountConnector } from "zksync-account/connector";
-import { getSession } from "zksync-account/utils";
+<script lang="ts" setup>
+import { disconnect, getBalance, watchAccount, sendTransaction, createConfig, connect, reconnect, type GetBalanceReturnType } from "@wagmi/core";
+import { zksyncAccountConnector } from "zksync-sso/connector";
+import { zksyncInMemoryNode } from "@wagmi/core/chains";
+import { createWalletClient, http, parseEther, type Address } from "viem";
+import { privateKeyToAccount } from "viem/accounts";
 
-const address = ref(null);
-const balance = ref(null);
-const errorMessage = ref(null);
-const projectId = "dde7b251fcfd7e11d5270497a053816e"; // TODO: Move to env
-
-const config = defaultWagmiConfig({
-  chains: [zksyncInMemoryNode],
-  projectId,
-  appName: "ZKsync SSO Demo",
-  connectors: [
-    zksyncAccountConnector({
-      metadata: {
-        name: "ZKsync SSO Demo",
-        icon: "http://localhost:3004/favicon.ico",
+const testTransferTarget = "0x55bE1B079b53962746B2e86d12f158a41DF294A6";
+const zksyncConnector = zksyncAccountConnector({
+  authServerUrl: "http://localhost:3002/confirm",
+  session: {
+    feeLimit: parseEther("0.1"),
+    transferPolicies: [
+      {
+        target: testTransferTarget,
+        valueLimit: parseEther("0.1"),
       },
-      gatewayUrl: "http://localhost:3002/confirm",
-      session: getSession({
-        feeLimit: { limit: parseEther("0.01") },
-        transferPolicies: [{
-          target: sessionTarget,
-          maxValuePerUse: parseEther("0.1"),
-        }],
-      }),
-    }),
-  ],
+    ],
+  },
 });
+const wagmiConfig = createConfig({
+  chains: [zksyncInMemoryNode],
+  connectors: [zksyncConnector],
+  transports: {
+    [zksyncInMemoryNode.id]: http(),
+  },
+});
+reconnect(wagmiConfig);
 
-const web3modal = createWeb3Modal({ wagmiConfig: config, projectId });
-const sessionTarget = "0x55bE1B079b53962746B2e86d12f158a41DF294A6"; // Rich Account 1
+const address = ref<Address | null>(null);
+const balance = ref<GetBalanceReturnType | null>(null);
+const errorMessage = ref<string | null>(null);
+const isSendingEth = ref<boolean>(false);
 
-// Check for updates to the current account
-watchAccount(config, {
+const fundAccount = async () => {
+  if (!address.value) throw new Error("Not connected");
+
+  const richClient = createWalletClient({
+    account: privateKeyToAccount("0x3eb15da85647edd9a1159a4a13b9e7c56877c4eb33f614546d4db06a51868b1c"),
+    chain: zksyncInMemoryNode,
+    transport: http(),
+  });
+
+  await richClient.sendTransaction({
+    to: address.value,
+    value: parseEther("1"),
+  });
+};
+
+watchAccount(wagmiConfig, {
   async onChange(data) {
-    address.value = data.address;
-
-    if (!address.value) {
-      return;
-    }
-
-    const currentBalance = await getBalance(config, {
-      address: data.address,
-    });
-    balance.value = `${currentBalance.formatted} ${currentBalance.symbol}`;
+    address.value = data.address || null;
   },
 });
 
+watch(address, async () => {
+  if (!address.value) {
+    balance.value = null;
+    return;
+  }
+
+  let currentBalance = await getBalance(wagmiConfig, {
+    address: address.value,
+  });
+  if (currentBalance && currentBalance.value < parseEther("0.2")) {
+    await fundAccount();
+    currentBalance = await getBalance(wagmiConfig, {
+      address: address.value,
+    });
+  }
+
+  balance.value = currentBalance;
+}, { immediate: true });
+
 const connectWallet = async () => {
-  errorMessage.value = "";
-
   try {
-    if (address.value) {
-      await disconnect(config);
-      return;
-    }
-
-    await web3modal.open();
+    errorMessage.value = "";
+    connect(wagmiConfig, {
+      connector: zksyncConnector,
+      chainId: zksyncInMemoryNode.id,
+    });
   } catch (error) {
-    errorMessage.value = "Connect/Disconnect failed, see console for more info.";
+    errorMessage.value = "Connect failed, see console for more info.";
     // eslint-disable-next-line no-console
     console.error("Connection failed:", error);
   }
 };
 
+const disconnectWallet = async () => {
+  await disconnect(wagmiConfig);
+};
+
 const sendTokens = async () => {
-  if (!address.value) {
-    return;
-  }
+  if (!address.value) return;
 
   errorMessage.value = "";
-
+  isSendingEth.value = true;
   try {
-    await sendTransaction(config, {
-      to: sessionTarget,
+    await sendTransaction(wagmiConfig, {
+      to: testTransferTarget,
       value: parseEther("0.1"),
       gas: 100_000_000n,
     });
 
-    const currentBalance = await getBalance(config, {
+    balance.value = await getBalance(wagmiConfig, {
       address: address.value,
     });
-    balance.value = `${currentBalance.formatted} ${currentBalance.symbol}`;
   } catch (error) {
-    let transactionFailureDetails = error.cause?.cause?.cause?.data?.originalError?.cause?.details;
+    // eslint-disable-next-line no-console
+    console.error("Transaction failed:", error);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let transactionFailureDetails = (error as any).cause?.cause?.cause?.data?.originalError?.cause?.details;
     if (!transactionFailureDetails) {
-      transactionFailureDetails = error.cause?.cause?.data?.originalError?.cause?.details;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      transactionFailureDetails = (error as any).cause?.cause?.data?.originalError?.cause?.details;
     }
 
     if (transactionFailureDetails) {
       errorMessage.value = transactionFailureDetails;
     } else {
       errorMessage.value = "Transaction failed, see console for more info.";
-      // eslint-disable-next-line no-console
-      console.error("Transaction failed:", error);
     }
+  } finally {
+    isSendingEth.value = false;
   }
 };
 </script>

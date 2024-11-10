@@ -12,9 +12,8 @@ import "./helpers/Logger.sol";
 contract AAFactory is UpgradeableBeacon {
   bytes32 public immutable beaconProxyBytecodeHash;
 
-  // This 3 step mapping prevents collisions and does the lookup from public to private information
-  // creator => unique id => account info
-  mapping(address => mapping(string => address)) public accountMappings;
+  // This is a mapping from unique id => account address
+  mapping(string => address) public accountMappings;
 
   constructor(bytes32 _beaconProxyBytecodeHash, address implementation) UpgradeableBeacon(implementation) {
     beaconProxyBytecodeHash = _beaconProxyBytecodeHash;
@@ -54,9 +53,9 @@ contract AAFactory is UpgradeableBeacon {
     // add session-key/spend-limit module (similar code)
     IClaveAccount(accountAddress).initialize(initialValidators, initialModules, initialK1Owners);
 
-    if (accountMappings[msg.sender][uniqueAccountId] != address(0)) {
+    if (accountMappings[uniqueAccountId] != address(0)) {
       revert("Account already exists");
     }
-    accountMappings[msg.sender][uniqueAccountId] = accountAddress;
+    accountMappings[uniqueAccountId] = accountAddress;
   }
 }

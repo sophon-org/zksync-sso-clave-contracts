@@ -2,15 +2,15 @@ import "@matterlabs/hardhat-zksync-node/dist/type-extensions";
 import "@matterlabs/hardhat-zksync-verify/dist/src/type-extensions";
 
 import dotenv from "dotenv";
-import { ethers } from "ethers";
+import { ethers, parseEther } from "ethers";
 import { readFileSync } from "fs";
 import { promises } from "fs";
 import * as hre from "hardhat";
-import { base64UrlToUint8Array, getPublicKeyBytesFromPasskeySignature, unwrapEC2Signature } from "zksync-account/utils";
 import { ContractFactory, Provider, utils, Wallet } from "zksync-ethers";
+import { base64UrlToUint8Array, getPublicKeyBytesFromPasskeySignature, unwrapEC2Signature } from "zksync-sso/utils";
 
-import type { AAFactory, ERC20, ERC7579Account, SessionKeyValidator, WebAuthValidator } from "../typechain-types";
-import { AAFactory__factory, ERC20__factory, ERC7579Account__factory, SessionKeyValidator__factory, WebAuthValidator__factory } from "../typechain-types";
+import { AAFactory, ERC20, ERC7579Account, ExampleAuthServerPaymaster, SessionKeyValidator, WebAuthValidator } from "../typechain-types";
+import { AAFactory__factory, ERC20__factory, ERC7579Account__factory, ExampleAuthServerPaymaster__factory, SessionKeyValidator__factory, WebAuthValidator__factory } from "../typechain-types";
 
 export class ContractFixtures {
   readonly wallet: Wallet = getWallet(LOCAL_RICH_WALLETS[0].privateKey);
@@ -91,6 +91,32 @@ export class ContractFixtures {
     const contract = await create2("TestERC20", this.wallet, this.ethersStaticSalt, [mintTo]);
     return ERC20__factory.connect(await contract.getAddress(), this.wallet);
   }
+
+  async deployExampleAuthServerPaymaster(
+    aaFactoryAddress: string,
+    sessionKeyValidatorAddress: string,
+  ): Promise<ExampleAuthServerPaymaster> {
+    const contract = await create2(
+      "ExampleAuthServerPaymaster",
+      this.wallet,
+      this.ethersStaticSalt,
+      [
+        aaFactoryAddress,
+        sessionKeyValidatorAddress,
+      ],
+    );
+    const paymasterAddress = ExampleAuthServerPaymaster__factory.connect(await contract.getAddress(), this.wallet);
+
+    // Fund the paymaster with 1 ETH
+    await (
+      await this.wallet.sendTransaction({
+        to: paymasterAddress,
+        value: parseEther("1"),
+      })
+    ).wait();
+
+    return paymasterAddress;
+  }
 }
 
 // Load env file
@@ -132,6 +158,17 @@ export async function deployFactory(wallet: Wallet, implAddress: string, expecte
     console.warn(`AAFactory.sol address is not the expected default address (${expectedAddress}).`);
     console.warn(`Please update the default value in your tests or restart Era Test Node. Proceeding with expected default address...`);
     return AAFactory__factory.connect(expectedAddress, wallet);
+  }
+
+  if (hre.network.config.verifyURL) {
+    logInfo(`Requesting contract verification...`);
+    logInfo(`src/${factoryName}.sol:${factoryName}`);
+    await verifyContract({
+      address: factoryAddress,
+      contract: `src/${factoryName}.sol:${factoryName}`,
+      constructorArguments: deployer.interface.encodeDeploy([proxyAaBytecodeHash]),
+      bytecode: factoryArtifact.bytecode,
+    });
   }
 
   return AAFactory__factory.connect(factoryAddress, wallet);
@@ -183,6 +220,18 @@ export const create2 = async (contractName: string, wallet: Wallet, salt: ethers
   const standardCreate2Address = utils.create2Address(wallet.address, bytecodeHash, salt, args ? constructorArgs : "0x");
   const accountCode = await wallet.provider.getCode(standardCreate2Address);
   if (accountCode != "0x") {
+    logInfo(`${contractArtifact.sourceName}:${contractName}`);
+    logInfo("Contract already exists!");
+    // if (hre.network.config.verifyURL) {
+    //   logInfo(`Requesting contract verification...`);
+    //   await verifyContract({
+    //     address: standardCreate2Address,
+    //     contract: `${contractArtifact.sourceName}:${contractName}`,
+    //     constructorArguments: constructorArgs,
+    //     bytecode: accountCode,
+    //   });
+    // }
+
     return new ethers.Contract(standardCreate2Address, contractArtifact.abi, wallet);
   }
 
@@ -195,6 +244,17 @@ export const create2 = async (contractName: string, wallet: Wallet, salt: ethers
     logWarning("Unexpected Create2 address, perhaps salt is misconfigured?");
     logWarning(`addressFromCreate2: ${standardCreate2Address}`);
     logWarning(`deployedContractAddress: ${deployedContractAddress}`);
+  }
+
+  if (hre.network.config.verifyURL) {
+    logInfo(`Requesting contract verification...`);
+    logInfo(`${contractArtifact.sourceName}:${contractName}`);
+    await verifyContract({
+      address: deployedContractAddress,
+      contract: `${contractArtifact.sourceName}:${contractName}`,
+      constructorArguments: constructorArgs,
+      bytecode: accountCode,
+    });
   }
 
   return new ethers.Contract(deployedContractAddress, contractArtifact.abi, wallet);

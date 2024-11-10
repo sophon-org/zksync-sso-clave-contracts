@@ -3,13 +3,19 @@
     {
       "target": "zksync-auth-server-staging",
       "trailingSlash": false,
-      "public": "packages/gateway/.output/public",
+      "public": "packages/auth-server/.output/public",
       "ignore": ["firebase.json", "**/.*", "**/node_modules/**"]
     },
     {
       "target": "stake-demo-app",
       "trailingSlash": false,
       "public": "packages/bank-demo/.output/public",
+      "ignore": ["firebase.json", "**/.*", "**/node_modules/**"]
+    },
+    {
+      "target": "nft-quest-testnet",
+      "trailingSlash": false,
+      "public": "packages/nft-quest/.output/public",
       "ignore": ["firebase.json", "**/.*", "**/node_modules/**"]
     }
   ]
