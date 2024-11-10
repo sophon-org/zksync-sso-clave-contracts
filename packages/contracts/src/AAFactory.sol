@@ -23,7 +23,6 @@ contract AAFactory is UpgradeableBeacon {
 
   function deployProxy7579Account(
     bytes32 salt,
-    address accountImplementionLocation,
     string calldata uniqueAccountId,
     bytes[] calldata initialValidators,
     bytes[] calldata initialModules,

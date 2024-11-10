@@ -274,7 +274,6 @@ describe("SessionKeyModule tests", function () {
 
     const deployTx = await factoryContract.deployProxy7579Account(
       randomBytes(32),
-      await fixtures.getAccountImplAddress(),
       "id",
       [],
       [sessionKeyPayload],

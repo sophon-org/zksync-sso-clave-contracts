@@ -93,7 +93,6 @@ export const deployAccount = async <
     functionName: "deployProxy7579Account",
     args: [
       toHex(args.salt),
-      args.contracts.accountImplementation,
       accountId,
       [encodedPasskeyModuleData],
       [encodedSessionKeyModuleData],
