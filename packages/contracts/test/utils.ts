@@ -13,7 +13,6 @@ import type { AAFactory, ERC20, ERC7579Account, SessionKeyValidator, WebAuthVali
 import { AAFactory__factory, ERC20__factory, ERC7579Account__factory, SessionKeyValidator__factory, WebAuthValidator__factory } from "../typechain-types";
 
 export class ContractFixtures {
-  // NOTE: CHANGING THE READONLY VALUES WILL REQUIRE UPDATING THE STATIC SIGNATURE
   readonly wallet: Wallet = getWallet(LOCAL_RICH_WALLETS[0].privateKey);
   readonly ethersStaticSalt = new Uint8Array([
     205, 241, 161, 186, 101, 105, 79,
@@ -25,10 +24,15 @@ export class ContractFixtures {
 
   private _aaFactory: AAFactory;
   async getAaFactory() {
+    const implAddress = await this.getAccountImplAddress();
     if (!this._aaFactory) {
-      this._aaFactory = await deployFactory("AAFactory", this.wallet);
+      this._aaFactory = await deployFactory(this.wallet, implAddress);
     }
     return this._aaFactory;
+  }
+
+  async getAaFactoryAddress() {
+    return (await this.getAaFactory()).getAddress();
   }
 
   private _sessionKeyModule: SessionKeyValidator;
@@ -83,16 +87,6 @@ export class ContractFixtures {
     return this._accountImplAddress;
   }
 
-  private _proxyAccountContract: ERC7579Account;
-  async getProxyAccountContract() {
-    const claveAddress = await this.getAccountImplAddress();
-    if (!this._proxyAccountContract) {
-      const contract = await create2("AccountProxy", this.wallet, this.ethersStaticSalt, [claveAddress]);
-      this._proxyAccountContract = ERC7579Account__factory.connect(await contract.getAddress(), this.wallet);
-    }
-    return this._proxyAccountContract;
-  }
-
   async deployERC20(mintTo: string): Promise<ERC20> {
     const contract = await create2("TestERC20", this.wallet, this.ethersStaticSalt, [mintTo]);
     return ERC20__factory.connect(await contract.getAddress(), this.wallet);
@@ -122,16 +116,20 @@ export const getProviderL1 = () => {
   return provider;
 };
 
-export async function deployFactory(factoryName: string, wallet: Wallet, expectedAddress?: string): Promise<AAFactory> {
-  const factoryArtifact = JSON.parse(await promises.readFile(`artifacts-zk/src/${factoryName}.sol/${factoryName}.json`, "utf8"));
+export async function deployFactory(wallet: Wallet, implAddress: string, expectedAddress?: string): Promise<AAFactory> {
+  const factoryArtifact = JSON.parse(await promises.readFile("artifacts-zk/src/AAFactory.sol/AAFactory.json", "utf8"));
   const proxyAaArtifact = JSON.parse(await promises.readFile("artifacts-zk/src/AccountProxy.sol/AccountProxy.json", "utf8"));
 
   const deployer = new ContractFactory(factoryArtifact.abi, factoryArtifact.bytecode, wallet);
-  const factory = await deployer.deploy(utils.hashBytecode(proxyAaArtifact.bytecode));
+  const factory = await deployer.deploy(
+    utils.hashBytecode(proxyAaArtifact.bytecode),
+    implAddress,
+    { customData: { factoryDeps: [proxyAaArtifact.bytecode] } }
+  );
   const factoryAddress = await factory.getAddress();
 
   if (expectedAddress && factoryAddress != expectedAddress) {
-    console.warn(`${factoryName}.sol address is not the expected default address (${expectedAddress}).`);
+    console.warn(`AAFactory.sol address is not the expected default address (${expectedAddress}).`);
     console.warn(`Please update the default value in your tests or restart Era Test Node. Proceeding with expected default address...`);
     return AAFactory__factory.connect(expectedAddress, wallet);
   }

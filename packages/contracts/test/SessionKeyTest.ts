@@ -6,8 +6,9 @@ import { it } from "mocha";
 import { SmartAccount, utils } from "zksync-ethers";
 
 import type { ERC20 } from "../typechain-types";
-import { ERC7579Account__factory } from "../typechain-types";
+import { ERC7579Account__factory, AAFactory__factory } from "../typechain-types";
 import type { SessionLib } from "../typechain-types/src/validators/SessionKeyValidator";
+import type { AAFactory } from "../typechain-types/src/AAFactory";
 import { ContractFixtures, getProvider, logInfo } from "./utils";
 
 const fixtures = new ContractFixtures();
@@ -249,8 +250,6 @@ describe("SessionKeyModule tests", function () {
     assert(verifierContract != null, "No verifier deployed");
     const sessionModuleContract = await fixtures.getSessionKeyContract();
     assert(sessionModuleContract != null, "No session module deployed");
-    const proxyContract = await fixtures.getProxyAccountContract();
-    assert(proxyContract != null, "No proxy account deployed");
     const erc7579Contract = await fixtures.getAccountImplContract();
     assert(erc7579Contract != null, "No ERC7579 deployed");
     const factoryContract = await fixtures.getAaFactory();
@@ -260,7 +259,6 @@ describe("SessionKeyModule tests", function () {
     logInfo(`Passkey Address                : ${await verifierContract.getAddress()}`);
     logInfo(`Account Factory Address        : ${await factoryContract.getAddress()}`);
     logInfo(`Account Implementation Address : ${await erc7579Contract.getAddress()}`);
-    logInfo(`Proxy Account Address          : ${await proxyContract.getAddress()}`);
   });
 
   it("should deploy proxy account via factory", async () => {
@@ -402,6 +400,26 @@ describe("SessionKeyModule tests", function () {
         to: await erc20.getAddress(),
         data: erc20.interface.encodeFunctionData("transfer", [sessionTarget, 1n]),
       });
+    });
+  });
+
+  describe("Upgrade tests", function () {
+    let beacon: AAFactory;
+
+    it("should check implementation address", async () => {
+      beacon = AAFactory__factory.connect(await fixtures.getAaFactoryAddress(), fixtures.wallet);
+      expect(await beacon.implementation()).to.equal(await fixtures.getAccountImplAddress());
+    });
+
+    it("should upgrade implementation", async () => {
+      const newImpl = await hre.deployer.deploy("Dummy", []);
+      await beacon.upgradeTo(await newImpl.getAddress());
+      expect(await beacon.implementation()).to.equal(await newImpl.getAddress());
+    });
+
+    it("should check that proxy uses new implementation", async () => {
+      const proxy = new ethers.Contract(proxyAccountAddress, ["function dummy() pure returns (string)"], provider);
+      expect(await proxy.dummy()).to.equal("dummy");
     });
   });
 
