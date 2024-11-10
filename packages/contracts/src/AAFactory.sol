@@ -10,7 +10,7 @@ import { UpgradeableBeacon } from "@openzeppelin/contracts/proxy/beacon/Upgradea
 import "./helpers/Logger.sol";
 
 contract AAFactory is UpgradeableBeacon {
-  bytes32 immutable public beaconProxyBytecodeHash;
+  bytes32 public immutable beaconProxyBytecodeHash;
 
   // This 3 step mapping prevents collisions and does the lookup from public to private information
   // creator => unique id => account info

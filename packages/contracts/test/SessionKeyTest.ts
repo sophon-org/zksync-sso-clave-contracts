@@ -6,9 +6,9 @@ import { it } from "mocha";
 import { SmartAccount, utils } from "zksync-ethers";
 
 import type { ERC20 } from "../typechain-types";
-import { ERC7579Account__factory, AAFactory__factory } from "../typechain-types";
-import type { SessionLib } from "../typechain-types/src/validators/SessionKeyValidator";
+import { AAFactory__factory, ERC7579Account__factory } from "../typechain-types";
 import type { AAFactory } from "../typechain-types/src/AAFactory";
+import type { SessionLib } from "../typechain-types/src/validators/SessionKeyValidator";
 import { ContractFixtures, getProvider, logInfo } from "./utils";
 
 const fixtures = new ContractFixtures();

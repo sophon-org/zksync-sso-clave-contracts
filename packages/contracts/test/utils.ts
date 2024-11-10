@@ -124,7 +124,7 @@ export async function deployFactory(wallet: Wallet, implAddress: string, expecte
   const factory = await deployer.deploy(
     utils.hashBytecode(proxyAaArtifact.bytecode),
     implAddress,
-    { customData: { factoryDeps: [proxyAaArtifact.bytecode] } }
+    { customData: { factoryDeps: [proxyAaArtifact.bytecode] } },
   );
   const factoryAddress = await factory.getAddress();
 
