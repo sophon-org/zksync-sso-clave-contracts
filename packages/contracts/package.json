@@ -1,5 +1,5 @@
 {
-  "name": "zksync-account-sdk-contracts",
+  "name": "zksync-sso-sdk-contracts",
   "description": "Smart contracts for modular account deployment",
   "private": true,
   "author": "Matter Labs",
@@ -46,6 +46,6 @@
     "ts-node": "^10.9.2",
     "typescript": "^5.5.4",
     "viem": "^2.21.6",
-    "zksync-account": "workspace:*"
+    "zksync-sso": "workspace:*"
   }
 }
