@@ -31,3 +31,5 @@ playwright/.cache/
 .DS_Store
 
 dist
+
+firebase-debug.log

@@ -4,7 +4,13 @@
       "target": "zksync-auth-server-staging",
       "trailingSlash": false,
       "public": "packages/auth-server/.output/public",
-      "ignore": ["firebase.json", "**/.*", "**/node_modules/**"]
+      "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
+      "rewrites": [
+        {
+          "source": "**",
+          "destination": "/index.html"
+        }
+      ]
     },
     {
       "target": "stake-demo-app",
