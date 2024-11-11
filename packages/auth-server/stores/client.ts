@@ -15,32 +15,27 @@ export const blockExplorerApiByChain: Record<SupportedChainId, string> = {
 
 type ChainContracts = PasskeyRequiredContracts & {
   accountFactory: NonNullable<PasskeyRequiredContracts["accountFactory"]>;
-  accountImplementation: NonNullable<PasskeyRequiredContracts["accountImplementation"]>;
 };
 export const contractsByChain: Record<SupportedChainId, ChainContracts> = {
   [zksync.id]: {
     session: "0x",
     passkey: "0x",
     accountFactory: "0x",
-    accountImplementation: "0x",
   },
   [zksyncSepoliaTestnet.id]: {
     session: "0x64AEB39926631F9601D78E3024D32632564C057B",
     passkey: "0x7AC1718A54372B5D5fDAca2B7aB6dC6019078d20",
     accountFactory: "0x35b135308f93B8d13811b2193F84B4a4dAbecAe1",
-    accountImplementation: "0xCcACB2451dAAdCA7f3A9e4fB5931551F32dEe849",
   },
   [zksyncLocalNode.id]: {
     session: "0x",
     passkey: "0x",
     accountFactory: "0x",
-    accountImplementation: "0x",
   },
   [zksyncInMemoryNode.id]: {
     session: "0xCfcCD82F2fA50d86e8C91c1cE75f6935806Ae4D2",
     passkey: "0x07734BA326b6AD13BfC0115b0903EB14268F1617",
-    accountFactory: "0x23b13d016E973C9915c6252271fF06cCA2098885",
-    accountImplementation: "0x0fA8Ed8e24db620f5d80c2683D16d405a5357450",
+    accountFactory: "0xaAF5f437fB0524492886fbA64D703df15BF619AE",
   },
 };
 
