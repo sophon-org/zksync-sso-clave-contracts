@@ -33,7 +33,7 @@
     "ts-node": "10.9.2",
     "typechain": "8.3.2",
     "typescript": "5.6.2",
-    "zksync-ethers": "6.13.0"
+    "zksync-ethers": "6.15.0"
   },
   "dependencies": {
     "@matterlabs/zksync-contracts": "^0.6.1",

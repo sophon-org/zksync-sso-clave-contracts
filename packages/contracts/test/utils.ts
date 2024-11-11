@@ -122,24 +122,12 @@ export class ContractFixtures {
 // Load env file
 dotenv.config();
 
-// TODO: remove once SDK fix is released
-class FixedProvider extends Provider {
-  getRpcTransaction(tx: ethers.TransactionRequest) {
-    const result = <any> super.getRpcTransaction(tx);
-    if (tx.customData?.customSignature) {
-      result.eip712Meta ??= {};
-      result.eip712Meta.customSignature = Array.from(ethers.getBytes(tx.customData.customSignature));
-    }
-    return result;
-  }
-}
-
 export const getProvider = () => {
   const rpcUrl = hre.network.config["url"];
   if (!rpcUrl) throw `⛔️ RPC URL wasn't found in "${hre.network.name}"! Please add a "url" field to the network config in hardhat.config.ts`;
 
   // Initialize ZKsync Provider
-  const provider = new FixedProvider(rpcUrl);
+  const provider = new Provider(rpcUrl);
 
   return provider;
 };
