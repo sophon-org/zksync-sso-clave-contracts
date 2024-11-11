@@ -8,7 +8,7 @@ import { encodeCreateSessionParameters, encodeModuleData, encodePasskeyModulePar
 import { noThrow } from "../../utils/helpers.js";
 import { getPasskeySignatureFromPublicKeyBytes, getPublicKeyBytesFromPasskeySignature } from "../../utils/passkey.js";
 
-/* TODO: try to get rid of most of the contract params like accountImplementation, passkey, session */
+/* TODO: try to get rid of most of the contract params like passkey, session */
 /* it should come from factory, not passed manually each time */
 export type DeployAccountArgs = {
   credentialPublicKey: Uint8Array; // Public key of the previously registered
@@ -18,7 +18,6 @@ export type DeployAccountArgs = {
   uniqueAccountId?: string; // Unique account ID, can be omitted if you don't need it
   contracts: {
     accountFactory: Address;
-    accountImplementation: Address;
     passkey: Address;
     session: Address;
   };
@@ -35,7 +34,6 @@ export type FetchAccountArgs = {
   expectedOrigin?: string; // Expected origin of the passkey
   contracts: {
     accountFactory: Address;
-    accountImplementation: Address;
     passkey: Address;
     session: Address;
   };
