@@ -4,7 +4,7 @@ import { getGeneralPaymasterInput } from "viem/zksync";
 
 import { FactoryAbi } from "../../abi/Factory.js";
 import type { SessionData } from "../../client-auth-server/interface.js";
-import { encodeCreateSessionParameters, encodeModuleData, encodePasskeyModuleParameters } from "../../utils/encoding.js";
+import { encodeModuleData, encodePasskeyModuleParameters, encodeSession } from "../../utils/encoding.js";
 import { noThrow } from "../../utils/helpers.js";
 import { getPasskeySignatureFromPublicKeyBytes, getPublicKeyBytesFromPasskeySignature } from "../../utils/passkey.js";
 
@@ -80,7 +80,7 @@ export const deployAccount = async <
 
   const encodedSessionKeyModuleData = encodeModuleData({
     address: args.contracts.session,
-    parameters: args.initialSession == null ? "0x" : encodeCreateSessionParameters(args.initialSession),
+    parameters: args.initialSession == null ? "0x" : encodeSession(args.initialSession),
   });
 
   let deployProxyArgs = {

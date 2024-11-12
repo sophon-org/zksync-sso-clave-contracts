@@ -8,7 +8,7 @@ import type { AppMetadata, RequestArguments, SessionPreferences } from "./interf
 import type { AuthServerRpcSchema, ExtractParams, ExtractReturnType, Method, RPCRequestMessage, RPCResponseMessage, RpcSchema } from "./rpc.js";
 import type { WalletProviderSessionPreferences } from "./WalletProvider.js";
 
-type Account = {
+export type Account = {
   address: Address;
   activeChainId: Chain["id"];
   session?: SessionPreferences & { sessionKey: Hash } | undefined;

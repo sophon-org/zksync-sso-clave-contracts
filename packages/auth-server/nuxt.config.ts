@@ -44,7 +44,7 @@ export default defineNuxtConfig({
   runtimeConfig: {
     public: {
       chain: zksyncInMemoryNode,
-      paymaster: "0x0683E542081D9CeBBFe83f07A3102eB2Da318613",
+      paymaster: "0x2d4E123dEe0554cC19CdE4A8914BDdF1F4192B93",
     },
   },
   $production: {
