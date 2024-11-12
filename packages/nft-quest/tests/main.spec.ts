@@ -19,10 +19,10 @@ async function waitForServicesToLoad(page: Page): Promise<void> {
   // Wait for auth server to finish loading
   retryCount = 0;
   await page.goto("http://localhost:3002");
-  let authServerHeader = page.getByText("Login to your ZK Account");
+  let authServerHeader = page.getByTestId("signup");
   while (!(await authServerHeader.isVisible()) && retryCount < maxRetryAttempts) {
     await page.waitForTimeout(1000);
-    authServerHeader = page.getByText("Login to your ZK Account");
+    authServerHeader = page.getByTestId("signup");
     retryCount++;
 
     console.log(`Waiting for auth server to load (retry ${retryCount})...`);
@@ -78,7 +78,7 @@ test("Create account, session key, and mint NFT", async ({ page }) => {
   console.log(`WebAuthn Authenticator ID: ${authenticatorId}`);
 
   // Click Sign Up
-  await popup.getByRole("button", { name: "Sign Up", exact: true }).click();
+  await popup.getByTestId("signup").click();
   await expect(popup.getByTestId("spinner")).toHaveCount(0, { timeout: 10_000 });
 
   // Save credentials.id for later tests
