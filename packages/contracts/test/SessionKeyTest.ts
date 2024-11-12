@@ -143,9 +143,7 @@ class SessionTester {
       ...await this.aaTxTemplate(),
       ...txRequest,
     };
-    // TODO: uncomment once gas estimation is fixed one era-test-node.
-    // It works fine with the local server.
-    // aaTx.gasLimit = await provider.estimateGas(aaTx);
+    aaTx.gasLimit = await provider.estimateGas(aaTx);
     logInfo(`\`sessionTx\` gas estimated: ${await provider.estimateGas(aaTx)}`);
 
     const signedTransaction = await this.sessionAccount.signTransaction(aaTx);
@@ -381,7 +379,6 @@ describe("SessionKeyModule tests", function () {
       await tester.sendTxSuccess({
         to: await erc20.getAddress(),
         data: erc20.interface.encodeFunctionData("transfer", [sessionTarget, 1000n]),
-        gasLimit: 10_000_000n,
       });
       expect(await erc20.balanceOf(sessionTarget))
         .to.equal(1000n, "session target should have received the tokens");
