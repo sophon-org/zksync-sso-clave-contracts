@@ -57,9 +57,6 @@ const formatLimitPreferences = (limit: PartialLimit): Limit => {
 };
 
 const formatDatePreferences = (date: bigint | Date): bigint => {
-  if (!date) {
-    return BigInt(Math.floor(Date.now() / 1000) + 60 * 60 * 24); // 24h by default
-  }
   if (date instanceof Date) {
     return BigInt(Math.floor(date.getTime() / 1000));
   }
