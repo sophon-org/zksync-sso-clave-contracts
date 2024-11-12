@@ -5,7 +5,7 @@ import "@matterlabs/zksync-contracts/l2/system-contracts/Constants.sol";
 import "@matterlabs/zksync-contracts/l2/system-contracts/libraries/SystemContractsCaller.sol";
 
 import { IClaveAccount } from "./interfaces/IClaveAccount.sol";
-import { UpgradeableBeacon } from "@openzeppelin/contracts/proxy/beacon/UpgradeableBeacon.sol";
+import { UpgradeableBeacon } from "./UpgradeableBeacon.sol";
 
 import "./helpers/Logger.sol";
 
