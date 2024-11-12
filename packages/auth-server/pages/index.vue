@@ -20,10 +20,10 @@
         type="secondary"
         class="!text-slate-400"
         :loading="loginInProgress"
-        data-testid="signin"
-        @click="signIn"
+        data-testid="login"
+        @click="logIn"
       >
-        Sign In
+        Log In
       </ZkButton>
     </div>
 
@@ -60,7 +60,7 @@ const signUp = async () => {
   await createAccount();
   navigateTo("/dashboard");
 };
-const signIn = async () => {
+const logIn = async () => {
   await loginToAccount();
   navigateTo("/dashboard");
 };
