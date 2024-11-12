@@ -148,10 +148,7 @@ function decodeValue(buffer: Buffer, offset: number): [number | Buffer, number] 
 }
 
 export const getPublicKeyBytesFromPasskeySignature = (publicPasskey: Uint8Array): [Buffer, Buffer] => {
-  console.log("decode");
-  console.log({ publicPasskey });
   const cosePublicKey = decodeMap(Buffer.from(publicPasskey)); // Decodes CBOR-encoded COSE key
-  console.log({ cosePublicKey });
   const x = cosePublicKey.get(COSEKEYS.x) as Buffer;
   const y = cosePublicKey.get(COSEKEYS.y) as Buffer;
 

@@ -68,8 +68,9 @@ const { requestChain } = storeToRefs(useRequestsStore());
 const runtimeConfig = useRuntimeConfig();
 
 const { inProgress: registerInProgress, execute: createAccount } = useAsync(async () => {
-  let name = `ZK Auth ${(new Date()).toLocaleDateString("en-US")}`;
-  name += ` ${(new Date()).toLocaleTimeString("en-US")}`;
+  // Format passkey display name similar to "ZK SSO 11/11/2024 01:46 PM"
+  let name = `ZK SSO ${(new Date()).toLocaleDateString("en-US")}`;
+  name += ` ${(new Date()).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
 
   const {
     credentialPublicKey,

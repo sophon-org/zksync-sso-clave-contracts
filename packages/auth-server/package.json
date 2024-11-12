@@ -3,8 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "postinstall": "nuxt prepare",
-    "preview": "nuxt preview"
+    "postinstall": "nuxt prepare"
   },
   "dependencies": {
     "@heroicons/vue": "^2.1.5",

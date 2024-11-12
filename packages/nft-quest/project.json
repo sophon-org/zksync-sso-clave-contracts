@@ -16,7 +16,8 @@
             "prefix": "NFT-Quest:"
           }
         ]
-      }
+      },
+      "dependsOn": ["nft-quest-contracts:deploy:local"]
     },
     "build": {
       "executor": "nx:run-commands",
