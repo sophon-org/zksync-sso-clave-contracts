@@ -11,14 +11,12 @@
             "command": "pnpm nx dev auth-server",
             "prefix": "Auth-Server:"
           },
-
           {
             "command": "PORT=3006 nuxt dev",
             "prefix": "NFT-Quest:"
           }
         ]
-      },
-      "dependsOn": ["nft-quest-contracts:deploy:local"]
+      }
     },
     "build": {
       "executor": "nx:run-commands",

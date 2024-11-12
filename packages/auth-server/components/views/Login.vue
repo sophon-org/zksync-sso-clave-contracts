@@ -58,7 +58,6 @@
 
 <script lang="ts" setup>
 import { type Address, toHex } from "viem";
-import { zksyncInMemoryNode, zksyncLocalNode } from "viem/chains";
 import { deployAccount, fetchAccount } from "zksync-sso/client";
 import { registerNewPasskey } from "zksync-sso/client/passkey";
 
@@ -70,10 +69,7 @@ const runtimeConfig = useRuntimeConfig();
 
 const { inProgress: registerInProgress, execute: createAccount } = useAsync(async () => {
   let name = `ZK Auth ${(new Date()).toLocaleDateString("en-US")}`;
-  if (requestChain.value!.id == zksyncInMemoryNode.id || requestChain.value!.id == zksyncLocalNode.id) {
-    // For local testing, append the time
-    name += ` ${(new Date()).toLocaleTimeString("en-US")}`;
-  }
+  name += ` ${(new Date()).toLocaleTimeString("en-US")}`;
 
   const {
     credentialPublicKey,

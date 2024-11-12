@@ -17,6 +17,24 @@ export default defineNuxtConfig({
     },
   },
   ssr: false,
+  vite: {
+    mode: "development",
+    build: {
+      minify: false,
+      rollupOptions: {
+        output: {
+          manualChunks: undefined,
+        },
+      },
+    },
+  },
+  // nitro: {
+  //   esbuild: {
+  //     options: {
+  //       target: 'esnext'
+  //     }
+  //   }
+  // },
   devServer: {
     port: 3002,
   },
@@ -43,15 +61,15 @@ export default defineNuxtConfig({
   },
   runtimeConfig: {
     public: {
-      chain: zksyncInMemoryNode,
-      paymaster: "0x0683E542081D9CeBBFe83f07A3102eB2Da318613",
+      chain: zksyncSepoliaTestnet,
+      paymaster: "0xA18f9a11565eFAF0bf0DDe37B8960eACDb8AA538",
     },
   },
   $production: {
     runtimeConfig: {
       public: {
         chain: zksyncSepoliaTestnet,
-        paymaster: "0x384Cac169CDcb7c515ff3A9e7f1236D2a1e8924C",
+        paymaster: "0xA18f9a11565eFAF0bf0DDe37B8960eACDb8AA538",
       },
     },
   },
