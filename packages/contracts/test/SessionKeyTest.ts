@@ -224,7 +224,11 @@ class SessionTester {
         gasPerPubdata: utils.DEFAULT_GAS_PER_PUBDATA_LIMIT,
         customSignature: abiCoder.encode(
           ["bytes", "address", "bytes[]"],
-          [ethers.zeroPadValue("0x1b", 65), await fixtures.getSessionKeyModuleAddress(), [await this.encodeSession()]],
+          [
+            ethers.zeroPadValue("0x1b", 65),
+            await fixtures.getSessionKeyModuleAddress(),
+            [await this.encodeSession()],
+          ],
         ),
       },
       gasLimit: 0n,

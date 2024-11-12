@@ -23,7 +23,7 @@ export function getLimit(limit: bigint | Limit | undefined) {
       period: 0n,
     };
   }
-  if (!limit.period) {
+  if (!limit.period || limit.period == 0n) {
     return {
       limitType: LimitType.Lifetime,
       limit: BigInt(limit.limit),

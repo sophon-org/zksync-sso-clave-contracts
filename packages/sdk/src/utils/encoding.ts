@@ -75,10 +75,8 @@ export const encodeSession = (session: SessionData) => {
     type: "tuple",
   };
 
-  return encodeAbiParameters(
-    [sessionSpec],
-    [{ ...getSession(session), signer: session.sessionPublicKey }],
-  );
+  const fullSession = { ...getSession(session), signer: session.sessionPublicKey };
+  return encodeAbiParameters([sessionSpec], [fullSession]);
 };
 
 export const encodePasskeyModuleParameters = (passkey: { passkeyPublicKey: [Buffer, Buffer]; expectedOrigin: string }) => {
