@@ -10,7 +10,9 @@ export const useConnectorStore = defineStore("connector", () => {
     zksyncInMemoryNode,
     zksyncLocalNode,
   ] as const;
+  const chain = supportedChains.filter((x) => x.id == runtimeConfig.public.chain.id)[0];
   type SupportedChainId = (typeof supportedChains)[number]["id"];
+  if (!chain) throw new Error(`Chain with id ${runtimeConfig.public.chain.id} was not found in supported chains list`);
 
   const connector = zksyncAccountConnector({
     metadata: {
@@ -27,7 +29,7 @@ export const useConnectorStore = defineStore("connector", () => {
     },
   });
   const wagmiConfig = createConfig({
-    chains: supportedChains,
+    chains: [chain],
     connectors: [connector as CreateConnectorFn],
     transports: (Object.fromEntries(supportedChains.map((chain) => [chain.id, http()]))) as Record<SupportedChainId, ReturnType<typeof http>>,
   });
@@ -44,9 +46,6 @@ export const useConnectorStore = defineStore("connector", () => {
   });
 
   const connectAccount = async () => {
-    const chain = supportedChains.filter((x) => x.id == runtimeConfig.public.chain.id)[0];
-    if (!chain) throw new Error(`Chain with id ${runtimeConfig.public.chain.id} is missing from the supported chains list`);
-
     return await connect(wagmiConfig, {
       connector,
       chainId: chain.id,
