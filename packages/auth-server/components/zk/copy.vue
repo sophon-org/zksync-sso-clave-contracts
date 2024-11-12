@@ -1,7 +1,7 @@
 <template>
   <ZkTooltip :label="copyLabel">
     <ZkButtonIcon
-      icon="open_in_new"
+      icon="content_copy"
       :ui="{ button: { base: 'py-0' } }"
       @click="copyContent"
     />

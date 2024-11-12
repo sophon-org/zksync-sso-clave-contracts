@@ -3,7 +3,7 @@
     <div class="text-[40px] flex-auto">
       <slot />
     </div>
-    <div class="text-base">
+    <div class="text-base flex items-center justify-center">
       <slot name="aside" />
     </div>
   </div>

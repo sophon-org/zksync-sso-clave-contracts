@@ -138,7 +138,8 @@ interface Token {
 }
 
 // Get Address Info
-const getAddressInfoUrl = `${blockExplorerApiByChain[chainId]}/address/${address}`;
+const blockExplorerUrl = blockExplorerApiByChain[chainId].replace(/\/api$/, "");
+const getAddressInfoUrl = `${blockExplorerUrl}/address/${address}`;
 const { data: getAddressInfoResponse } = await useFetch(getAddressInfoUrl);
 assets.value = await getAddressInfoResponse.value as GetAddressInfoResponse;
 </script>

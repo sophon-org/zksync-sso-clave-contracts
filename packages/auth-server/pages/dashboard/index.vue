@@ -3,10 +3,10 @@
     <layout-header>
       <span class="font-thin">Welcome to ZKsync SSO</span>
       <template #aside>
-        <zk-button-icon
-          type="secondary"
-          icon="dashboard_customize"
-        />
+        <span class="text-lg text-neutral-500 mr-2">
+          {{ shortenAddress(address!) }}
+        </span>
+        <zk-copy :content="address!" />
       </template>
     </layout-header>
 
@@ -15,5 +15,5 @@
 </template>
 
 <script setup lang="ts">
-
+const { address } = useAccountStore();
 </script>
