@@ -10,14 +10,9 @@ import type { Message, PopupConfigMessage } from "zksync-sso/communicator";
  */
 class PopupCommunicator {
   private listeners = new Map<(_: MessageEvent) => boolean, { reject: (_: Error) => void }>();
-  private openerOrigin: string;
+  private openerOrigin: string | null = null;
 
-  constructor() {
-    const origin = (new URLSearchParams(window.location.search)).get("origin");
-    if (!origin) throw new Error("Origin not defined in query params");
-    this.openerOrigin = origin;
-    window.addEventListener("message", this.messageHandler);
-  }
+  // constructor() {}
 
   /**
    * Handles incoming messages and routes them to the appropriate listeners.
@@ -76,6 +71,11 @@ class PopupCommunicator {
    * Initializes the communicator and sends a version message
    */
   init = () => {
+    const origin = (new URLSearchParams(window.location.search)).get("origin");
+    if (!origin) throw new Error("Origin not defined in query params");
+    this.openerOrigin = origin;
+    window.addEventListener("message", this.messageHandler);
+
     this.postMessage<PopupConfigMessage>({
       event: "PopupLoaded",
       id: crypto.randomUUID(),
