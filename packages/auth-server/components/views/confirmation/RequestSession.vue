@@ -88,7 +88,7 @@
     </button>
     <CommonHeightTransition :opened="advancedInfoOpened">
       <CommonLine>
-        <pre class="p-3 text-xs overflow-auto">{{ JSON.stringify(formattedSession, null, 4) }}</pre>
+        <pre class="p-3 text-xs overflow-auto">{{ JSON.stringify(sessionConfig, null, 4) }}</pre>
       </CommonLine>
     </CommonHeightTransition>
 
@@ -116,14 +116,15 @@
 <script lang="ts" setup>
 import { ChevronDownIcon } from "@heroicons/vue/24/outline";
 import { useTimeAgo } from "@vueuse/core";
-import { type Address, formatUnits } from "viem";
+import { type Address, formatUnits, parseEther } from "viem";
 import { generatePrivateKey, privateKeyToAddress } from "viem/accounts";
 import type { SessionPreferences } from "zksync-sso";
 import type { AuthServerRpcSchema, ExtractReturnType } from "zksync-sso/client-auth-server";
-import { getSession } from "zksync-sso/utils";
+import { formatSessionPreferences } from "zksync-sso/client-auth-server";
+import { LimitType } from "zksync-sso/utils";
 
 const props = defineProps({
-  session: {
+  sessionPreferences: {
     type: Object as PropType<SessionPreferences>,
     required: true,
   },
@@ -134,10 +135,20 @@ const { respond, deny } = useRequestsStore();
 const { responseInProgress, requestChain } = storeToRefs(useRequestsStore());
 const { fetchTokenInfo } = useTokenUtilities(computed(() => requestChain.value!.id));
 const { getClient } = useClientStore();
-const formattedSession = computed(() => getSession(props.session));
+const sessionConfig = computed(() => formatSessionPreferences(
+  props.sessionPreferences,
+  {
+    expiresAt: BigInt(Math.floor(Date.now() / 1000) + 60 * 60 * 24), // 24 hours
+    fee: {
+      limitType: LimitType.Lifetime,
+      limit: parseEther("0.01"),
+      period: 0n,
+    },
+  },
+));
 
 const domain = computed(() => new URL(origin.value).host);
-const sessionExpiresIn = useTimeAgo(Number(formattedSession.value.expiresAt) * 1000);
+const sessionExpiresIn = useTimeAgo(Number(sessionConfig.value.expiresAt) * 1000);
 
 const advancedInfoOpened = ref(false);
 
@@ -165,11 +176,11 @@ const { result: tokensList, inProgress: tokensLoading, execute: fetchTokens } = 
 });
 
 const spendLimitTokens = computed(() => {
-  if (!formattedSession.value || !tokensList.value) return;
+  if (!sessionConfig.value || !tokensList.value) return;
   let spendLimits: { [tokenAddress: string]: bigint } = {
-    [BASE_TOKEN_ADDRESS]: formattedSession.value.feeLimit.limit,
+    [BASE_TOKEN_ADDRESS]: sessionConfig.value.feeLimit.limit,
   };
-  spendLimits = (formattedSession.value.transferPolicies || []).reduce((acc, transferPolicy) => {
+  spendLimits = (sessionConfig.value.transferPolicies || []).reduce((acc, transferPolicy) => {
     return {
       ...acc,
       [BASE_TOKEN_ADDRESS]: (acc[BASE_TOKEN_ADDRESS] || BigInt(0)) + BigInt(transferPolicy.valueLimit.limit),
@@ -193,22 +204,20 @@ const confirmConnection = async () => {
   respond(async () => {
     const client = getClient({ chainId: requestChain.value!.id });
     const sessionKey = generatePrivateKey();
-    const sessionPreferences = formattedSession.value;
-
-    const _session = await client.createSession({
-      session: {
-        ...sessionPreferences,
-        sessionPublicKey: privateKeyToAddress(sessionKey),
+    const session = {
+      sessionKey,
+      sessionConfig: {
+        signer: privateKeyToAddress(sessionKey),
+        ...sessionConfig.value,
       },
-    });
+    };
+
+    const _session = await client.createSession({ sessionConfig: session.sessionConfig });
     const response: ExtractReturnType<"eth_requestAccounts", AuthServerRpcSchema> = {
       account: {
         address: client.account.address,
         activeChainId: client.chain.id,
-        session: {
-          ...sessionPreferences,
-          sessionKey,
-        },
+        session,
       },
       chainsInfo: supportedChains.map((chain) => ({
         id: chain.id,

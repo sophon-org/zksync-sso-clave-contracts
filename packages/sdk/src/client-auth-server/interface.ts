@@ -1,5 +1,5 @@
 import { EventEmitter } from "eventemitter3";
-import type { AbiFunction, Address, Hash, RpcSchema as RpcSchemaGeneric } from "viem";
+import type { RpcSchema as RpcSchemaGeneric } from "viem";
 
 import type { ExtractParams, ExtractReturnType, Method, RpcSchema } from "./rpc.js";
 
@@ -36,50 +36,4 @@ export interface ProviderInterface extends EventEmitter {
 export interface AppMetadata {
   name: string;
   icon: string | null;
-}
-
-export enum Condition {
-  Unconstrained = 0,
-  Equal = 1,
-  Greater = 2,
-  Less = 3,
-  GreaterEqual = 4,
-  LessEqual = 5,
-  NotEqual = 6,
-}
-
-export type Limit = {
-  limit: bigint;
-  period?: bigint;
-};
-
-export type CallPolicy = {
-  target: Address;
-  function?: string | AbiFunction;
-  selector?: Hash; // if function is not provided
-  maxValuePerUse?: bigint;
-  valueLimit?: bigint | Limit;
-  constraints?: {
-    index: number | bigint;
-    condition?: Condition | keyof typeof Condition;
-    refValue?: Hash;
-    limit?: Limit;
-  }[];
-};
-
-export type TransferPolicy = {
-  target: Address;
-  maxValuePerUse?: bigint;
-  valueLimit?: bigint | Limit;
-};
-
-export interface SessionPreferences {
-  expiresAt?: bigint;
-  feeLimit?: bigint | Limit;
-  callPolicies?: CallPolicy[];
-  transferPolicies?: TransferPolicy[];
-};
-
-export interface SessionData extends SessionPreferences {
-  sessionPublicKey: Address;
 }

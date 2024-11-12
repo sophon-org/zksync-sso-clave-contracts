@@ -1,69 +1,135 @@
-import { toFunctionSelector, toHex } from "viem";
+import { type Address, type Hash } from "viem";
 
-import { Condition, type Limit, type SessionPreferences } from "../client-auth-server/interface.js";
+export const SessionSpec = {
+  components: [
+    { name: "signer", type: "address" },
+    { name: "expiresAt", type: "uint256" },
+    {
+      components: [
+        { name: "limitType", type: "uint8" },
+        { name: "limit", type: "uint256" },
+        { name: "period", type: "uint256" },
+      ],
+      name: "feeLimit",
+      type: "tuple",
+    },
+    {
+      components: [
+        { name: "target", type: "address" },
+        { name: "selector", type: "bytes4" },
+        { name: "maxValuePerUse", type: "uint256" },
+        {
+          components: [
+            { name: "limitType", type: "uint8" },
+            { name: "limit", type: "uint256" },
+            { name: "period", type: "uint256" },
+          ],
+          name: "valueLimit",
+          type: "tuple",
+        },
+        {
+          components: [
+            { name: "condition", type: "uint8" },
+            { name: "index", type: "uint64" },
+            { name: "refValue", type: "bytes32" },
+            {
+              components: [
+                { name: "limitType", type: "uint8" },
+                { name: "limit", type: "uint256" },
+                { name: "period", type: "uint256" },
+              ],
+              name: "limit",
+              type: "tuple",
+            },
+          ],
+          name: "constraints",
+          type: "tuple[]",
+        },
+      ],
+      name: "callPolicies",
+      type: "tuple[]",
+    },
+    {
+      components: [
+        { name: "target", type: "address" },
+        { name: "maxValuePerUse", type: "uint256" },
+        {
+          components: [
+            { name: "limitType", type: "uint8" },
+            { name: "limit", type: "uint256" },
+            { name: "period", type: "uint256" },
+          ],
+          name: "valueLimit",
+          type: "tuple",
+        },
+      ],
+      name: "transferPolicies",
+      type: "tuple[]",
+    },
+  ],
+  name: "newSession",
+  type: "tuple",
+} as const;
 
-enum LimitType {
+export enum LimitType {
   Unlimited = 0,
   Lifetime = 1,
   Allowance = 2,
 }
 
-export function getLimit(limit: bigint | Limit | undefined) {
-  if (!limit) {
-    return {
-      limitType: LimitType.Unlimited,
-      limit: 0n,
-      period: 0n,
-    };
-  }
-  if (typeof limit === "bigint") {
-    return {
-      limitType: LimitType.Lifetime,
-      limit,
-      period: 0n,
-    };
-  }
-  if (!limit.period || limit.period == 0n) {
-    return {
-      limitType: LimitType.Lifetime,
-      limit: BigInt(limit.limit),
-      period: 0n,
-    };
-  }
-  return {
-    limitType: LimitType.Allowance,
-    limit: BigInt(limit.limit),
-    period: BigInt(limit.period),
-  };
+export type Limit = {
+  limitType: LimitType;
+  limit: bigint;
+  period: bigint;
+};
+
+export const LimitUnlimited = {
+  limitType: LimitType.Unlimited,
+  limit: 0n,
+  period: 0n,
+};
+
+export const LimitZero = {
+  limitType: LimitType.Unlimited,
+  limit: 0n,
+  period: 0n,
+};
+
+export enum ConstraintCondition {
+  Unconstrained = 0,
+  Equal = 1,
+  Greater = 2,
+  Less = 3,
+  GreaterEqual = 4,
+  LessEqual = 5,
+  NotEqual = 6,
 }
 
-export function getSession(session: SessionPreferences) {
-  return {
-    expiresAt: BigInt(session.expiresAt ?? Math.floor(Date.now() / 1000) + 60 * 60 * 24),
-    feeLimit: getLimit(session.feeLimit),
-    callPolicies: session.callPolicies?.map((policy) => {
-      const valueLimit = getLimit(policy.valueLimit);
-      const selector = policy.function ? toFunctionSelector(policy.function) : policy.selector;
-      return {
-        target: policy.target,
-        maxValuePerUse: policy.maxValuePerUse ?? valueLimit.limit,
-        valueLimit,
-        selector: selector || toHex("", { size: 4 }),
-        constraints: policy.constraints?.map((constraint) => ({
-          condition: typeof constraint.condition == "string" ? Condition[constraint.condition] : (constraint.condition ?? 0),
-          index: BigInt(constraint.index),
-          refValue: constraint.refValue ?? toHex("", { size: 32 }),
-          limit: getLimit(constraint.limit),
-        })) ?? [],
-      };
-    }) ?? [],
-    transferPolicies: session.transferPolicies?.map((policy) => {
-      const valueLimit = getLimit(policy.valueLimit);
-      return {
-        target: policy.target,
-        maxValuePerUse: policy.maxValuePerUse ?? valueLimit.limit,
-        valueLimit,
-      };
-    }) ?? [],
-  };
-}
+export type Constraint = {
+  index: bigint;
+  condition: ConstraintCondition;
+  refValue: Hash;
+  limit: Limit;
+};
+
+export type CallPolicy = {
+  target: Address;
+  valueLimit: Limit;
+  maxValuePerUse: bigint;
+  selector: Hash;
+  constraints: Constraint[];
+};
+
+export type TransferPolicy = {
+  target: Address;
+  maxValuePerUse: bigint;
+  valueLimit: Limit;
+};
+
+export type SessionConfig = {
+  signer: Address;
+  expiresAt: bigint;
+  feeLimit: Limit;
+  callPolicies: CallPolicy[];
+  transferPolicies: TransferPolicy[];
+};
