@@ -15,64 +15,31 @@
       :ui="{ title: 'py-2', footer: 'flex justify-center' }"
     >
       <ZkTableBody>
-        <ZkTableRow>
+        <ZkTableRow v-for="(balance, address) in filteredBalances" :key="address">
           <ZkTableCellData>
             <img
-              src="https://coin-images.coingecko.com/coins/images/279/large/ethereum.png?1696501628"
+              v-if="balance.token.iconURL"
+              :src="balance.token.iconURL"
               alt="Thumbnail"
               class="w-12 h-12 rounded"
             >
+            <ZkIconThumbnail
+              v-else
+              :icon="'account_balance_wallet'"
+            />
           </ZkTableCellData>
           <ZkTableCellData class="flex-auto">
-            ETH
-            <template #sub>
-              Ether
+            {{ balance.token.symbol }}
+            <template #sub v-if="balance.token.name">
+              {{ balance.token.name }}
             </template>
           </ZkTableCellData>
           <ZkTableCellData class="text-right">
-            <span class="font-bold">8.79566335</span>
+            <span class="font-bold">
+              {{ formatUnits(BigInt(balance.balance), balance.token.decimals) }}
+            </span>
             <template #sub>
-              $289,544.44
-            </template>
-          </ZkTableCellData>
-        </ZkTableRow>
-
-
-
-        <ZkTableRow>
-          <ZkTableCellData>
-            <ZkIconThumbnail :icon="'account_balance_wallet'" />
-          </ZkTableCellData>
-          <ZkTableCellData class="flex-auto">
-            Something Something
-            <template #sub>
-              sub text underneath
-            </template>
-          </ZkTableCellData>
-          <ZkTableCellData class="text-right">
-            0.50
-            <template #sub>
-              $1,500.00
-            </template>
-          </ZkTableCellData>
-        </ZkTableRow>
-        <ZkTableRow>
-          <div>
-            <img
-              src="/demo/avatar-uniswap.png"
-              alt="Thumbnail"
-            >
-          </div>
-          <ZkTableCellData class="flex-auto">
-            Something Something
-            <template #sub>
-              sub text underneath
-            </template>
-          </ZkTableCellData>
-          <ZkTableCellData class="text-right">
-            0.50
-            <template #sub>
-              $1,500.00
+              {{ (+formatUnits(BigInt(balance.balance) * BigInt(Math.round(balance.token.usdPrice*10000000000)) / BigInt(10000000000), balance.token.decimals)).toLocaleString('en-US', { style: 'currency', currency: 'USD'}) }}
             </template>
           </ZkTableCellData>
         </ZkTableRow>
@@ -87,20 +54,25 @@
 </template>
 
 <script setup lang="ts">
-import type { Address } from 'viem';
+import { formatUnits, type Address } from 'viem';
 
 const runtimeConfig = useRuntimeConfig();
 const { address } = useAccountStore();
-
 const chainId = runtimeConfig.public.chainId as SupportedChainId;
-// const url = `${blockExplorerApiByChain[chainId]}/address/${address}`;
-const url = `https://block-explorer-api.sepolia.zksync.dev/address/0xF25f95C59f4f1C4010527DAa26e7974cB37c2Ae1`;
+const assets = ref<GetAddressInfoResponse | null>(null);
+const filteredBalances = computed(() => {
+  return Object.entries(assets.value?.balances || {})
+    .filter(([, balance]) => balance.token !== null)
+    .map(([address, balance]) => ({ address, ...balance }));
+});
 
 interface GetAddressInfoResponse {
   type: string;
   address: string;
   blockNumber: number;
-  balances: Map<Address, TokenBalance>;
+  balances: {
+    [key: Address]: TokenBalance;
+  };
   sealedNonce: number;
   verifiedNonce: number;
 }
@@ -121,11 +93,10 @@ interface Token {
   iconURL: string;
 }
 
-const response = await fetch(url);
-const data = await response.json() as GetAddressInfoResponse;
-console.log(data);
-console.log("data.address");
-console.log(data.address);
-console.log("data.balances");
-console.log(data.balances);
+// Get Address Info
+// const getAddressInfoUrl = `${blockExplorerApiByChain[chainId]}/address/${address}`;
+const getAddressInfoUrl = `https://block-explorer-api.sepolia.zksync.dev/address/0xF25f95C59f4f1C4010527DAa26e7974cB37c2Ae1`;
+const getAddressInfoResponse = await fetch(getAddressInfoUrl);
+assets.value = await getAddressInfoResponse.json() as GetAddressInfoResponse;
+
 </script>
