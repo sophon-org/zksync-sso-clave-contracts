@@ -135,19 +135,16 @@ const { respond, deny } = useRequestsStore();
 const { responseInProgress, requestChain } = storeToRefs(useRequestsStore());
 const { fetchTokenInfo } = useTokenUtilities(computed(() => requestChain.value!.id));
 const { getClient } = useClientStore();
-const sessionConfig = computed(() => {
-  return formatSessionPreferences(
-    props.sessionPreferences,
-    {
-      expiresAt: BigInt(Math.floor(Date.now() / 1000) + 60 * 60 * 24), // 24 hours
-      fee: {
-        limitType: LimitType.Lifetime,
-        limit: parseEther("0.01"),
-        period: 0n,
-      },
-    },
-  );
-});
+
+const defaults = {
+  expiresAt: BigInt(Math.floor(Date.now() / 1000) + 60 * 60 * 24), // 24 hours
+  fee: {
+    limitType: LimitType.Lifetime,
+    limit: parseEther("0.01"),
+    period: 0n,
+  },
+};
+const sessionConfig = computed(() => formatSessionPreferences(props.sessionPreferences, defaults));
 
 const domain = computed(() => new URL(origin.value).host);
 const sessionExpiresIn = useTimeAgo(Number(sessionConfig.value.expiresAt) * 1000);
