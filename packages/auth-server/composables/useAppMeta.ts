@@ -3,6 +3,7 @@ import type { AppMetadata } from "zksync-sso";
 
 export const useAppMeta = () => {
   const route = useRoute();
+  const { origin: popupOrigin } = useCommunicatorStore();
 
   const appMetaStorage = useStorage<{ [origin: string]: AppMetadata }>("app-meta", {});
   const appMeta = computed({
@@ -12,7 +13,7 @@ export const useAppMeta = () => {
     },
   });
   const domain = computed(() => new URL(origin.value).host);
-  const origin = computed(() => route.query.origin as string);
+  const origin = computed(() => popupOrigin ?? route.query.origin as string);
 
   return {
     appMeta,

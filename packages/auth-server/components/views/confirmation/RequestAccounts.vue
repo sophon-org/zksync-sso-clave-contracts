@@ -1,17 +1,19 @@
 <template>
   <div class="h-full flex flex-col px-4">
-    <AccountHeader message="Connecting with" />
+    <AccountHeader
+      message="Connecting with"
+    />
     <div class="flex justify-center items-center isolate mt-6">
       <Web3Avatar
         :address="address!"
         class="w-20 h-20 rounded-full -z-[1] -mr-4"
       />
-      <div class="w-20 h-20 rounded-full bg-neutral-800">
+      <div class="w-20 h-20 rounded-md bg-neutral-800">
         <img
           v-if="appMeta.icon"
           :src="appMeta.icon"
           :alt="appMeta.name"
-          class="h-full w-full object-cover rounded-full"
+          class="h-full w-full object-cover rounded-md"
         >
       </div>
     </div>
@@ -38,20 +40,20 @@
 
     <div class="mt-auto">
       <div class="-mx-3 px-3 border-t border-neutral-900 flex gap-4 py-4 mt-2">
-        <CommonButton
+        <ZkButton
           class="w-full"
-          variant="neutral"
+          type="secondary"
           @click="deny()"
         >
           Cancel
-        </CommonButton>
-        <CommonButton
+        </ZkButton>
+        <ZkButton
           class="w-full"
           :loading="!appMeta || responseInProgress"
           @click="confirmConnection()"
         >
           Connect
-        </CommonButton>
+        </ZkButton>
       </div>
     </div>
   </div>

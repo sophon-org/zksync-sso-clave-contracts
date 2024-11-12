@@ -20,7 +20,7 @@
           class="w-full"
           :loading="registerInProgress"
           data-testid="signup"
-          @click="createAccount"
+          @click="registerAccount"
         >
           Sign Up
         </ZkButton>
@@ -44,7 +44,7 @@
           <button
             type="button"
             class="underline underline-offset-4"
-            @click="createAccount"
+            @click="registerAccount"
           >
             Sign up?
           </button>
@@ -57,7 +57,17 @@
 <script lang="ts" setup>
 const { appMeta } = useAppMeta();
 const { requestChain } = storeToRefs(useRequestsStore());
+const session = useAppSession();
 
 const { registerInProgress, createAccount } = useAccountCreate(computed(() => requestChain.value!.id));
 const { loginInProgress, accountLoginError, loginToAccount } = useAccountLogin(computed(() => requestChain.value!.id));
+
+const registerAccount = async () => {
+  if (!session.value) {
+    // no session defined
+    await createAccount();
+  } else {
+    navigateTo("/confirm/connect");
+  }
+};
 </script>
