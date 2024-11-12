@@ -20,7 +20,7 @@ export const useConnectorStore = defineStore("connector", () => {
     },
     authServerUrl: runtimeConfig.public.authServerUrl,
     session: getSession({
-      feeLimit: parseEther("0.1"),
+      feeLimit: parseEther("0.001"),
       callPolicies: [{
         target: runtimeConfig.public.contracts.nft as Hash,
         function: "mint(address)",
