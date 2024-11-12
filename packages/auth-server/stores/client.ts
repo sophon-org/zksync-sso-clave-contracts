@@ -1,47 +1,37 @@
 import { type Address, createPublicClient, createWalletClient, http, publicActions, walletActions } from "viem";
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
-import { zksync, zksyncInMemoryNode, zksyncLocalNode, zksyncSepoliaTestnet } from "viem/chains";
+import { zksyncInMemoryNode, zksyncSepoliaTestnet } from "viem/chains";
 import { eip712WalletActions } from "viem/zksync";
 import { createZksyncPasskeyClient, type PasskeyRequiredContracts } from "zksync-sso/client/passkey";
 
-export const supportedChains = [zksync, zksyncSepoliaTestnet, zksyncInMemoryNode, zksyncLocalNode];
+export const supportedChains = [zksyncSepoliaTestnet, zksyncInMemoryNode];
 export type SupportedChainId = (typeof supportedChains)[number]["id"];
 export const blockExplorerApiByChain: Record<SupportedChainId, string> = {
-  [zksync.id]: zksync.blockExplorers.native.apiUrl,
   [zksyncSepoliaTestnet.id]: zksyncSepoliaTestnet.blockExplorers.native.blockExplorerApi,
   [zksyncInMemoryNode.id]: "http://localhost:8011",
-  [zksyncLocalNode.id]: "http://localhost:8011",
 };
 
 type ChainContracts = PasskeyRequiredContracts & {
   accountFactory: NonNullable<PasskeyRequiredContracts["accountFactory"]>;
+  accountPaymaster: Address;
 };
 export const contractsByChain: Record<SupportedChainId, ChainContracts> = {
-  [zksync.id]: {
-    session: "0x",
-    passkey: "0x",
-    accountFactory: "0x",
-  },
   [zksyncSepoliaTestnet.id]: {
     session: "0x64AEB39926631F9601D78E3024D32632564C057B",
     passkey: "0x7AC1718A54372B5D5fDAca2B7aB6dC6019078d20",
     accountFactory: "0x35b135308f93B8d13811b2193F84B4a4dAbecAe1",
-  },
-  [zksyncLocalNode.id]: {
-    session: "0x",
-    passkey: "0x",
-    accountFactory: "0x",
+    accountPaymaster: "0x384Cac169CDcb7c515ff3A9e7f1236D2a1e8924C",
   },
   [zksyncInMemoryNode.id]: {
     session: "0xc81BdB6e98da8e23aa646969A7e942752b9B10c4",
     passkey: "0x07734BA326b6AD13BfC0115b0903EB14268F1617",
     accountFactory: "0xaAF5f437fB0524492886fbA64D703df15BF619AE",
+    accountPaymaster: "0x4AFf97f4c3d77C6a4A695AA00e2f857c3E97411A",
   },
 };
 
 export const useClientStore = defineStore("client", () => {
   const { address, username, passkey } = storeToRefs(useAccountStore());
-  const runtimeConfig = useRuntimeConfig();
 
   const getPublicClient = ({ chainId }: { chainId: SupportedChainId }) => {
     const chain = supportedChains.find((chain) => chain.id === chainId);
@@ -67,7 +57,7 @@ export const useClientStore = defineStore("client", () => {
       userName: username.value!,
       userDisplayName: username.value!,
       contracts,
-      paymasterAddress: runtimeConfig.public.paymaster as Address,
+      paymasterAddress: contracts.accountPaymaster,
       chain: chain,
       transport: http(),
     });

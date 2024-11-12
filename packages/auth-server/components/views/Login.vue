@@ -15,31 +15,29 @@
     </div>
 
     <div class="flex flex-col gap-5 mt-8 py-8">
-      <div className="highlight">
-        <div className="inner">
-          <ZkButton
-            id="create-account"
-            class="w-full"
-            :loading="registerInProgress"
-            @click="createAccount"
-          >
-            Sign Up
-          </ZkButton>
-        </div>
-      </div>
+      <ZkHighlightWrapper>
+        <ZkButton
+          class="w-full"
+          :loading="registerInProgress"
+          data-testid="signup"
+          @click="createAccount"
+        >
+          Sign Up
+        </ZkButton>
+      </ZkHighlightWrapper>
 
       <ZkButton
-        id="login-account"
         type="secondary"
         class="!text-slate-400"
         :loading="loginInProgress"
-        @click="connectToAccount"
+        data-testid="signin"
+        @click="loginToAccount"
       >
         Sign In
       </ZkButton>
     </div>
 
-    <CommonHeightTransition :opened="!!accountDataFetchError">
+    <CommonHeightTransition :opened="!!accountLoginError">
       <p class="pt-3 text-sm text-error-300 text-center">
         <span>
           Account not found.
@@ -57,99 +55,9 @@
 </template>
 
 <script lang="ts" setup>
-import { type Address, toHex } from "viem";
-import { zksyncInMemoryNode, zksyncLocalNode } from "viem/chains";
-import { deployAccount, fetchAccount } from "zksync-sso/client";
-import { registerNewPasskey } from "zksync-sso/client/passkey";
-
 const { appMeta } = useAppMeta();
-const { login } = useAccountStore();
-const { getPublicClient, getThrowAwayClient } = useClientStore();
 const { requestChain } = storeToRefs(useRequestsStore());
-const runtimeConfig = useRuntimeConfig();
 
-const { inProgress: registerInProgress, execute: createAccount } = useAsync(async () => {
-  let name = `ZK Auth ${(new Date()).toLocaleDateString("en-US")}`;
-  if (requestChain.value!.id == zksyncInMemoryNode.id || requestChain.value!.id == zksyncLocalNode.id) {
-    // For local testing, append the time
-    name += ` ${(new Date()).toLocaleTimeString("en-US")}`;
-  }
-
-  const {
-    credentialPublicKey,
-    credentialId,
-  } = await registerNewPasskey({
-    userName: name,
-    userDisplayName: name,
-  });
-
-  const deployerClient = getThrowAwayClient({ chainId: requestChain.value!.id });
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { address } = await deployAccount(deployerClient as any, {
-    credentialPublicKey,
-    uniqueAccountId: credentialId,
-    contracts: contractsByChain[requestChain.value!.id],
-    paymasterAddress: runtimeConfig.public.paymaster as Address,
-  });
-
-  login({
-    username: credentialId,
-    address: address,
-    passkey: toHex(credentialPublicKey),
-  });
-});
-
-const { inProgress: loginInProgress, error: accountDataFetchError, execute: connectToAccount } = useAsync(async () => {
-  const client = getPublicClient({ chainId: requestChain.value!.id });
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { username, address, passkeyPublicKey } = await fetchAccount(client as any, {
-    contracts: contractsByChain[requestChain.value!.id],
-  });
-
-  login({
-    username,
-    address,
-    passkey: toHex(passkeyPublicKey),
-  });
-});
+const { registerInProgress, createAccount } = useAccountCreate(computed(() => requestChain.value!.id));
+const { loginInProgress, accountLoginError, loginToAccount } = useAccountLogin(computed(() => requestChain.value!.id));
 </script>
-
-<style scoped>
-.highlight::before,
-.highlight::after {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  bottom: 0;
-  right: 0;
-  background: linear-gradient(90deg, rgba(0,11,163,1) 0%, rgba(62,134,255,1) 26%, rgba(0,11,163,1) 52%, rgba(100,220,255,1) 78%, rgba(0,11,163,1) 100%);
-  background-size: 400%;
-  z-index: -1;
-  animation: glow 5s linear infinite;
-  width: 100%;
-  border-radius: 2rem;
-}
-
-.highlight::after {
-  filter: blur(9px);
-  transform: translate3d(0, 0, 0); /* For Safari */
-}
-
-.highlight {
-  position: relative;
-  border-radius: 2rem;
-  padding: 4px;
-}
-
-.highlight .inner {
-  border-radius: 4px;
-}
-
-@keyframes glow {
-  0% { background-position: 0 0; }
-  50% { background-position: 100% 0; }
-  100% { background-position: 0 0; }
-}
-</style>

@@ -1,29 +1,28 @@
-export async function useAccountLogin() {
-  const {
-    status: loginInProgress,
-    execute: loginAccount,
-    error: loginError,
-  } = await useAsyncData(async () => {
-    const credential = await navigator.credentials.get({
-      publicKey: {
-        challenge: new Uint8Array(32),
-        userVerification: "discouraged",
-      },
-    }).catch(() => {
-      throw new Error("Passkey verification was interrupted. Please try again.");
-    });
-    if (!credential) throw new Error("There are no registered passkeys for this user.");
+import { toHex } from "viem";
+import { fetchAccount } from "zksync-sso/client";
 
-    console.log("Login not implemented yet");
-    console.log("CREDENTIALS", credential);
-    /* TODO: find account by credential.id */
-  }, {
-    immediate: false,
+export const useAccountLogin = (_chainId: MaybeRef<SupportedChainId>) => {
+  const chainId = toRef(_chainId);
+  const { login } = useAccountStore();
+  const { getPublicClient } = useClientStore();
+
+  const { inProgress: loginInProgress, error: accountLoginError, execute: loginToAccount } = useAsync(async () => {
+    const client = getPublicClient({ chainId: chainId.value });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { username, address, passkeyPublicKey } = await fetchAccount(client as any, {
+      contracts: contractsByChain[chainId.value],
+    });
+
+    login({
+      username,
+      address,
+      passkey: toHex(passkeyPublicKey),
+    });
   });
 
   return {
     loginInProgress,
-    loginError,
-    loginAccount,
+    accountLoginError,
+    loginToAccount,
   };
-}
+};

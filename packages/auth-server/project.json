@@ -10,6 +10,17 @@
       },
       "dependsOn": []
     },
+    "preview": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "packages/auth-server",
+        "commands": [
+          {
+            "command": "pnpm nuxt preview"
+          }
+        ]
+      }
+    },
     "build": {
       "executor": "nx:run-commands",
       "options": {
