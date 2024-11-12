@@ -139,7 +139,7 @@ test("Create account, session key, and mint NFT", async ({ page }) => {
   await expect(popup.getByText("Connect to ZK NFT Quest")).toBeVisible();
 
   // Sign In
-  await popup.getByRole("button", { name: "Sign In" }).click();
+  await popup.getByTestId("login").click();
   await expect(popup.getByTestId("spinner")).toHaveCount(0, { timeout: 10_000 });
 
   // Add session

@@ -6,9 +6,13 @@ import { createZksyncPasskeyClient, type PasskeyRequiredContracts } from "zksync
 
 export const supportedChains = [zksyncSepoliaTestnet, zksyncInMemoryNode];
 export type SupportedChainId = (typeof supportedChains)[number]["id"];
+export const blockExplorerUrlByChain: Record<SupportedChainId, string> = {
+  [zksyncSepoliaTestnet.id]: zksyncSepoliaTestnet.blockExplorers.native.url,
+  [zksyncInMemoryNode.id]: "http://localhost:3010",
+};
 export const blockExplorerApiByChain: Record<SupportedChainId, string> = {
   [zksyncSepoliaTestnet.id]: zksyncSepoliaTestnet.blockExplorers.native.blockExplorerApi,
-  [zksyncInMemoryNode.id]: "http://localhost:8011",
+  [zksyncInMemoryNode.id]: "http://localhost:3020",
 };
 
 type ChainContracts = PasskeyRequiredContracts & {

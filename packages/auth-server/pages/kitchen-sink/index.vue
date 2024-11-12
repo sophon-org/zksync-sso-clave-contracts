@@ -174,7 +174,7 @@
         Dialog
       </h2>
       <ZkDialog title="Disconnect?">
-        Disconnect your username@zksync.eth account?
+        Disconnect your account?
         <template #submit>
           <ZkButton
             type="danger"

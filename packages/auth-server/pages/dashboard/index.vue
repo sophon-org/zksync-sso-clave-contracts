@@ -1,18 +1,19 @@
 <template>
   <div>
     <layout-header>
-      <span class="font-thin">Welcome in,</span>
-      <span class="font-thin block leading-8">{{ username }}<span class="text-neutral-500">@zksync.eth</span></span>
+      <span class="font-thin">Welcome to ZKsync SSO</span>
       <template #aside>
-        <zk-button-icon
-          type="secondary"
-          icon="dashboard_customize"
-        />
+        <span class="text-lg text-neutral-500 mr-2">
+          {{ shortenAddress(address!) }}
+        </span>
+        <zk-copy :content="address!" />
       </template>
     </layout-header>
+
+    <dashboard-assets />
   </div>
 </template>
 
 <script setup lang="ts">
-const { username } = useAccountStore();
+const { address } = useAccountStore();
 </script>
