@@ -73,34 +73,34 @@ development principles in mind.
 
 4. Creating a session
 
-  ```ts
-  import { parseEther } from "viem";
-  import { LimitType } from "zksync-sso/utils";
+```ts
+import { parseEther } from "viem";
+import { LimitType } from "zksync-sso/utils";
 
-  await passkeyClient.createSession({
-    // See packages/sdk/src/client-auth-server/session.ts for an easier way to create the sessionConfig
-    sessionConfig: {
-      signer: sessionPublicKey,
-      expiresAt: BigInt(Math.floor(Date.now() / 1000) + 60 * 60 * 24), // 24 hours
-      feeLimit: {
-        limitType: LimitType.Lifetime,
-        limit: parseEther("0.01"),
-        period: 0n,
-      },
-      transferPolicies: [
-        {
-          target: "0x123...",
-          maxValuePerUse: parseEther("0.01"),
-          valueLimit: {
-            limitType: LimitType.Lifetime,
-            limit: parseEther("0.01"),
-            period: 0n,
-          },
-        }
-      ],
-      callPolicies: [
-        ...
-      ],
+await passkeyClient.createSession({
+  // See packages/sdk/src/client-auth-server/session.ts for an easier way to create the sessionConfig
+  sessionConfig: {
+    signer: sessionPublicKey,
+    expiresAt: BigInt(Math.floor(Date.now() / 1000) + 60 * 60 * 24), // 24 hours
+    feeLimit: {
+      limitType: LimitType.Lifetime,
+      limit: parseEther("0.01"),
+      period: 0n,
     },
-  });
-  ```
+    transferPolicies: [
+      {
+        target: "0x123...",
+        maxValuePerUse: parseEther("0.01"),
+        valueLimit: {
+          limitType: LimitType.Lifetime,
+          limit: parseEther("0.01"),
+          period: 0n,
+        },
+      }
+    ],
+    callPolicies: [
+      ...
+    ],
+  },
+});
+```
