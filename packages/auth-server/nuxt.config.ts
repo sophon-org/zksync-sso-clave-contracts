@@ -1,5 +1,5 @@
 import { defineNuxtConfig } from "nuxt/config";
-import { zksyncInMemoryNode, zksyncSepoliaTestnet } from "viem/chains";
+import { zksyncInMemoryNode } from "viem/chains";
 
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
@@ -43,16 +43,7 @@ export default defineNuxtConfig({
   },
   runtimeConfig: {
     public: {
-      chain: zksyncInMemoryNode,
-      paymaster: "0x0683E542081D9CeBBFe83f07A3102eB2Da318613",
-    },
-  },
-  $production: {
-    runtimeConfig: {
-      public: {
-        chain: zksyncSepoliaTestnet,
-        paymaster: "0x384Cac169CDcb7c515ff3A9e7f1236D2a1e8924C",
-      },
+      chainId: parseInt(process.env.NUXT_PUBLIC_DEFAULT_CHAIN_ID || "") || zksyncInMemoryNode.id,
     },
   },
 });

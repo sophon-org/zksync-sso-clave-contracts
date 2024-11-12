@@ -11,7 +11,7 @@
 
 <script setup lang="ts">
 definePageMeta({
-  middleware: ["auth"],
+  middleware: ["logged-in"],
   layout: "dashboard",
 });
 </script>

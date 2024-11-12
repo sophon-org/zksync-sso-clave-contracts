@@ -1,12 +1,7 @@
-export default defineNuxtRouteMiddleware((to) => {
+export default defineNuxtRouteMiddleware(() => {
   const { isLoggedIn } = useAccountStore();
 
-  if (isLoggedIn) {
-    switch (to.path) {
-      case "/":
-      case "/login":
-      case "/register":
-        return navigateTo("/dashboard");
-    }
+  if (!isLoggedIn) {
+    return navigateTo("/");
   }
 });

@@ -1,43 +1,67 @@
 <template>
-  <main class="grow p-4 flex flex-col items-center">
+  <main class="h-full flex flex-col justify-center px-4">
     <AppAccountLogo
       class="dark:text-neutral-100 h-16 md:h-20 mb-8"
     />
 
-    <ZkLink
-      type="primary"
-      class="w-full"
-      href="/login"
-    >
-      Login to your ZK Account
-    </ZkLink>
-    <ZkLink
-      type="secondary"
-      class="w-full mt-4"
-      href="/register"
-    >
-      Create a ZK Account
-    </ZkLink>
+    <div class="flex flex-col gap-5 mt-8 py-8">
+      <ZkHighlightWrapper>
+        <ZkButton
+          class="w-full"
+          :loading="registerInProgress"
+          data-testid="signup"
+          @click="signUp"
+        >
+          Sign Up
+        </ZkButton>
+      </ZkHighlightWrapper>
+
+      <ZkButton
+        type="secondary"
+        class="!text-slate-400"
+        :loading="loginInProgress"
+        data-testid="signin"
+        @click="signIn"
+      >
+        Sign In
+      </ZkButton>
+    </div>
+
+    <CommonHeightTransition :opened="!!accountLoginError">
+      <p class="pt-3 text-sm text-error-300 text-center">
+        <span>
+          Account not found.
+          <button
+            type="button"
+            class="underline underline-offset-4"
+            @click="signUp"
+          >
+            Sign up?
+          </button>
+        </span>
+      </p>
+    </CommonHeightTransition>
   </main>
 </template>
 
 <script setup lang="ts">
-import { useColorMode } from "@vueuse/core";
-
 definePageMeta({
-  middleware: ["logged-in"],
+  middleware: ["logged-out"],
 });
 
-const mode = useColorMode({
-  modes: {
-    light: "light-mode",
-    dark: "dark-mode",
-  },
-});
+const runtimeConfig = useRuntimeConfig();
 
-const isDark = ref(mode.value === "dark");
+const chainId = runtimeConfig.public.chainId as SupportedChainId;
 
-watchEffect(() => {
-  mode.value = isDark.value ? "dark" : "light";
-});
+const { registerInProgress, createAccount } = useAccountCreate(chainId);
+const { loginInProgress, accountLoginError, loginToAccount } = useAccountLogin(chainId);
+
+const signUp = async () => {
+  await createAccount();
+  navigateTo("/dashboard");
+};
+const signIn = async () => {
+  await loginToAccount();
+  navigateTo("/dashboard");
+};
 </script>
