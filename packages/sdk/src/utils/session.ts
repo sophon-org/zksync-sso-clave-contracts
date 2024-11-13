@@ -90,7 +90,7 @@ export const LimitUnlimited = {
 };
 
 export const LimitZero = {
-  limitType: LimitType.Unlimited,
+  limitType: LimitType.Lifetime,
   limit: 0n,
   period: 0n,
 };
