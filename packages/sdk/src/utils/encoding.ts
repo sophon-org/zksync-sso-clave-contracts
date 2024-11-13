@@ -1,4 +1,4 @@
-import { type Address, encodeAbiParameters, encodeFunctionData, type Hash, parseAbiParameters, toHex } from "viem";
+import { type Address, encodeAbiParameters, encodeFunctionData, type Hash, type Hex, parseAbiParameters, toHex } from "viem";
 
 import { SessionKeyModuleAbi } from "../abi/SessionKeyModule.js";
 import type { SessionConfig } from "../utils/session.js";
@@ -9,8 +9,8 @@ export const encodeSession = (sessionConfig: SessionConfig) => {
     functionName: "createSession",
     args: [sessionConfig],
   });
-  const selector = callData.slice(0, "0x".length + 8); // first 4 bytes for function selector
-  const args = `0x${callData.slice(selector.length, callData.length)}`; // the rest is the arguments
+  const selector = callData.slice(0, "0x".length + 8) as Hex; // first 4 bytes for function selector
+  const args = `0x${callData.slice(selector.length, callData.length)}` as Hex; // the rest is the arguments
   return args;
 };
 
