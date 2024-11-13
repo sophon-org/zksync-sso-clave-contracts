@@ -1,6 +1,6 @@
 import { type AbiFunction, type Address, type Hash, toFunctionSelector, toHex } from "viem";
 
-import { ConstraintCondition, type Limit, LimitType, LimitZero, type SessionConfig } from "../utils/session.js";
+import { ConstraintCondition, type Limit, LimitType, LimitUnlimited, LimitZero, type SessionConfig } from "../utils/session.js";
 
 type PartialLimit = bigint | {
   limit: bigint;
@@ -123,7 +123,7 @@ export function formatSessionPreferences(
           index: BigInt(constraint.index),
           condition: typeof constraint.condition == "string" ? ConstraintCondition[constraint.condition] : (constraint.condition ?? 0),
           refValue: constraint.refValue ?? toHex("", { size: 32 }),
-          limit: constraint.limit ? formatLimitPreferences(constraint.limit) : LimitZero,
+          limit: constraint.limit ? formatLimitPreferences(constraint.limit) : LimitUnlimited,
         })) ?? [],
       };
     }) ?? [],
