@@ -5,6 +5,15 @@ import { ConstraintCondition, type Limit, LimitType, LimitZero, type SessionConf
 type PartialLimit = bigint | {
   limit: bigint;
   period?: bigint;
+} | {
+  limitType: "lifetime" | LimitType.Lifetime;
+  limit: bigint;
+} | {
+  limitType: "unlimited" | LimitType.Unlimited;
+} | {
+  limitType: "allowance" | LimitType.Allowance;
+  limit: bigint;
+  period: bigint;
 };
 
 type PartialCallPolicy = {
@@ -35,6 +44,7 @@ export interface SessionPreferences {
 };
 
 const formatLimitPreferences = (limit: PartialLimit): Limit => {
+  /* Just bigint was passed */
   if (typeof limit === "bigint") {
     return {
       limitType: LimitType.Lifetime,
@@ -42,7 +52,34 @@ const formatLimitPreferences = (limit: PartialLimit): Limit => {
       period: 0n,
     };
   }
-  if (!limit.period || limit.period == 0n) {
+
+  /* LimitType was specified */
+  if ("limitType" in limit) {
+    if (limit.limitType === "lifetime" || limit.limitType === LimitType.Lifetime) {
+      return {
+        limitType: LimitType.Lifetime,
+        limit: limit.limit,
+        period: 0n,
+      };
+    } else if (limit.limitType === "unlimited" || limit.limitType === LimitType.Unlimited) {
+      return {
+        limitType: LimitType.Unlimited,
+        limit: 0n,
+        period: 0n,
+      };
+    } else if (limit.limitType === "allowance" || limit.limitType === LimitType.Allowance) {
+      return {
+        limitType: LimitType.Allowance,
+        limit: limit.limit,
+        period: limit.period,
+      };
+    }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    throw new Error(`Invalid limit type: ${(limit as any).limitType}`);
+  }
+
+  /* LimitType not selected */
+  if (!limit.period) {
     return {
       limitType: LimitType.Lifetime,
       limit: limit.limit,
