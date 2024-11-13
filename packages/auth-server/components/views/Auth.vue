@@ -77,8 +77,8 @@ const loginAccount = async () => {
   // if active, close the popup and log user in
   // if not active, navigate to connect session page
 
-  // if app does not have sessions, navigate to connect session page
-  // to request accounts view
+  // if app does not have sessions, navigate to /confirm/connect page
+  // and display request accounts view
 
   if (requestMethod.value === "eth_requestAccounts") {
     navigateTo("/confirm/connect");
