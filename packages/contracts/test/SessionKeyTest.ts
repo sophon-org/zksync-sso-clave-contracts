@@ -263,7 +263,7 @@ describe("SessionKeyModule tests", function () {
     logInfo(`Session Address                : ${await sessionModuleContract.getAddress()}`);
     logInfo(`Passkey Address                : ${await verifierContract.getAddress()}`);
     logInfo(`Account Factory Address        : ${await factoryContract.getAddress()}`);
-    logInfo(`Account Implementation Address : ${await erc7579Contract.getAddress()}`);
+    // logInfo(`Account Implementation Address : ${await erc7579Contract.getAddress()}`);
     logInfo(`Auth Server Paymaster Address  : ${await authServerPaymaster.getAddress()}`);
   });
 

@@ -1,8 +1,8 @@
 <template>
-  <ViewsConfirmationRequestAccounts v-if="!session" />
+  <ViewsConfirmationRequestAccounts v-if="!sessionPreferences" />
   <ViewsConfirmationRequestSession
     v-else
-    :session="session"
+    :session-preferences="sessionPreferences"
   />
 </template>
 
@@ -11,10 +11,10 @@ import type { SessionPreferences } from "zksync-sso";
 
 const { request } = storeToRefs(useRequestsStore());
 
-const session = computed<SessionPreferences | undefined>(() => {
+const sessionPreferences = computed<SessionPreferences | undefined>(() => {
   if (request.value?.content.action.method !== "eth_requestAccounts") return undefined;
-  if ("session" in (request.value.content.action.params!)) {
-    return request.value.content.action.params.session;
+  if ("sessionPreferences" in (request.value.content.action.params!)) {
+    return request.value.content.action.params.sessionPreferences;
   }
   return undefined;
 });

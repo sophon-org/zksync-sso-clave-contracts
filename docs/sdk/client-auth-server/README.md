@@ -16,9 +16,9 @@ const ssoConnector = zksyncAccountConnector({
   session: {
     feeLimit: parseEther("0.1"),
     // Allow transfers to a specific address with a limit of 0.1 ETH
-    transferPolicies: [
+    transfers: [
       {
-        target: "0x188bd99cd7D4d78d4E605Aeea12C17B32CC3135A",
+        to: "0x188bd99cd7D4d78d4E605Aeea12C17B32CC3135A",
         valueLimit: parseEther("0.1"),
       },
     ],
