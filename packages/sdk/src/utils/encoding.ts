@@ -2,7 +2,6 @@ import { type Address, encodeAbiParameters, encodeFunctionData, type Hash, parse
 
 import { SessionKeyModuleAbi } from "../abi/SessionKeyModule.js";
 import type { SessionConfig } from "../utils/session.js";
-import { SessionSpec } from "./session.js";
 
 export const encodeSession = (sessionConfig: SessionConfig) => {
   const callData = encodeFunctionData({
@@ -10,8 +9,9 @@ export const encodeSession = (sessionConfig: SessionConfig) => {
     functionName: "createSession",
     args: [sessionConfig],
   });
-  console.log("Equal", callData === encodeAbiParameters([SessionSpec], [sessionConfig]));
-  return encodeAbiParameters([SessionSpec], [sessionConfig]);
+  const selector = callData.slice(0, "0x".length + 8); // first 4 bytes for function selector
+  const args = `0x${callData.slice(selector.length, callData.length)}`; // the rest is the arguments
+  return args;
 };
 
 export const encodePasskeyModuleParameters = (passkey: { passkeyPublicKey: [Buffer, Buffer]; expectedOrigin: string }) => {
