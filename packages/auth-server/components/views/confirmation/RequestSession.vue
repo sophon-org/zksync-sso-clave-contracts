@@ -138,7 +138,7 @@ const { getClient } = useClientStore();
 
 const defaults = {
   expiresAt: BigInt(Math.floor(Date.now() / 1000) + 60 * 60 * 24), // 24 hours
-  fee: {
+  feeLimit: {
     limitType: LimitType.Lifetime,
     limit: parseEther("0.01"),
     period: 0n,

@@ -29,7 +29,7 @@ type PartialTransferPolicy = {
 
 export interface SessionPreferences {
   expiresAt?: bigint | Date;
-  fee?: PartialLimit;
+  feeLimit?: PartialLimit;
   contractCalls?: PartialCallPolicy[];
   transfers?: PartialTransferPolicy[];
 };
@@ -67,12 +67,12 @@ export function formatSessionPreferences(
   preferences: SessionPreferences,
   defaults: {
     expiresAt: bigint;
-    fee: Limit;
+    feeLimit: Limit;
   },
 ): Omit<SessionConfig, "signer"> {
   return {
     expiresAt: preferences.expiresAt ? formatDatePreferences(preferences.expiresAt) : defaults.expiresAt,
-    feeLimit: preferences.fee ? formatLimitPreferences(preferences.fee) : defaults.fee,
+    feeLimit: preferences.feeLimit ? formatLimitPreferences(preferences.feeLimit) : defaults.feeLimit,
     callPolicies: preferences.contractCalls?.map((policy) => {
       const valueLimit = policy.valueLimit ? formatLimitPreferences(policy.valueLimit) : LimitZero;
       const selector = policy.function ? toFunctionSelector(policy.function) : policy.selector;

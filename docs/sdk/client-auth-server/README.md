@@ -14,7 +14,7 @@ import { zksyncAccountConnector } from "zksync-sso/connector";
 const ssoConnector = zksyncAccountConnector({
   // Optional session configuration
   session: {
-    fee: parseEther("0.1"),
+    feeLimit: parseEther("0.1"),
     // Allow transfers to a specific address with a limit of 0.1 ETH
     transfers: [
       {
