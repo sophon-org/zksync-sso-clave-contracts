@@ -31,7 +31,7 @@
         class="!text-slate-400"
         :loading="loginInProgress"
         data-testid="login"
-        @click="loginToAccount"
+        @click="loginAccount"
       >
         Log In
       </ZkButton>
@@ -56,21 +56,31 @@
 
 <script lang="ts" setup>
 const { appMeta } = useAppMeta();
-const { requestChain } = storeToRefs(useRequestsStore());
+const { requestChain, requestMethod } = storeToRefs(useRequestsStore());
 const session = useAppSession();
-const { init } = useCommunicatorStore();
 
 const { registerInProgress, createAccount } = useAccountCreate(computed(() => requestChain.value!.id));
 const { loginInProgress, accountLoginError, loginToAccount } = useAccountLogin(computed(() => requestChain.value!.id));
-
-const route = useRoute();
-init(route.query.origin! as string);
 
 const registerAccount = async () => {
   if (!session.value) {
     // no session defined
     await createAccount();
   } else {
+    navigateTo({ path: "/confirm/connect", query: { action: "register" } });
+  }
+};
+
+const loginAccount = async () => {
+  await loginToAccount();
+  // if app provides a session, check if session for user is active.
+  // if active, close the popup and log user in
+  // if not active, navigate to connect session page
+
+  // if app does not have sessions, navigate to connect session page
+  // to request accounts view
+
+  if (requestMethod.value === "eth_requestAccounts") {
     navigateTo("/confirm/connect");
   }
 };

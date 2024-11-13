@@ -99,7 +99,6 @@ import { ChevronDownIcon } from "@heroicons/vue/24/outline";
 import { useTimeAgo } from "@vueuse/core";
 import { generatePrivateKey, privateKeyToAddress } from "viem/accounts";
 import type { SessionPreferences } from "zksync-sso";
-import type { AuthServerRpcSchema, ExtractReturnType } from "zksync-sso/client-auth-server";
 import { getSession } from "zksync-sso/utils";
 
 const props = defineProps({
@@ -109,7 +108,7 @@ const props = defineProps({
   },
 });
 
-const { appMeta, origin } = useAppMeta();
+const { appMeta, appOrigin } = useAppMeta();
 const { isLoggedIn } = storeToRefs(useAccountStore());
 const { createAccount } = useAccountCreate(computed(() => requestChain.value!.id));
 const { respond, deny } = useRequestsStore();
@@ -117,7 +116,7 @@ const { responseInProgress, requestChain } = storeToRefs(useRequestsStore());
 const { getClient } = useClientStore();
 const formattedSession = computed(() => getSession(props.session));
 
-const domain = computed(() => new URL(origin.value).host);
+const domain = computed(() => new URL(appOrigin.value).host);
 const sessionExpiresIn = useTimeAgo(Number(formattedSession.value.expiresAt) * 1000);
 
 const advancedInfoOpened = ref(false);
@@ -162,30 +161,5 @@ const confirmConnection = async () => {
       };
     }
   });
-};
-
-const constructReturn = (address: `0x${string}`, chainId: number, session: SessionPreferences & { sessionKey: `0x${string}` }): ExtractReturnType<"eth_requestAccounts", AuthServerRpcSchema> => {
-  return {
-    account: {
-      address,
-      activeChainId: chainId,
-      session,
-    },
-    chainsInfo: supportedChains.map((chain) => ({
-      id: chain.id,
-      capabilities: {
-        paymasterService: {
-          supported: true,
-        },
-        atomicBatch: {
-          supported: true,
-        },
-        auxiliaryFunds: {
-          supported: true,
-        },
-      },
-      contracts: contractsByChain[chain.id],
-    })),
-  };
 };
 </script>

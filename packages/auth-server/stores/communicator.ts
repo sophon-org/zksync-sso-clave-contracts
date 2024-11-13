@@ -1,4 +1,3 @@
-import { useStorage } from "@vueuse/core";
 import type { Message, PopupConfigMessage } from "zksync-sso/communicator";
 
 /**
@@ -12,7 +11,8 @@ import type { Message, PopupConfigMessage } from "zksync-sso/communicator";
 export const useCommunicatorStore = defineStore("communicator", () => {
   const listeners = new Map<(_: MessageEvent) => boolean, { reject: (_: Error) => void }>();
   // const openerOrigin: string;
-  const origin = useStorage<string | undefined>("origin", undefined, sessionStorage);
+  // const origin = useStorage<string>("origin", "", sessionStorage);
+  const { appOrigin: origin } = useAppMeta();
 
   /**
    * Handles incoming messages and routes them to the appropriate listeners.
@@ -70,8 +70,7 @@ export const useCommunicatorStore = defineStore("communicator", () => {
   /**
    * Initializes the communicator and sends a version message
    */
-  const init = (originURL: string) => {
-    origin.value = originURL;
+  const init = () => {
     window.addEventListener("message", messageHandler);
 
     postMessage<PopupConfigMessage>({

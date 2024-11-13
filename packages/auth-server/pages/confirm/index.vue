@@ -5,17 +5,13 @@
     mode="out-in"
     class="h-dvh"
   >
-    <ViewsAuth
-      v-if="!isLoggedIn"
-      key="login"
-    />
     <ViewsLoading
-      v-else-if="!appMeta || !hasRequests"
+      v-if="loading && !hasRequests"
       key="loading"
     />
-    <ViewsConnect
+    <ViewsAuth
       v-else-if="requestMethod === 'eth_requestAccounts'"
-      key="connect"
+      key="login"
     />
     <ViewsConfirmation
       v-else
@@ -25,17 +21,16 @@
 </template>
 
 <script lang="ts" setup>
-const { appMeta } = useAppMeta();
 const { isLoggedIn } = storeToRefs(useAccountStore());
-const { init } = useCommunicatorStore();
 const { hasRequests, requestMethod } = storeToRefs(useRequestsStore());
 
-const route = useRoute();
-init(route.query.origin! as string);
+const loading = ref(true);
 
-watch(hasRequests, () => {
+watch(requestMethod, () => {
   if (isLoggedIn.value && requestMethod.value === "eth_requestAccounts") {
-    navigateTo("/confirm/connect");
+    navigateTo({ path: "/confirm/connect" });
+  } else {
+    loading.value = false;
   }
 });
 </script>

@@ -62,7 +62,6 @@
 <script lang="ts" setup>
 import { CheckIcon } from "@heroicons/vue/24/outline";
 import Web3Avatar from "web3-avatar-vue";
-import type { AuthServerRpcSchema, ExtractReturnType } from "zksync-sso/client-auth-server";
 
 const { appMeta, domain } = useAppMeta();
 const { respond, deny } = useRequestsStore();
@@ -73,30 +72,8 @@ const { getClient } = useClientStore();
 const confirmConnection = () => {
   respond(async () => {
     const client = getClient({ chainId: requestChain.value!.id });
-    const response: ExtractReturnType<"eth_requestAccounts", AuthServerRpcSchema> = {
-      account: {
-        address: client.account.address,
-        activeChainId: client.chain.id,
-        session: undefined,
-      },
-      chainsInfo: supportedChains.map((chain) => ({
-        id: chain.id,
-        capabilities: {
-          paymasterService: {
-            supported: true,
-          },
-          atomicBatch: {
-            supported: true,
-          },
-          auxiliaryFunds: {
-            supported: true,
-          },
-        },
-        contracts: contractsByChain[chain.id],
-      })),
-    };
     return {
-      result: response,
+      result: constructReturn(client.account.address, client.chain.id),
     };
   });
 };
