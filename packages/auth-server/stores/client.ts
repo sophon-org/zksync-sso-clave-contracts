@@ -6,9 +6,13 @@ import { createZksyncPasskeyClient, type PasskeyRequiredContracts } from "zksync
 
 export const supportedChains = [zksyncSepoliaTestnet, zksyncInMemoryNode];
 export type SupportedChainId = (typeof supportedChains)[number]["id"];
+export const blockExplorerUrlByChain: Record<SupportedChainId, string> = {
+  [zksyncSepoliaTestnet.id]: zksyncSepoliaTestnet.blockExplorers.native.url,
+  [zksyncInMemoryNode.id]: "http://localhost:3010",
+};
 export const blockExplorerApiByChain: Record<SupportedChainId, string> = {
   [zksyncSepoliaTestnet.id]: zksyncSepoliaTestnet.blockExplorers.native.blockExplorerApi,
-  [zksyncInMemoryNode.id]: "http://localhost:8011",
+  [zksyncInMemoryNode.id]: "http://localhost:3020",
 };
 
 type ChainContracts = PasskeyRequiredContracts & {
@@ -19,8 +23,8 @@ export const contractsByChain: Record<SupportedChainId, ChainContracts> = {
   [zksyncSepoliaTestnet.id]: {
     session: "0x64AEB39926631F9601D78E3024D32632564C057B",
     passkey: "0x7AC1718A54372B5D5fDAca2B7aB6dC6019078d20",
-    accountFactory: "0x35b135308f93B8d13811b2193F84B4a4dAbecAe1",
-    accountPaymaster: "0x384Cac169CDcb7c515ff3A9e7f1236D2a1e8924C",
+    accountFactory: "0x61D9223bb1016e3964Fc45091c305499A8fBF6fE",
+    accountPaymaster: "0x6Fd62E75677B9ca777d0dfA0D075707347634EEA",
   },
   [zksyncInMemoryNode.id]: {
     session: "0xc81BdB6e98da8e23aa646969A7e942752b9B10c4",

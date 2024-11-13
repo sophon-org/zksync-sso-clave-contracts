@@ -51,9 +51,6 @@ importers:
       '@swc/core':
         specifier: 1.7.26
         version: 1.7.26(@swc/helpers@0.5.13)
-      cbor-web:
-        specifier: ^9.0.2
-        version: 9.0.2
       cspell:
         specifier: 8.14.4
         version: 8.14.4
@@ -201,9 +198,6 @@ importers:
       '@vueuse/nuxt':
         specifier: ^11.1.0
         version: 11.1.0(magicast@0.3.5)(nuxt@3.13.2(@parcel/watcher@2.4.1)(@types/node@22.8.0)(bufferutil@4.0.8)(eslint@9.11.1(jiti@2.3.3))(idb-keyval@6.2.1)(ioredis@5.4.1)(magicast@0.3.5)(optionator@0.9.4)(rollup@4.24.0)(sass@1.80.4)(terser@5.36.0)(typescript@5.6.2)(utf-8-validate@5.0.10)(vite@5.4.10(@types/node@22.8.0)(sass@1.80.4)(terser@5.36.0)))(rollup@4.24.0)(vue@3.5.12(typescript@5.6.2))
-      cbor-web:
-        specifier: ^9.0.2
-        version: 9.0.2
       nuxt:
         specifier: ^3.13.0
         version: 3.13.2(@parcel/watcher@2.4.1)(@types/node@22.8.0)(bufferutil@4.0.8)(eslint@9.11.1(jiti@2.3.3))(idb-keyval@6.2.1)(ioredis@5.4.1)(magicast@0.3.5)(optionator@0.9.4)(rollup@4.24.0)(sass@1.80.4)(terser@5.36.0)(typescript@5.6.2)(utf-8-validate@5.0.10)(vite@5.4.10(@types/node@22.8.0)(sass@1.80.4)(terser@5.36.0))
@@ -246,9 +240,6 @@ importers:
       bigint-conversion:
         specifier: ^2.4.3
         version: 2.4.3
-      cbor-web:
-        specifier: ^9.0.2
-        version: 9.0.2
       hardhat:
         specifier: ^2.22.12
         version: 2.22.15(bufferutil@4.0.8)(ts-node@10.9.2(@swc/core@1.7.26(@swc/helpers@0.5.13))(@types/node@20.16.10)(typescript@5.6.2))(typescript@5.6.2)(utf-8-validate@5.0.10)
@@ -367,9 +358,6 @@ importers:
       '@web3modal/wagmi':
         specifier: ^5.1.11
         version: 5.1.11(xuljxydflbcmbkcu2j4g6n7e74)
-      cbor-web:
-        specifier: ^9.0.2
-        version: 9.0.2
       ethers:
         specifier: ^6.13.2
         version: 6.13.4(bufferutil@4.0.8)(utf-8-validate@5.0.10)
@@ -582,9 +570,6 @@ importers:
       buffer:
         specifier: ^6.0.3
         version: 6.0.3
-      cbor-web:
-        specifier: ^9.0.2
-        version: 9.0.2
     devDependencies:
       '@simplewebauthn/types':
         specifier: ^10.0.0
@@ -5505,10 +5490,6 @@ packages:
 
   caseless@0.12.0:
     resolution: {integrity: sha512-4tYFyifaFfGacoiObjJegolkwSU4xQNGbVgUiNYVUxbQ2x2lUsFvY4hVgVzGiIe6WLOPqycWXA40l+PWsxthUw==}
-
-  cbor-web@9.0.2:
-    resolution: {integrity: sha512-N6gU2GsJS8RR5gy1d9wQcSPgn9FGJFY7KNvdDRlwHfz6kCxrQr2TDnrjXHmr6TFSl6Fd0FC4zRnityEldjRGvQ==}
-    engines: {node: '>=16'}
 
   cbor@8.1.0:
     resolution: {integrity: sha512-DwGjNW9omn6EwP70aXsn7FQJx5kO12tX0bZkaTjzdVFM6/7nhA4t0EENocKGx6D2Bch9PE2KzCUf5SceBdeijg==}
@@ -18437,8 +18418,6 @@ snapshots:
   caniuse-lite@1.0.30001669: {}
 
   caseless@0.12.0: {}
-
-  cbor-web@9.0.2: {}
 
   cbor@8.1.0:
     dependencies:

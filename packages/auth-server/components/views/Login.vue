@@ -30,10 +30,10 @@
         type="secondary"
         class="!text-slate-400"
         :loading="loginInProgress"
-        data-testid="signin"
+        data-testid="login"
         @click="loginToAccount"
       >
-        Sign In
+        Log In
       </ZkButton>
     </div>
 
