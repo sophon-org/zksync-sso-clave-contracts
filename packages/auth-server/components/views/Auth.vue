@@ -58,9 +58,13 @@
 const { appMeta } = useAppMeta();
 const { requestChain } = storeToRefs(useRequestsStore());
 const session = useAppSession();
+const { init } = useCommunicatorStore();
 
 const { registerInProgress, createAccount } = useAccountCreate(computed(() => requestChain.value!.id));
 const { loginInProgress, accountLoginError, loginToAccount } = useAccountLogin(computed(() => requestChain.value!.id));
+
+const route = useRoute();
+init(route.query.origin! as string);
 
 const registerAccount = async () => {
   if (!session.value) {

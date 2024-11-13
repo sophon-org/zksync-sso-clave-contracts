@@ -69,12 +69,25 @@
         >
           Cancel
         </ZkButton>
+        <ZkHighlightWrapper
+          v-if="!isLoggedIn"
+          class="w-full"
+        >
+          <ZkButton
+            class="w-full"
+            :loading="!appMeta || responseInProgress"
+            @click="confirmConnection()"
+          >
+            Create
+          </ZkButton>
+        </ZkHighlightWrapper>
         <ZkButton
+          v-else
           class="w-full"
           :loading="!appMeta || responseInProgress"
           @click="confirmConnection()"
         >
-          {{ isLoggedIn ? 'Connect' : 'Create' }}
+          Connect
         </ZkButton>
       </div>
     </div>

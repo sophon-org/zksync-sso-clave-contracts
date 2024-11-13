@@ -13,6 +13,10 @@
       v-else-if="!appMeta || !hasRequests"
       key="loading"
     />
+    <ViewsConnect
+      v-else-if="requestMethod === 'eth_requestAccounts'"
+      key="connect"
+    />
     <ViewsConfirmation
       v-else
       key="confirmation"

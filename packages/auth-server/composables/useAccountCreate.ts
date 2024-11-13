@@ -50,7 +50,7 @@ export const useAccountCreate = (_chainId: MaybeRef<SupportedChainId>) => {
     return {
       address: deployedAccount.address,
       chainId: chainId.value,
-      sessionKey: !session ? sessionKey : undefined,
+      sessionKey: session ? sessionKey : undefined,
     };
   });
 
