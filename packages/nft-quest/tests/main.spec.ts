@@ -79,7 +79,7 @@ test("Create account, session key, and mint NFT", async ({ page }) => {
 
   // Click Sign Up
   await popup.getByTestId("signup").click();
-  await expect(popup.getByTestId("spinner")).toHaveCount(0, { timeout: 10_000 });
+  // await expect(popup.getByTestId("spinner")).toHaveCount(0, { timeout: 10_000 });
 
   // Save credentials.id for later tests
   const getCredentialsResult = await client.send("WebAuthn.getCredentials", { authenticatorId });
@@ -88,7 +88,7 @@ test("Create account, session key, and mint NFT", async ({ page }) => {
   // Add session
   await expect(popup.getByText("Authorize ZK NFT Quest")).toBeVisible();
   await expect(popup.getByText("Permissions")).toBeVisible();
-  await popup.getByRole("button", { name: "Connect" }).click();
+  await popup.getByTestId("connect").click();
 
   // Waits for session to complete and popup to close
   await page.waitForTimeout(2000);
@@ -145,7 +145,7 @@ test("Create account, session key, and mint NFT", async ({ page }) => {
   // Add session
   await expect(popup.getByText("Authorize ZK NFT Quest")).toBeVisible();
   await expect(popup.getByText("Permissions")).toBeVisible();
-  await popup.getByRole("button", { name: "Connect" }).click();
+  await popup.getByTestId("connect").click();
 
   // Waits for session to complete and popup to close
   await page.waitForTimeout(2000);

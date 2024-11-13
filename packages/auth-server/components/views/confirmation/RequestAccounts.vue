@@ -50,6 +50,7 @@
         <ZkButton
           class="w-full"
           :loading="!appMeta || responseInProgress"
+          data-testid="connect"
           @click="confirmConnection()"
         >
           Connect

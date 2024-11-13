@@ -76,6 +76,7 @@
           <ZkButton
             class="w-full"
             :loading="!appMeta || responseInProgress"
+            data-testid="connect"
             @click="confirmConnection()"
           >
             Create
@@ -85,6 +86,7 @@
           v-else
           class="w-full"
           :loading="!appMeta || responseInProgress"
+          data-testid="connect"
           @click="confirmConnection()"
         >
           Connect
