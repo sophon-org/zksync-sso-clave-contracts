@@ -45,14 +45,14 @@ const formatLimitPreferences = (limit: PartialLimit): Limit => {
   if (!limit.period || limit.period == 0n) {
     return {
       limitType: LimitType.Lifetime,
-      limit: BigInt(limit.limit),
+      limit: limit.limit,
       period: 0n,
     };
   }
   return {
     limitType: LimitType.Allowance,
-    limit: BigInt(limit.limit),
-    period: BigInt(limit.period),
+    limit: limit.limit,
+    period: limit.period,
   };
 };
 
@@ -60,7 +60,7 @@ const formatDatePreferences = (date: bigint | Date): bigint => {
   if (date instanceof Date) {
     return BigInt(Math.floor(date.getTime() / 1000));
   }
-  return BigInt(date);
+  return date;
 };
 
 export function formatSessionPreferences(
