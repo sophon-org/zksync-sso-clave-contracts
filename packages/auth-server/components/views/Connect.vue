@@ -11,7 +11,7 @@ import type { SessionPreferences } from "zksync-sso";
 
 const { request } = storeToRefs(useRequestsStore());
 
-// if user is logged in and has an active session,
+// TODO: if user is logged in and has an active session,
 // display the request account view
 // if user is logged in but does not have an active session,
 // display the request session view

@@ -73,7 +73,7 @@ const registerAccount = async () => {
 
 const loginAccount = async () => {
   await loginToAccount();
-  // if app provides a session, check if session for user is active.
+  // TODO: if app provides a session, check if session for user is active.
   // if active, close the popup and log user in
   // if not active, navigate to connect session page
 
