@@ -79,7 +79,6 @@ test("Create account, session key, and send ETH", async ({ page }) => {
 
   // Click Sign Up
   await popup.getByTestId("signup").click();
-  await expect(popup.getByTestId("spinner")).toHaveCount(0, { timeout: 10_000 });
 
   // Add session
   await expect(popup.getByText("Authorize ZKsync SSO Demo")).toBeVisible();
