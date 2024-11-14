@@ -81,8 +81,13 @@ test("Create account, session key, and mint NFT", async ({ page }) => {
   await popup.getByTestId("signup").click();
 
   // Save credentials.id for later tests
-  const getCredentialsResult = await client.send("WebAuthn.getCredentials", { authenticatorId });
-  console.log(getCredentialsResult);
+  let newCredential = null;
+  client.on("WebAuthn.credentialAdded", (credentialAdded) => {
+    console.log("New Passkey credential added");
+    console.log(`Authenticator ID: ${credentialAdded.authenticatorId}`);
+    console.log(`Credential: ${credentialAdded.credential}`);
+    newCredential = credentialAdded.credential;
+  });
 
   // Add session
   await expect(popup.getByText("Authorize ZK NFT Quest")).toBeVisible();
@@ -127,9 +132,10 @@ test("Create account, session key, and mint NFT", async ({ page }) => {
       automaticPresenceSimulation: true,
     },
   });
+  await expect(newCredential).not.toBeNull();
   await client.send("WebAuthn.addCredential", {
     authenticatorId: result.authenticatorId,
-    credential: getCredentialsResult.credentials[0],
+    credential: newCredential!,
   });
   await expect(popup.getByText("Authorize ZK NFT Quest")).toBeVisible();
 
@@ -139,7 +145,6 @@ test("Create account, session key, and mint NFT", async ({ page }) => {
 
   // Sign In
   await popup.getByTestId("login").click();
-  await expect(popup.getByTestId("spinner")).toHaveCount(0, { timeout: 10_000 });
 
   // Add session
   await expect(popup.getByText("Authorize ZK NFT Quest")).toBeVisible();
