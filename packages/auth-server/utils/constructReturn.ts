@@ -1,6 +1,7 @@
-import type { AuthServerRpcSchema, ExtractReturnType, SessionPreferences } from "zksync-sso/client-auth-server";
+import type { AuthServerRpcSchema, ExtractReturnType } from "zksync-sso/client-auth-server";
+import type { SessionConfig } from "zksync-sso/utils";
 
-export const constructReturn = (address: `0x${string}`, chainId: number, session?: { sessionKey: `0x${string}`; sessionConfig: SessionPreferences }): ExtractReturnType<"eth_requestAccounts", AuthServerRpcSchema> => {
+export const constructReturn = (address: `0x${string}`, chainId: number, session?: { sessionKey: `0x${string}`; sessionConfig: SessionConfig }): ExtractReturnType<"eth_requestAccounts", AuthServerRpcSchema> => {
   return {
     account: {
       address,

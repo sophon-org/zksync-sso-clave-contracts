@@ -5,8 +5,8 @@ export const useAppSession = () => {
 
   const session = computed<SessionPreferences | undefined>(() => {
     if (request.value?.content.action.method !== "eth_requestAccounts") return undefined;
-    if ("session" in (request.value.content.action.params!)) {
-      return request.value.content.action.params.session;
+    if ("sessionPreferences" in (request.value.content.action.params!)) {
+      return request.value.content.action.params.sessionPreferences as SessionPreferences;
     }
     return undefined;
   });

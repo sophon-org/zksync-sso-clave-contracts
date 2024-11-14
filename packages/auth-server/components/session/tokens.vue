@@ -43,19 +43,16 @@
 <script setup lang="ts">
 import { formatUnits } from "viem";
 import type { Address } from "viem/accounts";
-import type { SessionPreferences } from "zksync-sso";
-import { getSession } from "zksync-sso/utils";
+import type { SessionConfig } from "zksync-sso/utils";
 
 const { requestChain } = storeToRefs(useRequestsStore());
 const { fetchTokenInfo } = useTokenUtilities(computed(() => requestChain.value!.id));
-const formattedSession = computed(() => getSession(props.session));
 
-const props = defineProps({
-  session: {
-    type: Object as PropType<SessionPreferences>,
-    required: true,
-  },
-});
+interface Props {
+  session: Omit<SessionConfig, "signer">;
+}
+
+const props = defineProps<Props>();
 
 const { result: tokensList, inProgress: tokensLoading, execute: fetchTokens } = useAsync(async () => {
   const fetchSingleToken = async (tokenAddress: Address): Promise<Token> => {
@@ -81,11 +78,11 @@ const { result: tokensList, inProgress: tokensLoading, execute: fetchTokens } = 
 });
 
 const spendLimitTokens = computed(() => {
-  if (!formattedSession.value || !tokensList.value) return;
+  if (!props.session || !tokensList.value) return;
   let spendLimits: { [tokenAddress: string]: bigint } = {
-    [BASE_TOKEN_ADDRESS]: formattedSession.value.feeLimit.limit,
+    [BASE_TOKEN_ADDRESS]: props.session.feeLimit?.limit,
   };
-  spendLimits = (formattedSession.value.transferPolicies || []).reduce((acc, transferPolicy) => {
+  spendLimits = (props.session.transferPolicies || []).reduce((acc, transferPolicy) => {
     return {
       ...acc,
       [BASE_TOKEN_ADDRESS]: (acc[BASE_TOKEN_ADDRESS] || BigInt(0)) + BigInt(transferPolicy.valueLimit.limit),

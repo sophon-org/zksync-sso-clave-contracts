@@ -145,7 +145,7 @@ const confirmConnection = async () => {
           accountData!.address,
           accountData!.chainId,
           {
-            sessionConfig: { ...sessionConfig.value },
+            sessionConfig: accountData!.sessionConfig!,
             sessionKey: accountData!.sessionKey!,
           },
         ),
@@ -154,8 +154,6 @@ const confirmConnection = async () => {
       // create a new session for the existing account
       const client = getClient({ chainId: requestChain.value!.id });
       const sessionKey = generatePrivateKey();
-      // const sessionPreferences = sessionConfig.value;
-
       const session = {
         sessionKey,
         sessionConfig: {

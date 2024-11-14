@@ -63,10 +63,13 @@ const { registerInProgress, createAccount } = useAccountCreate(computed(() => re
 const { loginInProgress, accountLoginError, loginToAccount } = useAccountLogin(computed(() => requestChain.value!.id));
 
 const registerAccount = async () => {
+  console.log("SESSION", session.value);
   if (!session.value) {
+    console.log("NO SESSION");
     // no session defined
     await createAccount();
   } else {
+    console.log("SESSION EXISTS");
     navigateTo({ path: "/confirm/connect", query: { action: "register" } });
   }
 };

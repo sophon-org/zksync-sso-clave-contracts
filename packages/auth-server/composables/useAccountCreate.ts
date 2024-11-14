@@ -1,15 +1,15 @@
 import { toHex } from "viem";
 import { generatePrivateKey, privateKeyToAddress } from "viem/accounts";
-import type { SessionData } from "zksync-sso";
 import { deployAccount } from "zksync-sso/client";
 import { registerNewPasskey } from "zksync-sso/client/passkey";
+import type { SessionConfig } from "zksync-sso/utils";
 
 export const useAccountCreate = (_chainId: MaybeRef<SupportedChainId>) => {
   const chainId = toRef(_chainId);
   const { login } = useAccountStore();
   const { getThrowAwayClient } = useClientStore();
 
-  const { inProgress: registerInProgress, execute: createAccount } = useAsync(async (session?) => {
+  const { inProgress: registerInProgress, execute: createAccount } = useAsync(async (session?: Omit<SessionConfig, "signer">) => {
     // Format passkey display name similar to "ZK SSO 11/11/2024 01:46 PM"
     let name = `ZK SSO ${(new Date()).toLocaleDateString("en-US")}`;
     name += ` ${(new Date()).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
@@ -22,12 +22,13 @@ export const useAccountCreate = (_chainId: MaybeRef<SupportedChainId>) => {
       userDisplayName: name,
     });
 
-    let sessionData: SessionData = session;
+    let sessionData: SessionConfig | undefined;
     const sessionKey = generatePrivateKey();
+    const signer = privateKeyToAddress(sessionKey);
     if (session) {
       sessionData = {
         ...session,
-        sessionPublicKey: privateKeyToAddress(sessionKey),
+        signer: signer,
       };
     }
 
@@ -51,6 +52,8 @@ export const useAccountCreate = (_chainId: MaybeRef<SupportedChainId>) => {
       address: deployedAccount.address,
       chainId: chainId.value,
       sessionKey: session ? sessionKey : undefined,
+      signer,
+      sessionConfig: sessionData,
     };
   });
 
