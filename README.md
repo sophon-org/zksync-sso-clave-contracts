@@ -1,4 +1,4 @@
-# ZKsync Account SDK
+# ZKsync SSO SDK
 
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE-MIT)
 [![CI](https://github.com/matter-labs/zksync-account-sdk/actions/workflows/ci.yml/badge.svg)](https://github.com/matter-labs/zksync-account-sdk/actions/workflows/ci.yml)
@@ -9,8 +9,6 @@ This monorepo is comprised of the following packages/products:
 - `packages/auth-server` is the Auth Server used for account creation and
   session key management
 - `packages/contracts` are the on-chain smart contracts behind ZK SSO accounts
-
-[Link to **ZK Account Interface Details**](https://matterlabs.notion.site/ZK-Account-Interface-Details-0c15bbcb90dc466ca826b57aa24d3a69)
 
 ## Running development
 
@@ -79,10 +77,11 @@ pnpm nx show project <project> --web
 
 ## Lint project
 
-At the root level of the monorepo, run the `lint` command to run linting across
-the project.
+At the root level of the monorepo, run the `pnpm run lint` command to run
+linting across the project.
 
-To fix lint issues that come up from linting, run the `lint:fix` command.
+To fix lint issues that come up from linting, run the `pnpm run lint:fix`
+command.
 
 ## Running/Debugging End-to-End Tests
 
