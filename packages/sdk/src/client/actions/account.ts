@@ -3,10 +3,10 @@ import { readContract, waitForTransactionReceipt, writeContract } from "viem/act
 import { getGeneralPaymasterInput } from "viem/zksync";
 
 import { FactoryAbi } from "../../abi/Factory.js";
-import type { SessionData } from "../../client-auth-server/interface.js";
-import { encodeCreateSessionParameters, encodeModuleData, encodePasskeyModuleParameters } from "../../utils/encoding.js";
+import { encodeModuleData, encodePasskeyModuleParameters, encodeSession } from "../../utils/encoding.js";
 import { noThrow } from "../../utils/helpers.js";
 import { getPasskeySignatureFromPublicKeyBytes, getPublicKeyBytesFromPasskeySignature } from "../../utils/passkey.js";
+import type { SessionConfig } from "../../utils/session.js";
 
 /* TODO: try to get rid of most of the contract params like passkey, session */
 /* it should come from factory, not passed manually each time */
@@ -21,7 +21,7 @@ export type DeployAccountArgs = {
     passkey: Address;
     session: Address;
   };
-  initialSession?: SessionData;
+  initialSession?: SessionConfig;
   salt?: Uint8Array; // Random 32 bytes
   onTransactionSent?: (hash: Hash) => void;
 };
@@ -80,7 +80,7 @@ export const deployAccount = async <
 
   const encodedSessionKeyModuleData = encodeModuleData({
     address: args.contracts.session,
-    parameters: args.initialSession == null ? "0x" : encodeCreateSessionParameters(args.initialSession),
+    parameters: args.initialSession == null ? "0x" : encodeSession(args.initialSession),
   });
 
   let deployProxyArgs = {

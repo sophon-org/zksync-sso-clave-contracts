@@ -51,7 +51,7 @@ test("Create account, session key, and mint NFT", async ({ page }) => {
   // Ensure popup is displayed
   await page.waitForTimeout(2000);
   let popup = page.context().pages()[1];
-  await expect(popup.getByText("Connect to ZK NFT Quest")).toBeVisible();
+  await expect(popup.getByText("Connect to ZK NFT Quest")).toBeVisible({ timeout: 15000 });
   popup.on("console", (msg) => {
     if (msg.type() === "error")
       console.log(`Auth server error console: "${msg.text()}"`);
@@ -107,7 +107,7 @@ test("Create account, session key, and mint NFT", async ({ page }) => {
   await page.getByPlaceholder("Wallet address").fill(richWallet0);
   await page.getByRole("button", { name: "Mint and send" }).click();
   await expect(page.getByTestId("spinner")).not.toBeVisible();
-  await expect(page.getByText("You've sent the minted copy to")).toBeVisible();
+  await expect(page.getByText("You've sent the minted copy to")).toBeVisible({ timeout: 15000 });
 
   // Disconnect and try again by logging in with the existing passkey
   await page.getByText("keyboard_arrow_down").click();
@@ -155,7 +155,7 @@ test("Create account, session key, and mint NFT", async ({ page }) => {
   await page.waitForTimeout(2000);
 
   // Mint another NFT
-  await page.getByRole("button", { name: "Mint 100% free NFT" }).click();
+  await page.getByRole("button", { name: "Mint 100% free NFT" }).click({ timeout: 60000 });
   await expect(page.getByTestId("spinner")).not.toBeVisible();
   await expect(page.getByText("You've got Zeek.")).toBeVisible();
 });

@@ -40,7 +40,7 @@
         </CommonLine>
       </div>
 
-      <SessionTokens :session="props.session" />
+      <SessionTokens :session="sessionConfig" />
     </div>
 
     <button
@@ -56,7 +56,7 @@
     </button>
     <CommonHeightTransition :opened="advancedInfoOpened">
       <CommonLine>
-        <pre class="p-3 text-xs overflow-auto">{{ JSON.stringify(formattedSession, null, 4) }}</pre>
+        <pre class="p-3 text-xs overflow-auto">{{ JSON.stringify(sessionConfig, null, 4) }}</pre>
       </CommonLine>
     </CommonHeightTransition>
 
@@ -99,12 +99,14 @@
 <script lang="ts" setup>
 import { ChevronDownIcon } from "@heroicons/vue/24/outline";
 import { useTimeAgo } from "@vueuse/core";
+import { parseEther } from "viem";
 import { generatePrivateKey, privateKeyToAddress } from "viem/accounts";
 import type { SessionPreferences } from "zksync-sso";
-import { getSession } from "zksync-sso/utils";
+import { formatSessionPreferences } from "zksync-sso/client-auth-server";
+import { LimitType } from "zksync-sso/utils";
 
 const props = defineProps({
-  session: {
+  sessionPreferences: {
     type: Object as PropType<SessionPreferences>,
     required: true,
   },
@@ -116,10 +118,19 @@ const { createAccount } = useAccountCreate(computed(() => requestChain.value!.id
 const { respond, deny } = useRequestsStore();
 const { responseInProgress, requestChain } = storeToRefs(useRequestsStore());
 const { getClient } = useClientStore();
-const formattedSession = computed(() => getSession(props.session));
+
+const defaults = {
+  expiresAt: BigInt(Math.floor(Date.now() / 1000) + 60 * 60 * 24), // 24 hours
+  feeLimit: {
+    limitType: LimitType.Lifetime,
+    limit: parseEther("0.01"),
+    period: 0n,
+  },
+};
+const sessionConfig = computed(() => formatSessionPreferences(props.sessionPreferences, defaults));
 
 const domain = computed(() => new URL(appOrigin.value).host);
-const sessionExpiresIn = useTimeAgo(Number(formattedSession.value.expiresAt) * 1000);
+const sessionExpiresIn = useTimeAgo(Number(sessionConfig.value.expiresAt) * 1000);
 
 const advancedInfoOpened = ref(false);
 
@@ -127,14 +138,14 @@ const confirmConnection = async () => {
   respond(async () => {
     if (!isLoggedIn.value) {
       // create a new account with initial session data
-      const accountData = await createAccount(formattedSession.value);
+      const accountData = await createAccount(sessionConfig.value);
 
       return {
         result: constructReturn(
           accountData!.address,
           accountData!.chainId,
           {
-            ...formattedSession.value,
+            sessionConfig: { ...sessionConfig.value },
             sessionKey: accountData!.sessionKey!,
           },
         ),
@@ -143,22 +154,22 @@ const confirmConnection = async () => {
       // create a new session for the existing account
       const client = getClient({ chainId: requestChain.value!.id });
       const sessionKey = generatePrivateKey();
-      const sessionPreferences = formattedSession.value;
+      // const sessionPreferences = sessionConfig.value;
 
-      await client.createSession({
-        session: {
-          ...sessionPreferences,
-          sessionPublicKey: privateKeyToAddress(sessionKey),
+      const session = {
+        sessionKey,
+        sessionConfig: {
+          signer: privateKeyToAddress(sessionKey),
+          ...sessionConfig.value,
         },
-      });
+      };
+
+      await client.createSession({ sessionConfig: session.sessionConfig });
       return {
         result: constructReturn(
           client.account.address,
           client.chain.id,
-          {
-            ...sessionPreferences,
-            sessionKey,
-          },
+          session,
         ),
       };
     }
