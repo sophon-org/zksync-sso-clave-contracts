@@ -1,6 +1,6 @@
 import { /* decodeFunctionData, erc20Abi, getAddress, */ type Account, type Chain, type Transport, type WalletActions } from "viem";
 import { deployContract, getAddresses, getChainId, prepareTransactionRequest, sendRawTransaction, signMessage, signTypedData, writeContract } from "viem/actions";
-import { getGeneralPaymasterInput, sendEip712Transaction, sendTransaction, signTransaction } from "viem/zksync";
+import { getGeneralPaymasterInput, sendEip712Transaction, signTransaction } from "viem/zksync";
 
 import type { ClientWithZksyncAccountSessionData } from "../clients/session.js";
 /* import { getTokenSpendLimit } from '../actions/session.js'; */
@@ -22,7 +22,11 @@ export function zksyncAccountWalletActions<
       prepareTransactionRequest(client, args),
     sendRawTransaction: (args) => sendRawTransaction(client, args),
     sendTransaction: async (args) => {
-      const tx = client.chain.formatters?.transaction?.format(args) || args;
+      const tx: any = {
+        ...(client.chain.formatters?.transaction?.format(args) || args),
+        type: "eip712",
+        account: client.account,
+      };
       /* await verifyTransactionData({
         value: tx.value,
         chain: tx.chain || undefined,
@@ -36,14 +40,15 @@ export function zksyncAccountWalletActions<
       if (tx.eip712Meta) {
         const transaction = {
           ...tx,
-          account: client.account,
           paymaster: tx.eip712Meta.paymasterParams.paymaster,
           // TODO: Find permanent fix as this only works for general paymasters with no input
           paymasterInput: getGeneralPaymasterInput({ innerInput: "0x" }),
         };
         return await sendEip712Transaction(client, transaction);
       }
-      return await sendTransaction(client, tx);
+
+      console.log("Sending transaction", tx);
+      return await sendEip712Transaction(client, tx);
     },
     signMessage: (args) => signMessage(client, args),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
