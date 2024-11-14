@@ -79,7 +79,7 @@ test("Create account, session key, and mint NFT", async ({ page }) => {
 
   // Click Sign Up
   await popup.getByTestId("signup").click();
-  // await expect(popup.getByTestId("spinner")).toHaveCount(0, { timeout: 10_000 });
+  await expect(popup.getByTestId("spinner")).toHaveCount(0, { timeout: 10_000 });
 
   // Save credentials.id for later tests
   const getCredentialsResult = await client.send("WebAuthn.getCredentials", { authenticatorId });

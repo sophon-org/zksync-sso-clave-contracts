@@ -79,7 +79,7 @@ test("Create account, session key, and send ETH", async ({ page }) => {
 
   // Click Sign Up
   await popup.getByTestId("signup").click();
-  // await expect(popup.getByTestId("spinner")).toHaveCount(0, { timeout: 10_000 });
+  await expect(popup.getByTestId("spinner")).toHaveCount(0, { timeout: 10_000 });
 
   // Add session
   await expect(popup.getByText("Authorize ZKsync SSO Demo")).toBeVisible();
@@ -89,7 +89,7 @@ test("Create account, session key, and send ETH", async ({ page }) => {
   await popup.getByTestId("connect").click();
 
   // Waits for session to complete and popup to close
-  await page.waitForTimeout(7000);
+  await page.waitForTimeout(2000);
 
   // Check address/balance is shown
   await expect(page.getByText("Disconnect")).toBeVisible();
