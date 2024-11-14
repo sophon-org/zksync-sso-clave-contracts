@@ -2,16 +2,19 @@ import { type Address, type Chain, type Hash, hexToNumber, http, type RpcSchema 
 
 import { createZksyncSessionClient, type ZksyncAccountSessionClient } from "../client/index.js";
 import type { Communicator } from "../communicator/index.js";
-import { getSession } from "../utils/session.js";
+import { type SessionConfig } from "../utils/session.js";
 import { StorageItem } from "../utils/storage.js";
-import type { AppMetadata, RequestArguments, SessionPreferences } from "./interface.js";
+import type { AppMetadata, RequestArguments } from "./interface.js";
 import type { AuthServerRpcSchema, ExtractParams, ExtractReturnType, Method, RPCRequestMessage, RPCResponseMessage, RpcSchema } from "./rpc.js";
-import type { WalletProviderSessionPreferences } from "./WalletProvider.js";
+import type { SessionPreferences } from "./session.js";
 
 type Account = {
   address: Address;
   activeChainId: Chain["id"];
-  session?: SessionPreferences & { sessionKey: Hash } | undefined;
+  session?: {
+    sessionKey: Hash;
+    sessionConfig: SessionConfig;
+  };
 };
 
 interface SignerInterface {
@@ -33,7 +36,7 @@ type SignerConstructorParams = {
   updateListener: UpdateListener;
   chains: readonly Chain[];
   transports?: Record<number, Transport>;
-  session?: () => WalletProviderSessionPreferences | Promise<WalletProviderSessionPreferences>;
+  session?: () => SessionPreferences | Promise<SessionPreferences>;
 };
 
 type ChainsInfo = ExtractReturnType<"eth_requestAccounts", AuthServerRpcSchema>["chainsInfo"];
@@ -44,7 +47,7 @@ export class Signer implements SignerInterface {
   private readonly updateListener: UpdateListener;
   private readonly chains: readonly Chain[];
   private readonly transports: Record<number, Transport> = {};
-  private readonly sessionParameters?: () => (WalletProviderSessionPreferences | Promise<WalletProviderSessionPreferences>);
+  private readonly sessionParameters?: () => (SessionPreferences | Promise<SessionPreferences>);
 
   private _account: StorageItem<Account | null>;
   private _chainsInfo = new StorageItem<ChainsInfo>(StorageItem.scopedStorageKey("chainsInfo"), []);
@@ -112,10 +115,11 @@ export class Signer implements SignerInterface {
     if (session) {
       this.walletClient = createZksyncSessionClient({
         address: this.account.address,
+        sessionKey: session.sessionKey,
+        sessionConfig: session.sessionConfig,
         contracts: chainInfo.contracts,
         chain,
         transport: this.transports[chain.id] || http(),
-        sessionKey: session.sessionKey,
       });
     } else {
       this.walletClient = undefined;
@@ -123,7 +127,7 @@ export class Signer implements SignerInterface {
   }
 
   async handshake(): Promise<Address[]> {
-    let session: SessionPreferences | undefined;
+    let sessionPreferences: SessionPreferences | undefined;
     let metadata: AppMetadata = {
       name: "Unknown DApp",
       icon: null,
@@ -135,18 +139,7 @@ export class Signer implements SignerInterface {
     }
     if (this.sessionParameters) {
       try {
-        const sessionParameters = await this.sessionParameters();
-        session = {
-          ...sessionParameters,
-          expiresAt: undefined,
-        };
-        if (sessionParameters.expiresAt) {
-          if (sessionParameters.expiresAt instanceof Date) {
-            session.expiresAt = BigInt(Math.ceil(sessionParameters.expiresAt.getTime() / 1000));
-          } else {
-            session.expiresAt = sessionParameters.expiresAt;
-          }
-        }
+        sessionPreferences = await this.sessionParameters();
       } catch (error) {
         console.error("Failed to get session data. Proceeding connection with no session.", error);
       }
@@ -155,7 +148,7 @@ export class Signer implements SignerInterface {
       method: "eth_requestAccounts",
       params: {
         metadata,
-        session: session ? getSession(session) : undefined,
+        sessionPreferences,
       },
     });
     const handshakeData = responseMessage.content.result!;

@@ -10,11 +10,11 @@ import {
   UserRejectedRequestError,
 } from "viem";
 
-import { type AppMetadata, type ProviderInterface, WalletProvider, type WalletProviderSessionPreferences } from "../index.js";
+import { type AppMetadata, type ProviderInterface, type SessionPreferences, WalletProvider } from "../index.js";
 
 export type ZksyncAccountConnectorOptions = {
   metadata?: Partial<AppMetadata>;
-  session?: WalletProviderSessionPreferences | (() => WalletProviderSessionPreferences | Promise<WalletProviderSessionPreferences>);
+  session?: SessionPreferences | (() => SessionPreferences | Promise<SessionPreferences>);
   authServerUrl?: string;
 };
 
