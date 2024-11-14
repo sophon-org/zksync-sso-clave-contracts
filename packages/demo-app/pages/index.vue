@@ -51,9 +51,9 @@ const zksyncConnector = zksyncAccountConnector({
   authServerUrl: "http://localhost:3002/confirm",
   session: {
     feeLimit: parseEther("0.1"),
-    transferPolicies: [
+    transfers: [
       {
-        target: testTransferTarget,
+        to: testTransferTarget,
         valueLimit: parseEther("0.1"),
       },
     ],
