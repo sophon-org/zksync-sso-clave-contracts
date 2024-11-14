@@ -3,29 +3,9 @@ import { privateKeyToAccount } from "viem/accounts";
 
 import { encodeSession } from "../../utils/encoding.js";
 import type { SessionConfig } from "../../utils/session.js";
-import { publicActionsRewrite } from "../decorators/publicActionsRewrite.js";
 import { type ZksyncAccountSessionActions, zksyncAccountSessionActions } from "../decorators/session.js";
 import { type ZksyncAccountWalletActions, zksyncAccountWalletActions } from "../decorators/session_wallet.js";
 import { toSmartAccount } from "../smart-account.js";
-
-export const signSessionTransaction = (args: {
-  sessionKeySignedHash: Hash;
-  sessionContract: Address;
-  sessionConfig: SessionConfig;
-}) => {
-  return encodeAbiParameters(
-    [
-      { type: "bytes" },
-      { type: "address" },
-      { type: "bytes[]" },
-    ],
-    [
-      args.sessionKeySignedHash,
-      args.sessionContract,
-      [encodeSession(args.sessionConfig)], // FIXME: this is assuming there are no other hooks
-    ],
-  );
-};
 
 export function createZksyncSessionClient<
   transport extends Transport,
@@ -48,11 +28,18 @@ export function createZksyncSessionClient<
     sign: async ({ hash }) => {
       const sessionKeySigner = privateKeyToAccount(parameters.sessionKey);
       const hashSignature = await sessionKeySigner.sign({ hash });
-      return signSessionTransaction({
-        sessionKeySignedHash: hashSignature,
-        sessionContract: parameters.contracts.session,
-        sessionConfig: parameters.sessionConfig,
-      });
+      return encodeAbiParameters(
+        [
+          { type: "bytes" },
+          { type: "address" },
+          { type: "bytes[]" },
+        ],
+        [
+          hashSignature,
+          parameters.contracts.session,
+          [encodeSession(parameters.sessionConfig)], // FIXME: this is assuming there are no other hooks
+        ],
+      );
     },
   });
   const client = createClient<transport, chain, Account, rpcSchema>({
@@ -66,7 +53,6 @@ export function createZksyncSessionClient<
       contracts: parameters.contracts,
     }))
     .extend(publicActions)
-    .extend(publicActionsRewrite)
     .extend(zksyncAccountWalletActions)
     .extend(zksyncAccountSessionActions);
   return client;

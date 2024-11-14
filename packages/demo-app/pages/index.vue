@@ -140,6 +140,7 @@ const sendTokens = async () => {
     await sendTransaction(wagmiConfig, {
       to: testTransferTarget,
       value: parseEther("0.1"),
+      gas: 100_000_000n,
     });
 
     balance.value = await getBalance(wagmiConfig, {
