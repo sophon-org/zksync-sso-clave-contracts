@@ -93,8 +93,8 @@ export async function sendEip712Transaction<
       nonceManager: account.nonceManager,
       parameters: [...defaultParameters, "sidecars"],
       ...rest,
-      gasPerPubdata: 50000n,
-      data: "0x",
+      // gasPerPubdata: 50000n,
+      // data: "0x",
     } as any);
 
     const serializer = chain?.serializers?.transaction;
@@ -134,6 +134,7 @@ export function getAction<
 >(
   client: client,
   actionFn: (_: any, parameters: parameters) => returnType,
+  // cspell:ignore minifiers
   // Some minifiers drop `Function.prototype.name`, or replace it with short letters,
   // meaning that `actionFn.name` will not always work. For that case, the consumer
   // needs to pass the name explicitly.

@@ -10,6 +10,7 @@ nuxtjs
 testid
 verdaccio
 vueuse
+ethereum
 
 // packages/bank-demo
 ctap
@@ -26,4 +27,3 @@ usdc
 // packages/nft-quest
 Fren
 fren
-trxn
