@@ -37,10 +37,12 @@ export function toSmartAccount(
       });
     },
     async signTransaction(transaction) {
+      console.log("signTransaction", transaction);
       const signableTransaction = {
         ...transaction,
         from: this.address!,
         type: "eip712",
+        gas: 375_534n,
       } as ZksyncTransactionSerializableEIP712;
 
       const eip712DomainAndMessage = getEip712Domain(signableTransaction);

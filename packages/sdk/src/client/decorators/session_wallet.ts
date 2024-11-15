@@ -1,8 +1,8 @@
-import { /* decodeFunctionData, erc20Abi, getAddress, */ type Account, type Chain, type Transport, type WalletActions } from "viem";
+import { /* decodeFunctionData, erc20Abi, getAddress, */ type Account, type Chain, type Hex, type Transport, type WalletActions } from "viem";
 import { deployContract, getAddresses, getChainId, prepareTransactionRequest, sendRawTransaction, signMessage, signTypedData, writeContract } from "viem/actions";
-import { getGeneralPaymasterInput, sendEip712Transaction, signTransaction } from "viem/zksync";
+import { getGeneralPaymasterInput, sendEip712Transaction, sendTransaction, /* sendTransaction, */ signTransaction } from "viem/zksync";
 
-import type { ClientWithZksyncAccountSessionData } from "../clients/session.js";
+import { type ClientWithZksyncAccountSessionData, signSessionTransaction } from "../clients/session.js";
 /* import { getTokenSpendLimit } from '../actions/session.js'; */
 
 export type ZksyncAccountWalletActions<chain extends Chain, account extends Account> = Omit<
@@ -22,10 +22,17 @@ export function zksyncAccountWalletActions<
       prepareTransactionRequest(client, args),
     sendRawTransaction: (args) => sendRawTransaction(client, args),
     sendTransaction: async (args) => {
+      console.log("sendTransaction", args);
+
       const tx: any = {
         ...(client.chain.formatters?.transaction?.format(args) || args),
-        type: "eip712",
         account: client.account,
+        type: "eip712",
+        customSignature: signSessionTransaction({
+          sessionKeySignedHash: "0x" + "1b".padStart(65 * 2, "0") as Hex,
+          sessionContract: client.contracts.session,
+          sessionConfig: client.sessionConfig,
+        }),
       };
       /* await verifyTransactionData({
         value: tx.value,
@@ -47,8 +54,7 @@ export function zksyncAccountWalletActions<
         return await sendEip712Transaction(client, transaction);
       }
 
-      console.log("Sending transaction", tx);
-      return await sendEip712Transaction(client, tx);
+      return await sendTransaction(client, tx);
     },
     signMessage: (args) => signMessage(client, args),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

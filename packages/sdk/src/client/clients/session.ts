@@ -3,7 +3,7 @@ import { privateKeyToAccount } from "viem/accounts";
 
 import { encodeSession } from "../../utils/encoding.js";
 import type { SessionConfig } from "../../utils/session.js";
-import { publicActionsRewrite } from "../decorators/publicActionsRewrite.js";
+/* import { publicActionsRewrite } from "../decorators/publicActionsRewrite.js"; */
 import { type ZksyncAccountSessionActions, zksyncAccountSessionActions } from "../decorators/session.js";
 import { type ZksyncAccountWalletActions, zksyncAccountWalletActions } from "../decorators/session_wallet.js";
 import { toSmartAccount } from "../smart-account.js";
@@ -66,7 +66,7 @@ export function createZksyncSessionClient<
       contracts: parameters.contracts,
     }))
     .extend(publicActions)
-    .extend(publicActionsRewrite)
+    // .extend(publicActionsRewrite)
     .extend(zksyncAccountWalletActions)
     .extend(zksyncAccountSessionActions);
   return client;

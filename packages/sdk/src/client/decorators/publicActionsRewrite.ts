@@ -1,5 +1,5 @@
 import type { Account, Chain, Hex, PublicActions, Transport } from "viem";
-import { estimateContractGas, estimateGas, getGasPrice, prepareTransactionRequest } from "viem/actions";
+import { estimateContractGas, estimateGas, prepareTransactionRequest } from "viem/actions";
 
 import { type ClientWithZksyncAccountSessionData, signSessionTransaction } from "../clients/session.js";
 
@@ -14,7 +14,7 @@ export function publicActionsRewrite<
 ): Pick<PublicActions<transport, chain, account>, "estimateContractGas" | "estimateGas" | "prepareTransactionRequest"> {
   return {
     prepareTransactionRequest: async (args) => {
-      console.log("123prepareTransactionRequest");
+      console.log("prepareTransactionRequest", args);
       if (!("customSignature" in args)) {
         (args as any).customSignature = signSessionTransaction({
           sessionKeySignedHash: emptySignature,
@@ -26,17 +26,17 @@ export function publicActionsRewrite<
       const request = await prepareTransactionRequest(client as any, {
         ...args,
         type: "eip712",
-        typeHex: "0x71",
+        // typeHex: "0x71",
         chainId: client.chain.id,
-        parameters: ["gas", "nonce"],
-        gasPrice: await getGasPrice(client),
-        gas: await estimateGas(client, args as any),
+        parameters: ["gas", "nonce", "fees"],
+        /* gasPrice: await getGasPrice(client),
+        gas: await estimateGas(client, args as any), */
       } as any) as any;
-      console.log("Request", request);
+      console.log("After prepare", request);
       return request;
     },
     estimateContractGas: (args) => {
-      console.log("123estimateContractGas");
+      console.log("estimateContractGas", args);
       if (!("customSignature" in args)) {
         (args as any).customSignature = signSessionTransaction({
           sessionKeySignedHash: emptySignature,
@@ -47,7 +47,7 @@ export function publicActionsRewrite<
       return estimateContractGas(client, args as any);
     },
     estimateGas: async (args) => {
-      console.log("123estimateGas");
+      console.log("estimateGas", args);
       if (!("customSignature" in args)) {
         (args as any).customSignature = signSessionTransaction({
           sessionKeySignedHash: emptySignature,
