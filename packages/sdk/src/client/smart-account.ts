@@ -42,7 +42,7 @@ export function toSmartAccount(
         ...transaction,
         from: this.address!,
         type: "eip712",
-        gas: 375_534n,
+        // gas: 375_534n,
       } as ZksyncTransactionSerializableEIP712;
 
       const eip712DomainAndMessage = getEip712Domain(signableTransaction);

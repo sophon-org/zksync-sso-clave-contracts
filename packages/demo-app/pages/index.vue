@@ -40,7 +40,7 @@
 </template>
 
 <script lang="ts" setup>
-import { disconnect, getBalance, watchAccount, sendTransaction, createConfig, connect, reconnect, type GetBalanceReturnType, waitForTransactionReceipt } from "@wagmi/core";
+import { disconnect, getBalance, watchAccount, sendTransaction, createConfig, connect, reconnect, type GetBalanceReturnType, waitForTransactionReceipt, getGasPrice } from "@wagmi/core";
 import { zksyncAccountConnector } from "zksync-sso/connector";
 import { zksyncInMemoryNode } from "@wagmi/core/chains";
 import { createWalletClient, http, parseEther, type Address } from "viem";
@@ -140,6 +140,7 @@ const sendTokens = async () => {
     const transactionHash = await sendTransaction(wagmiConfig, {
       to: testTransferTarget,
       value: parseEther("0.1"),
+      gasPrice: await getGasPrice(wagmiConfig),
       gas: 100_000_000n, // wagmi doesn't pass this field to the connector, why???
     });
 

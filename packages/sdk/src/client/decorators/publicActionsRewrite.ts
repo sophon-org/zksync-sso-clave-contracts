@@ -23,15 +23,13 @@ export function publicActionsRewrite<
         });
       }
       console.log("Initial args", args);
-      const request = await prepareTransactionRequest(client as any, {
-        ...args,
-        type: "eip712",
-        // typeHex: "0x71",
+      const request = await prepareTransactionRequest(client, args as any) as any;
+      /* const request = await prepareTransactionRequest(client, {
         chainId: client.chain.id,
         parameters: ["gas", "nonce", "fees"],
-        /* gasPrice: await getGasPrice(client),
-        gas: await estimateGas(client, args as any), */
-      } as any) as any;
+        ...args,
+        type: "eip712",
+      } as any) as any; */
       console.log("After prepare", request);
       return request;
     },
