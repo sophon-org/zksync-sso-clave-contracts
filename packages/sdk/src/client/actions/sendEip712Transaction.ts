@@ -49,7 +49,7 @@ import { isEIP712Transaction } from "../utils/isEip712Transaction.js";
 const defaultParameters = [
   "blobVersionedHashes",
   "chainId",
-  /* "fees", */
+  "fees",
   "gas",
   "nonce",
   "type",
