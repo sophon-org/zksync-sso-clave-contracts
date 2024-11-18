@@ -169,7 +169,7 @@ export const walletActions = {
     const formatters = client.chain?.formatters;
     const format = formatters?.transaction?.format || formatTransaction;
 
-    const unformattedTx: any = args;
+    const unformattedTx: any = format(args);
 
     if ("eip712Meta" in unformattedTx) {
       const eip712Meta = unformattedTx.eip712Meta as ZksyncEip712Meta;
@@ -181,7 +181,7 @@ export const walletActions = {
     }
 
     const tx = {
-      ...format(unformattedTx),
+      ...unformattedTx,
       type: "eip712",
     };
 
