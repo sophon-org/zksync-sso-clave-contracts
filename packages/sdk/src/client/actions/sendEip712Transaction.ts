@@ -1,10 +1,10 @@
-import { type Account, assertRequest, type AssertRequestErrorType, type Chain, type Client, type ExactPartial, type Hash, type PublicActions, type RpcSchema, type SendTransactionRequest, type Transport, type WalletActions } from "viem";
+import { type Account, type Client, type Hash, type SendTransactionRequest, type Transport } from "viem";
 import { parseAccount } from "viem/accounts";
 import { prepareTransactionRequest, sendRawTransaction } from "viem/actions";
-import { type ChainEIP712, type SendEip712TransactionParameters, type SendEip712TransactionReturnType, type SendTransactionParameters, zksync } from "viem/zksync";
+import { type ChainEIP712, type SendEip712TransactionParameters, type SendEip712TransactionReturnType } from "viem/zksync";
 
-import { InvalidEip712TransactionError, type InvalidEip712TransactionErrorType } from "../utils/assertEip712Transaction.js";
-import { isEIP712Transaction } from "../utils/isEip712Transaction.js";
+import { assertEip712Request } from "../utils/assertEip712Request.js";
+import { getAction } from "../utils/getAction.js";
 
 /**
  * Creates, signs, and sends a new EIP712 transaction to the network.
@@ -111,55 +111,4 @@ export async function sendEip712Transaction<
     console.error("sendeip712transaction error");
     throw err;
   }
-}
-
-/**
- * Retrieves and returns an action from the client (if exists), and falls
- * back to the tree-shakable action.
- *
- * Useful for extracting overridden actions from a client (ie. if a consumer
- * wants to override the `sendTransaction` implementation).
- */
-export function getAction<
-  transport extends Transport,
-  chain extends Chain | undefined,
-  account extends Account | undefined,
-  rpcSchema extends RpcSchema | undefined,
-  extended extends { [key: string]: unknown },
-  client extends Client<transport, chain, account, rpcSchema, extended>,
-  parameters,
-  returnType,
->(
-  client: client,
-  actionFn: (_: any, parameters: parameters) => returnType,
-  // cspell:ignore minifiers
-  // Some minifiers drop `Function.prototype.name`, or replace it with short letters,
-  // meaning that `actionFn.name` will not always work. For that case, the consumer
-  // needs to pass the name explicitly.
-  name: keyof PublicActions | keyof WalletActions | (string & {}),
-): (parameters: parameters) => returnType {
-  const action_implicit = client[actionFn.name];
-  if (typeof action_implicit === "function")
-    return action_implicit as (params: parameters) => returnType;
-
-  const action_explicit = client[name];
-  if (typeof action_explicit === "function")
-    return action_explicit as (params: parameters) => returnType;
-
-  return (params) => actionFn(client, params);
-}
-
-type AssertEip712RequestParameters = ExactPartial<
-  SendTransactionParameters<typeof zksync>
->;
-
-/** @internal */
-export type AssertEip712RequestErrorType =
-  | InvalidEip712TransactionErrorType
-  | AssertRequestErrorType;
-
-export function assertEip712Request(args: AssertEip712RequestParameters) {
-  if (!isEIP712Transaction(args as any))
-    throw new InvalidEip712TransactionError();
-  assertRequest(args as any);
 }

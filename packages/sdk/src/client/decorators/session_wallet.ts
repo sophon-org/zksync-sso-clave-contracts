@@ -1,6 +1,6 @@
-import { type Account, type Chain, type Transport, type WalletActions } from "viem";
+import { type Account, type Chain, formatTransaction, type Transport, type WalletActions } from "viem";
 import { deployContract, getAddresses, getChainId, sendRawTransaction, signMessage, signTypedData, writeContract } from "viem/actions";
-import { getGeneralPaymasterInput, signTransaction } from "viem/zksync";
+import { signTransaction, type ZksyncEip712Meta } from "viem/zksync";
 
 import { sendEip712Transaction } from "../actions/sendEip712Transaction.js";
 import { type ClientWithZksyncAccountSessionData } from "../clients/session.js";
@@ -20,27 +20,33 @@ export function zksyncAccountWalletActions<
     getChainId: () => getChainId(client),
     sendRawTransaction: (args) => sendRawTransaction(client, args),
     sendTransaction: async (args) => {
-      console.log("sendTransaction", args);
+      const formatters = client.chain?.formatters;
+      const format = formatters?.transaction?.format || formatTransaction;
+
+      const unformattedTx: any = args;
+
+      if ("eip712Meta" in unformattedTx) {
+        const eip712Meta = unformattedTx.eip712Meta as ZksyncEip712Meta;
+        unformattedTx.gasPerPubdata = eip712Meta.gasPerPubdata ? BigInt(eip712Meta.gasPerPubdata) : undefined;
+        unformattedTx.factoryDeps = eip712Meta.factoryDeps;
+        unformattedTx.customSignature = eip712Meta.customSignature;
+        unformattedTx.paymaster = eip712Meta.paymasterParams?.paymaster;
+        unformattedTx.paymasterInput = eip712Meta.paymasterParams?.paymasterInput;
+      }
 
       const tx: any = {
-        ...(client.chain.formatters?.transaction?.format(args) || args),
+        ...format(args as any),
         type: "eip712",
       };
-      if (tx.eip712Meta) {
-        const transaction = {
-          ...tx,
-          paymaster: tx.eip712Meta.paymasterParams.paymaster,
-          // TODO: Find permanent fix as this only works for general paymasters with no input
-          paymasterInput: getGeneralPaymasterInput({ innerInput: "0x" }),
-        };
-        return await sendEip712Transaction(client, transaction);
-      }
 
       return await sendEip712Transaction(client, tx);
     },
     signMessage: (args) => signMessage(client, args),
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    signTransaction: (args) => signTransaction(client, args as any),
+    signTransaction: (args) => signTransaction(client, {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ...args as any,
+      type: "eip712",
+    }),
     signTypedData: (args) => signTypedData(client, args),
     writeContract: (args) => writeContract(client, args),
   };
