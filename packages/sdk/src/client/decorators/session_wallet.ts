@@ -1,6 +1,6 @@
-import { type Account, bytesToHex, type Chain, formatTransaction, type Hex, type PublicActions, type Transport, type WalletActions } from "viem";
+import { type Account, /* bytesToHex, */ type Chain, /* formatTransaction, */ type Hex, type PublicActions, type Transport, type WalletActions } from "viem";
 import { /* deployContract, */ estimateContractGas, estimateGas, /* getAddresses, getChainId, */ prepareTransactionRequest, /* sendRawTransaction, signMessage, */ signTypedData, simulateContract, writeContract } from "viem/actions";
-import { getGeneralPaymasterInput, signEip712Transaction, type ZksyncEip712Meta } from "viem/zksync";
+import { getGeneralPaymasterInput, signEip712Transaction /* type ZksyncEip712Meta */ } from "viem/zksync";
 
 import { sendEip712Transaction } from "../actions/sendEip712Transaction.js";
 import { type ClientWithZksyncAccountSessionData, signSessionTransaction } from "../clients/session.js";
