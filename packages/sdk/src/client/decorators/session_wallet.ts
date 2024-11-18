@@ -178,6 +178,7 @@ export const walletActions = {
       unformattedTx.customSignature = eip712Meta.customSignature;
       unformattedTx.paymaster = eip712Meta.paymasterParams?.paymaster;
       unformattedTx.paymasterInput = eip712Meta.paymasterParams?.paymasterInput ? bytesToHex(new Uint8Array(eip712Meta.paymasterParams?.paymasterInput)) : undefined;
+      delete unformattedTx.eip712Meta;
     }
 
     const tx = {
