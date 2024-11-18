@@ -1,6 +1,6 @@
 import { type Account, bytesToHex, type Chain, formatTransaction, type Hex, type PublicActions, type Transport, type WalletActions } from "viem";
 import { /* deployContract, */ estimateContractGas, estimateGas, /* getAddresses, getChainId, */ prepareTransactionRequest, /* sendRawTransaction, signMessage, */ signTypedData, simulateContract, writeContract } from "viem/actions";
-import { signEip712Transaction, type ZksyncEip712Meta } from "viem/zksync";
+import { getGeneralPaymasterInput, signEip712Transaction, type ZksyncEip712Meta } from "viem/zksync";
 
 import { sendEip712Transaction } from "../actions/sendEip712Transaction.js";
 import { type ClientWithZksyncAccountSessionData, signSessionTransaction } from "../clients/session.js";
@@ -165,7 +165,7 @@ export const walletActions = {
     return request;
   },
   sendTransaction: async (client: ClientWithZksyncAccountSessionData, args: any) => {
-    console.log("Send transaction", args);
+    /* console.log("Send transaction", args);
     const formatters = client.chain?.formatters;
     const format = formatters?.transaction?.format || formatTransaction;
 
@@ -185,6 +185,21 @@ export const walletActions = {
       ...unformattedTx,
       type: "eip712",
     };
+
+    return await sendEip712Transaction(client, tx); */
+    const tx: any = {
+      ...(client.chain.formatters?.transaction?.format(args) || args),
+      type: "eip712",
+    };
+    if (tx.eip712Meta) {
+      const transaction = {
+        ...tx,
+        paymaster: tx.eip712Meta.paymasterParams.paymaster,
+        // TODO: Find permanent fix as this only works for general paymasters with no input
+        paymasterInput: getGeneralPaymasterInput({ innerInput: "0x" }),
+      };
+      return await sendEip712Transaction(client, transaction);
+    }
 
     return await sendEip712Transaction(client, tx);
   },
