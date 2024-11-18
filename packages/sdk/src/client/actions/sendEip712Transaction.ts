@@ -93,8 +93,6 @@ export async function sendEip712Transaction<
       nonceManager: account.nonceManager,
       parameters: [...defaultParameters, "sidecars"],
       ...rest,
-      // gasPerPubdata: 50000n,
-      // data: "0x",
     } as any);
 
     const serializer = chain?.serializers?.transaction;

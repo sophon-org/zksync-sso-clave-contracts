@@ -199,7 +199,6 @@ export class Signer implements SignerInterface {
       case "eth_estimateGas": {
         if (!this.walletClient || !this.session) return undefined;
         const params = request.params as ExtractParams<"eth_estimateGas">;
-        console.log("eth_estimateGas", params);
         const res = await this.walletClient.request({ method: request.method, params: params });
         return res as ExtractReturnType<TMethod>;
       }
@@ -207,7 +206,6 @@ export class Signer implements SignerInterface {
         if (!this.walletClient || !this.session) return undefined;
         const params = request.params as ExtractParams<"eth_sendTransaction">;
         const transactionRequest = params[0];
-        console.log("eth_sendTransaction", transactionRequest);
         const res = await this.walletClient.sendTransaction(transactionRequest as unknown as SendTransactionParameters);
         return res as ExtractReturnType<TMethod>;
       }
