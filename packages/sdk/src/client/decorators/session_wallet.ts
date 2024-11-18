@@ -32,6 +32,7 @@ export function zksyncAccountWalletActions<
         unformattedTx.customSignature = eip712Meta.customSignature;
         unformattedTx.paymaster = eip712Meta.paymasterParams?.paymaster;
         unformattedTx.paymasterInput = eip712Meta.paymasterParams?.paymasterInput;
+        delete unformattedTx.eip712Meta;
       }
 
       const tx: any = {
