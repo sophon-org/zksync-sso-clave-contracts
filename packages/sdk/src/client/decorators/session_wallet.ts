@@ -1,6 +1,6 @@
 import { type Account, type Chain, type Transport, type WalletActions } from "viem";
 import { deployContract, getAddresses, getChainId, sendRawTransaction, signMessage, signTypedData, writeContract } from "viem/actions";
-import { signTransaction } from "viem/zksync";
+import { getGeneralPaymasterInput, signTransaction } from "viem/zksync";
 
 import { sendEip712Transaction } from "../actions/sendEip712Transaction.js";
 import { type ClientWithZksyncAccountSessionData } from "../clients/session.js";
@@ -22,7 +22,11 @@ export function zksyncAccountWalletActions<
     sendTransaction: async (args) => {
       console.log("sendTransaction", args);
 
-      /* if (tx.eip712Meta) {
+      const tx: any = {
+        ...(client.chain.formatters?.transaction?.format(args) || args),
+        type: "eip712",
+      };
+      if (tx.eip712Meta) {
         const transaction = {
           ...tx,
           paymaster: tx.eip712Meta.paymasterParams.paymaster,
@@ -30,15 +34,9 @@ export function zksyncAccountWalletActions<
           paymasterInput: getGeneralPaymasterInput({ innerInput: "0x" }),
         };
         return await sendEip712Transaction(client, transaction);
-      } */
+      }
 
-      return await sendEip712Transaction(
-        client,
-        {
-          ...args,
-          type: "eip712",
-        } as any,
-      );
+      return await sendEip712Transaction(client, tx);
     },
     signMessage: (args) => signMessage(client, args),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
