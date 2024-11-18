@@ -32,13 +32,21 @@ export function zksyncAccountWalletActions<
         unformattedTx.customSignature = eip712Meta.customSignature;
         unformattedTx.paymaster = eip712Meta.paymasterParams?.paymaster;
         unformattedTx.paymasterInput = eip712Meta.paymasterParams?.paymasterInput;
-        delete unformattedTx.eip712Meta;
       }
 
-      const tx: any = {
-        ...format(args as any),
+      const tx = {
+        ...format(unformattedTx),
         type: "eip712",
       };
+      /* if (tx.eip712Meta) {
+        const transaction = {
+          ...tx,
+          paymaster: tx.eip712Meta.paymasterParams.paymaster,
+          // TODO: Find permanent fix as this only works for general paymasters with no input
+          paymasterInput: getGeneralPaymasterInput({ innerInput: "0x" }),
+        };
+        return await sendEip712Transaction(client, transaction);
+      } */
 
       return await sendEip712Transaction(client, tx);
     },
