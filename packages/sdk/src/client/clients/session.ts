@@ -1,11 +1,9 @@
-import { type Account, type Address, type Chain, type Client, createClient, encodeAbiParameters, getAddress, type Hash, type Prettify, publicActions, type PublicRpcSchema, type RpcSchema, type Transport, type WalletClientConfig, type WalletRpcSchema } from "viem";
+import { type Account, type Address, type Chain, type Client, createClient, encodeAbiParameters, getAddress, type Hash, type Prettify, type PublicRpcSchema, type RpcSchema, type Transport, type WalletClientConfig, type WalletRpcSchema } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 
 import { encodeSession } from "../../utils/encoding.js";
 import type { SessionConfig } from "../../utils/session.js";
-import { publicActionsRewrite } from "../decorators/publicActionsRewrite.js";
-import { type ZksyncAccountSessionActions, zksyncAccountSessionActions } from "../decorators/session.js";
-import { type ZksyncAccountWalletActions, zksyncAccountWalletActions } from "../decorators/session_wallet.js";
+import { walletActions, type ZksyncAccountWalletActions } from "../decorators/session_wallet.js";
 import { toSmartAccount } from "../smart-account.js";
 
 export const signSessionTransaction = (args: {
@@ -55,7 +53,7 @@ export function createZksyncSessionClient<
       });
     },
   });
-  const client = createClient<transport, chain, Account, rpcSchema>({
+  let client = createClient<transport, chain, Account, rpcSchema>({
     ...parameters,
     account,
     type: "walletClient",
@@ -64,12 +62,17 @@ export function createZksyncSessionClient<
       sessionKey: parameters.sessionKey,
       sessionConfig: parameters.sessionConfig,
       contracts: parameters.contracts,
-    }))
-    .extend(publicActions)
-    .extend(publicActionsRewrite)
-    .extend(zksyncAccountWalletActions)
-    .extend(zksyncAccountSessionActions);
-  return client;
+    }));
+  for (const prop in walletActions) {
+    type keys = keyof typeof walletActions;
+    client = client.extend((client) => {
+      return {
+        [prop]: (args: any) => walletActions[prop as keys](client, args),
+      };
+    });
+  }
+  console.log("Created client", client);
+  return client as any;
 }
 
 export type SessionRequiredContracts = {
@@ -100,7 +103,7 @@ export type ZksyncAccountSessionClient<
     rpcSchema extends RpcSchema
       ? [...PublicRpcSchema, ...WalletRpcSchema, ...rpcSchema]
       : [...PublicRpcSchema, ...WalletRpcSchema],
-    ZksyncAccountWalletActions<chain, account> & ZksyncAccountSessionActions
+    ZksyncAccountWalletActions<chain, account>
   > & ZksyncAccountSessionData
 >;
 
