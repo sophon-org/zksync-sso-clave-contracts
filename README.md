@@ -37,9 +37,9 @@ Add ZKsync SSO connector to your app (using `wagmi`):
 ```ts
 import { zksyncSepoliaTestnet } from "viem/chains";
 import { createConfig, connect } from "@wagmi/core";
-import { zksyncAccountConnector } from "zksync-sso/connector";
+import { zksyncSsoConnector } from "zksync-sso/connector";
 
-const ssoConnector = zksyncAccountConnector({
+const ssoConnector = zksyncSsoConnector({
    // Optional session configuration, if omitted user will have to sign every transaction via Auth Server
    session: {
       // Allow up to 0.1 ETH to be spend in gas fees
