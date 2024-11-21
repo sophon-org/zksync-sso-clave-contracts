@@ -13,6 +13,9 @@ jobs:
     steps:
     - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
 
+    - name: Init submodules
+      run: git submodule update --init --recursive
+
     # Start node
     - name: Era Test Node Action
       uses: dutterbutter/era-test-node-action@36ffd2eefd46dc16e7e2a8e1715124400ec0a3ba # v1
