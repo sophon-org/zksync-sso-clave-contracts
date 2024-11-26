@@ -57,6 +57,7 @@ contract WebAuthValidator is PasskeyValidator, IModuleValidator {
     bool validChallenge = false;
     bool validType = false;
     bool validOrigin = false;
+    bool invalidCrossOrigin = false;
     for (uint256 index = 1; index < actualNum; index++) {
       JsmnSolLib.Token memory t = tokens[index];
       if (t.jsmnType == JsmnSolLib.JsmnType.STRING) {
@@ -97,12 +98,19 @@ contract WebAuthValidator is PasskeyValidator, IModuleValidator {
 
           // This really only validates the origin is set
           validOrigin = pubKey[0] != 0 && pubKey[1] != 0;
+        } else if (Strings.equal(keyOrValue, "crossOrigin")) {
+          JsmnSolLib.Token memory nextT = tokens[index + 1];
+          string memory crossOriginValue = JsmnSolLib.getBytes(clientDataJSON, nextT.start, nextT.end);
+          // this should only be set once, otherwise this is an error
+          if (!invalidCrossOrigin) {
+            return false;
+          }
+          invalidCrossOrigin = Strings.equal("true", crossOriginValue);
         }
-        // TODO: check 'cross-origin' keys as part of signature
       }
     }
 
-    if (!validChallenge || !validType) {
+    if (!validChallenge || !validType || !validOrigin || invalidCrossOrigin) {
       return false;
     }
 
