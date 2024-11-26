@@ -6,8 +6,6 @@ import { IR1Validator, IERC165 } from "../interfaces/IValidator.sol";
 import { IModule } from "../interfaces/IModule.sol";
 import { Errors } from "../libraries/Errors.sol";
 import { VerifierCaller } from "../helpers/VerifierCaller.sol";
-import { JsmnSolLib } from "../libraries/JsmnSolLib.sol";
-import { Strings } from "@openzeppelin/contracts/utils/Strings.sol";
 
 /**
  * @title validator contract for passkey r1 signatures

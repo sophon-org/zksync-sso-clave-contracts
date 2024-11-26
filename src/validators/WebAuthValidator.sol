@@ -1,17 +1,26 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity ^0.8.24;
 
+import { Strings } from "@openzeppelin/contracts/utils/Strings.sol";
+import { IERC165 } from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import { IModuleValidator } from "../interfaces/IModuleValidator.sol";
-import "./PasskeyValidator.sol";
+import { JsmnSolLib } from "../libraries/JsmnSolLib.sol";
+import { VerifierCaller } from "../helpers/VerifierCaller.sol";
+import { Base64 } from "../helpers/Base64.sol";
 
 /**
  * @title validator contract for passkey r1 signatures
- * @author https://getclave.io
  */
-contract WebAuthValidator is PasskeyValidator, IModuleValidator {
+contract WebAuthValidator is VerifierCaller, IERC165, IModuleValidator {
   // The layout is weird due to EIP-7562 storage read restrictions for validation phase.
   mapping(string originDomain => mapping(address accountAddress => bytes32)) public lowerKeyHalf;
   mapping(string originDomain => mapping(address accountAddress => bytes32)) public upperKeyHalf;
+
+  // user presence and user verification flags
+  bytes1 constant AUTH_DATA_MASK = 0x05;
+
+  // maximum value for 's' in a secp256r1 signature
+  bytes32 constant lowSmax = 0x7fffffff800000007fffffffffffffffde737d56d38bcf4279dce5617e3192a8;
 
   function addValidationKey(bytes memory key) external returns (bool) {
     (bytes32[2] memory key32, string memory originDomain) = abi.decode(key, (bytes32[2], string));
@@ -31,8 +40,9 @@ contract WebAuthValidator is PasskeyValidator, IModuleValidator {
   }
 
   function webAuthVerify(bytes32 transactionHash, bytes memory fatSignature) internal view returns (bool valid) {
-    (bytes memory authenticatorData, string memory clientDataJSON, bytes32[2] memory rs) = _decodeFatSignature(
-      fatSignature
+    (bytes memory authenticatorData, string memory clientDataJSON, bytes32[2] memory rs) = abi.decode(
+      fatSignature,
+      (bytes, string, bytes32[2])
     );
 
     if (rs[1] > lowSmax) {
@@ -114,12 +124,13 @@ contract WebAuthValidator is PasskeyValidator, IModuleValidator {
       return false;
     }
 
-    bytes32 message = _createMessage(authenticatorData, bytes(clientDataJSON));
-    valid = callVerifier(P256_VERIFIER, message, rs, pubKey);
+    bytes32 clientDataHash = sha256(bytes(clientDataJSON));
+    bytes32 message = sha256(bytes.concat(authenticatorData, clientDataHash));
+    valid = callVerifier(address(0x100), message, rs, pubKey);
   }
 
   /// @inheritdoc IERC165
   function supportsInterface(bytes4 interfaceId) public pure override returns (bool) {
-    return super.supportsInterface(interfaceId) || interfaceId == type(IModuleValidator).interfaceId;
+    return interfaceId == type(IERC165).interfaceId || interfaceId == type(IModuleValidator).interfaceId;
   }
 }
