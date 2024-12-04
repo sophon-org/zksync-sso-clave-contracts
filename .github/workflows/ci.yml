@@ -16,11 +16,10 @@ jobs:
     steps:
     - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
 
-    # Start node
-    - name: Era Test Node Action
-      uses: dutterbutter/era-test-node-action@36ffd2eefd46dc16e7e2a8e1715124400ec0a3ba # v1
+    # Start era test node (alpha.34)
+    - name: Anvil ZKsync Action
+      uses: dutterbutter/era-test-node-action@298eea49e29e226baa04195b1d0fce7042439259
 
-    # Setup pnpm
     - name: Setup pnpm
       uses: pnpm/action-setup@v4
       with:
