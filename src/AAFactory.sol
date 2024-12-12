@@ -5,6 +5,7 @@ import { DEPLOYER_SYSTEM_CONTRACT, IContractDeployer } from "@matterlabs/zksync-
 import { SystemContractsCaller } from "@matterlabs/zksync-contracts/l2/system-contracts/libraries/SystemContractsCaller.sol";
 
 import { ISsoAccount } from "./interfaces/ISsoAccount.sol";
+import { AccountProxy } from "./AccountProxy.sol";
 
 /// @title AAFactory
 /// @author Matter Labs
@@ -31,6 +32,18 @@ contract AAFactory {
     beacon = _beacon;
   }
 
+  function getBeaconProxyBytecodeHash() external view returns (bytes32) {
+    return beaconProxyBytecodeHash;
+  }
+
+  function getBeacon() external view returns (address) {
+    return beacon;
+  }
+
+  function getEncodedBeacon() external view returns (bytes memory) {
+    return abi.encode(beacon);
+  }
+
   /// @notice Deploys a new SSO account as a beacon proxy with the specified parameters.
   /// @dev Uses `create2` to deploy a proxy account, allowing for deterministic addresses based on the provided salt.
   /// @param _salt The salt used for the `create2` deployment to make the address deterministic.
@@ -46,6 +59,10 @@ contract AAFactory {
   ) external returns (address accountAddress) {
     require(accountMappings[_uniqueAccountId] == address(0), "Account already exists");
 
+    /*
+    AccountProxy beaconProxy = new AccountProxy{ salt: _salt }(beacon);
+    accountAddress = address(beaconProxy);
+    */
     (bool success, bytes memory returnData) = SystemContractsCaller.systemCallWithReturndata(
       uint32(gasleft()),
       address(DEPLOYER_SYSTEM_CONTRACT),

@@ -10,7 +10,7 @@ import { ContractFixtures, create2, ethersStaticSalt, getProvider } from "./util
 
 import * as hre from "hardhat";
 
-describe.only("Basic tests", function () {
+describe("Basic tests", function () {
   const fixtures = new ContractFixtures();
   const provider = getProvider();
   let proxyAccountAddress: string;
@@ -35,23 +35,24 @@ describe.only("Basic tests", function () {
   });
 
   it.only("should deploy proxy account via factory", async () => {
-    const aaFactoryContract = await fixtures.getAaFactory(ethersStaticSalt);
+    const aaFactoryContract = await fixtures.getAaFactory();
     assert(aaFactoryContract != null, "No AA Factory deployed");
     const factoryAddress = await aaFactoryContract.getAddress();
     console.log("factoryAddress", factoryAddress);
 
-    const salt = ethers.ZeroHash;
-    const contractArtifact = await hre.artifacts.readArtifact("AccountProxy");
-    const implAddress = await fixtures.getAccountImplAddress();
-    const bytecodeHash = utils.hashBytecode(contractArtifact.bytecode);
-    const standardCreate2Address = utils.create2Address(implAddress, bytecodeHash, salt, "0x");
+    const accountProxy = await hre.artifacts.readArtifact("AccountProxy");
+    const beaconContract = await fixtures.getAccountProxyContract();
+    const bytecodeHash = utils.hashBytecode(accountProxy.bytecode);
+    const args = beaconContract.interface.encodeDeploy([await beaconContract.getAddress()])
+    const standardCreate2Address = utils.create2Address(factoryAddress, bytecodeHash, ethersStaticSalt, args) ;
     console.log("standardCreate2Address ", standardCreate2Address);
     // standardCreate2Address should be: "0x7dd7a774a1CBCe9Fa8Ab8A639262aBde60C20FC9"
     // but the create2address thinks it should be: "0xABE9055866F575Ad8DF70d473EDb385c1deD62fC"
     const accountCode = await fixtures.wallet.provider.getCode(standardCreate2Address);
+    // deployed directly via beacon: 0x068cf1D7c2e99F2CCE75F104687DaC5658081915
 
     const deployTx = await aaFactoryContract.deployProxySsoAccount(
-      salt,
+      ethersStaticSalt,
       "id",
       [],
       [fixtures.wallet.address],

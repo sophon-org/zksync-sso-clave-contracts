@@ -9,7 +9,7 @@ import * as hre from "hardhat";
 import { ContractFactory, Provider, utils, Wallet } from "zksync-ethers";
 import { base64UrlToUint8Array, getPublicKeyBytesFromPasskeySignature, unwrapEC2Signature } from "zksync-sso/utils";
 
-import { AAFactory, ERC20, ExampleAuthServerPaymaster, SessionKeyValidator, SsoAccount, WebAuthValidator, SsoBeacon } from "../typechain-types";
+import { AAFactory, ERC20, ExampleAuthServerPaymaster, SessionKeyValidator, SsoAccount, WebAuthValidator, SsoBeacon, AccountProxy__factory, AccountProxy } from "../typechain-types";
 import { AAFactory__factory, ERC20__factory, ExampleAuthServerPaymaster__factory, SessionKeyValidator__factory, SsoAccount__factory, WebAuthValidator__factory, SsoBeacon__factory } from "../typechain-types";
 
 export const ethersStaticSalt = new Uint8Array([
@@ -24,10 +24,10 @@ export class ContractFixtures {
   readonly wallet: Wallet = getWallet(LOCAL_RICH_WALLETS[0].privateKey);
 
   private _aaFactory: AAFactory;
-  async getAaFactory(salt?: ethers.BytesLike) {
+  async getAaFactory() {
     const beaconAddress = await this.getBeaconAddress();
     if (!this._aaFactory) {
-      this._aaFactory = await deployFactory(this.wallet, beaconAddress, salt);
+      this._aaFactory = await deployFactory(this.wallet, beaconAddress, ethersStaticSalt);
     }
     return this._aaFactory;
   }
@@ -78,16 +78,25 @@ export class ContractFixtures {
   }
 
   private _accountImplContract: SsoAccount;
-  async getAccountImplContract() {
+  async getAccountImplContract(salt?: ethers.BytesLike) {
     if (!this._accountImplContract) {
-      const contract = await create2("SsoAccount", this.wallet, ethersStaticSalt);
+      const contract = await create2("SsoAccount", this.wallet, salt ?? ethersStaticSalt);
       this._accountImplContract = SsoAccount__factory.connect(await contract.getAddress(), this.wallet);
     }
     return this._accountImplContract;
   }
 
-  async getAccountImplAddress() {
-    return (await this.getAccountImplContract()).getAddress();
+  private _accountProxyContract: AccountProxy;
+  async getAccountProxyContract() {
+    if (!this._accountProxyContract) {
+      const contract = await create2("AccountProxy", this.wallet, ethersStaticSalt, [await this.getBeaconAddress()]);
+      this._accountProxyContract = AccountProxy__factory.connect(await contract.getAddress(), this.wallet);
+    }
+    return this._accountProxyContract;
+  }
+
+  async getAccountImplAddress(salt?: ethers.BytesLike) {
+    return (await this.getAccountImplContract(salt)).getAddress();
   }
 
   async deployERC20(mintTo: string): Promise<ERC20> {
