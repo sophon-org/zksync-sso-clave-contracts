@@ -6,7 +6,7 @@ import { ContractFactory, SmartAccount, utils } from "zksync-ethers";
 
 import { SsoAccount__factory } from "../typechain-types";
 import { CallStruct } from "../typechain-types/src/batch/BatchCaller";
-import { ContractFixtures, create2, getProvider } from "./utils";
+import { ContractFixtures, create2, ethersStaticSalt, getProvider } from "./utils";
 
 import * as hre from "hardhat";
 
@@ -35,7 +35,7 @@ describe.only("Basic tests", function () {
   });
 
   it.only("should deploy proxy account via factory", async () => {
-    const aaFactoryContract = await fixtures.getAaFactory(fixtures.ethersStaticSalt);
+    const aaFactoryContract = await fixtures.getAaFactory(ethersStaticSalt);
     assert(aaFactoryContract != null, "No AA Factory deployed");
     const factoryAddress = await aaFactoryContract.getAddress();
     console.log("factoryAddress", factoryAddress);
@@ -46,7 +46,8 @@ describe.only("Basic tests", function () {
     const bytecodeHash = utils.hashBytecode(contractArtifact.bytecode);
     const standardCreate2Address = utils.create2Address(implAddress, bytecodeHash, salt, "0x");
     console.log("standardCreate2Address ", standardCreate2Address);
-    // should be: "0xBDBf2429373eF08c773CFd74B2Af6fE154414de8"
+    // standardCreate2Address should be: "0x7dd7a774a1CBCe9Fa8Ab8A639262aBde60C20FC9"
+    // but the create2address thinks it should be: "0xABE9055866F575Ad8DF70d473EDb385c1deD62fC"
     const accountCode = await fixtures.wallet.provider.getCode(standardCreate2Address);
 
     const deployTx = await aaFactoryContract.deployProxySsoAccount(
