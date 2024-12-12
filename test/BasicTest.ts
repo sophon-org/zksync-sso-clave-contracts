@@ -38,12 +38,10 @@ describe("Basic tests", function () {
     const aaFactoryContract = await fixtures.getAaFactory();
     assert(aaFactoryContract != null, "No AA Factory deployed");
     const factoryAddress = await aaFactoryContract.getAddress();
+    const bytecodeHash = await aaFactoryContract.getBeaconProxyBytecodeHash();
+    const args = await aaFactoryContract.getEncodedBeacon();
     console.log("factoryAddress", factoryAddress);
-
-    const accountProxy = await hre.artifacts.readArtifact("AccountProxy");
-    const beaconContract = await fixtures.getAccountProxyContract();
-    const bytecodeHash = utils.hashBytecode(accountProxy.bytecode);
-    const args = beaconContract.interface.encodeDeploy([await beaconContract.getAddress()])
+    
     const standardCreate2Address = utils.create2Address(factoryAddress, bytecodeHash, ethersStaticSalt, args) ;
     console.log("standardCreate2Address ", standardCreate2Address);
     // standardCreate2Address should be: "0x7dd7a774a1CBCe9Fa8Ab8A639262aBde60C20FC9"
