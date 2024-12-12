@@ -4,14 +4,6 @@ import { ethers } from "ethers";
 import { task } from "hardhat/config";
 import { Wallet } from "zksync-ethers";
 
-const ethersStaticSalt = new Uint8Array([
-  205, 241, 161, 186, 101, 105, 79,
-  248, 98, 64, 50, 124, 168, 204,
-  200, 71, 214, 169, 195, 118, 199,
-  62, 140, 111, 128, 47, 32, 21,
-  177, 177, 174, 166,
-]);
-
 const WEBAUTH_NAME = "WebAuthValidator";
 const SESSIONS_NAME = "SessionKeyValidator";
 const ACCOUNT_IMPL_NAME = "SsoAccount";
@@ -21,7 +13,7 @@ const BEACON_NAME = "SsoBeacon";
 
 async function deploy(name: string, deployer: Wallet, proxy: boolean, args?: any[]): Promise<string> {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const { deployFactory, create2 } = require("../test/utils");
+  const { deployFactory, create2, ethersStaticSalt } = require("../test/utils");
   console.log("Deploying", name, "contract...");
   let implContract;
   if (name == FACTORY_NAME) {
@@ -42,7 +34,6 @@ async function deploy(name: string, deployer: Wallet, proxy: boolean, args?: any
 
 
 task("deploy", "Deploys ZKsync SSO contracts")
-  .addOptionalParam("privatekey", "private key to the account to deploy the contracts from")
   .addOptionalParam("only", "name of a specific contract to deploy")
   .addFlag("noProxy", "do not deploy transparent proxies for factory and modules")
   .addOptionalParam("implementation", "address of the account implementation to use in the beacon")
@@ -62,7 +53,7 @@ task("deploy", "Deploys ZKsync SSO contracts")
       privateKey = LOCAL_RICH_WALLETS[0].privateKey;
       cmd.fund = "1";
     } else {
-      if (!process.env.WALLET_PRIVATE_KEY) throw "⛔️ Wallet private key wasn't found in .env file!";
+      if (!process.env.WALLET_PRIVATE_KEY) throw "Wallet private key wasn't found in .env file!";
       privateKey = process.env.WALLET_PRIVATE_KEY;
     }
 
