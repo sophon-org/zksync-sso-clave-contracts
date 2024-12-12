@@ -2,7 +2,7 @@ import "@matterlabs/hardhat-zksync-node/dist/type-extensions";
 import "@matterlabs/hardhat-zksync-verify/dist/src/type-extensions";
 
 import dotenv from "dotenv";
-import { ethers, parseEther } from "ethers";
+import { ethers, parseEther, randomBytes } from "ethers";
 import { readFileSync } from "fs";
 import { promises } from "fs";
 import * as hre from "hardhat";
@@ -24,10 +24,10 @@ export class ContractFixtures {
   readonly wallet: Wallet = getWallet(LOCAL_RICH_WALLETS[0].privateKey);
 
   private _aaFactory: AAFactory;
-  async getAaFactory() {
+  async getAaFactory(salt?: ethers.BytesLike) {
     const beaconAddress = await this.getBeaconAddress();
     if (!this._aaFactory) {
-      this._aaFactory = await deployFactory(this.wallet, beaconAddress);
+      this._aaFactory = await deployFactory(this.wallet, beaconAddress, salt);
     }
     return this._aaFactory;
   }
@@ -145,16 +145,26 @@ export const getProviderL1 = () => {
   return provider;
 };
 
-export async function deployFactory(wallet: Wallet, beaconAddress: string): Promise<AAFactory> {
+export async function deployFactory(wallet: Wallet, beaconAddress: string, salt?: ethers.BytesLike): Promise<AAFactory> {
   const factoryArtifact = JSON.parse(await promises.readFile("artifacts-zk/src/AAFactory.sol/AAFactory.json", "utf8"));
   const proxyAaArtifact = JSON.parse(await promises.readFile("artifacts-zk/src/AccountProxy.sol/AccountProxy.json", "utf8"));
 
-  const deployer = new ContractFactory(factoryArtifact.abi, factoryArtifact.bytecode, wallet);
+  const deployer = new ContractFactory(factoryArtifact.abi, factoryArtifact.bytecode, wallet, "create2");
   const bytecodeHash = utils.hashBytecode(proxyAaArtifact.bytecode);
+  const factoryBytecodeHash = utils.hashBytecode(factoryArtifact.bytecode);
+  const factorySalt = ethers.hexlify(salt ?? randomBytes(32));
+  const constructorArgs = deployer.interface.encodeDeploy([bytecodeHash, beaconAddress]);
+  const standardCreate2Address = utils.create2Address(wallet.address, factoryBytecodeHash, factorySalt, constructorArgs);
+  const accountCode = await wallet.provider.getCode(standardCreate2Address);
+  if (accountCode != "0x") {
+    logInfo(`Factory already exists!`);
+    return AAFactory__factory.connect(standardCreate2Address, wallet);
+  }
+  logInfo(`Factory doesn't exist at ${standardCreate2Address}!`);
   const factory = await deployer.deploy(
     bytecodeHash,
     beaconAddress,
-    { customData: { factoryDeps: [proxyAaArtifact.bytecode] } },
+    { customData: { salt: factorySalt, factoryDeps: [proxyAaArtifact.bytecode] } },
   );
   const factoryAddress = await factory.getAddress();
 
@@ -219,16 +229,6 @@ export const create2 = async (contractName: string, wallet: Wallet, salt: ethers
   const accountCode = await wallet.provider.getCode(standardCreate2Address);
   if (accountCode != "0x") {
     logInfo(`Contract ${contractName} already exists!`);
-    // if (hre.network.config.verifyURL) {
-    //   logInfo(`Requesting contract verification...`);
-    //   await verifyContract({
-    //     address: standardCreate2Address,
-    //     contract: `${contractArtifact.sourceName}:${contractName}`,
-    //     constructorArguments: constructorArgs,
-    //     bytecode: accountCode,
-    //   });
-    // }
-
     return new ethers.Contract(standardCreate2Address, contractArtifact.abi, wallet);
   }
 
@@ -274,13 +274,13 @@ const masterWallet = ethers.Wallet.fromPhrase("stuff slice staff easily soup par
 export const LOCAL_RICH_WALLETS = [
   hre.network.name == "dockerizedNode"
     ? {
-        address: masterWallet.address,
-        privateKey: masterWallet.privateKey,
-      }
+      address: masterWallet.address,
+      privateKey: masterWallet.privateKey,
+    }
     : {
-        address: "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
-        privateKey: "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80",
-      },
+      address: "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+      privateKey: "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80",
+    },
   {
     address: "0x36615Cf349d7F6344891B1e7CA7C72883F5dc049",
     privateKey: "0x7726827caac94a7f9e1b160f7ea819f172f7b6f9d2a97f992c38edeab82d4110",

@@ -1,14 +1,16 @@
 import { assert, expect } from "chai";
-import { parseEther, randomBytes } from "ethers";
+import { ethers, parseEther, randomBytes } from "ethers";
 import { Wallet, ZeroAddress } from "ethers";
 import { it } from "mocha";
-import { SmartAccount, utils } from "zksync-ethers";
+import { ContractFactory, SmartAccount, utils } from "zksync-ethers";
 
 import { SsoAccount__factory } from "../typechain-types";
 import { CallStruct } from "../typechain-types/src/batch/BatchCaller";
-import { ContractFixtures, getProvider } from "./utils";
+import { ContractFixtures, create2, getProvider } from "./utils";
 
-describe("Basic tests", function () {
+import * as hre from "hardhat";
+
+describe.only("Basic tests", function () {
   const fixtures = new ContractFixtures();
   const provider = getProvider();
   let proxyAccountAddress: string;
@@ -32,20 +34,34 @@ describe("Basic tests", function () {
     assert(accountImplContract != null, "No account impl deployed");
   });
 
-  it("should deploy proxy account via factory", async () => {
-    const aaFactoryContract = await fixtures.getAaFactory();
+  it.only("should deploy proxy account via factory", async () => {
+    const aaFactoryContract = await fixtures.getAaFactory(fixtures.ethersStaticSalt);
     assert(aaFactoryContract != null, "No AA Factory deployed");
+    const factoryAddress = await aaFactoryContract.getAddress();
+    console.log("factoryAddress", factoryAddress);
+
+    const salt = ethers.ZeroHash;
+    const contractArtifact = await hre.artifacts.readArtifact("AccountProxy");
+    const implAddress = await fixtures.getAccountImplAddress();
+    const bytecodeHash = utils.hashBytecode(contractArtifact.bytecode);
+    const standardCreate2Address = utils.create2Address(implAddress, bytecodeHash, salt, "0x");
+    console.log("standardCreate2Address ", standardCreate2Address);
+    // should be: "0xBDBf2429373eF08c773CFd74B2Af6fE154414de8"
+    const accountCode = await fixtures.wallet.provider.getCode(standardCreate2Address);
 
     const deployTx = await aaFactoryContract.deployProxySsoAccount(
-      randomBytes(32),
+      salt,
       "id",
       [],
       [fixtures.wallet.address],
     );
     const deployTxReceipt = await deployTx.wait();
     proxyAccountAddress = deployTxReceipt!.contractAddress!;
+    console.log("proxyAccountAddress ", proxyAccountAddress);
 
+    expect(accountCode, "expected deploy location").to.not.equal("0x", "nothing deployed here");
     expect(proxyAccountAddress, "the proxy account location via logs").to.not.equal(ZeroAddress, "be a valid address");
+    expect(proxyAccountAddress, "the proxy account location").to.equal(standardCreate2Address, "be what create2 returns");
 
     const account = SsoAccount__factory.connect(proxyAccountAddress, provider);
     assert(await account.k1IsOwner(fixtures.wallet.address));
@@ -71,8 +87,7 @@ describe("Basic tests", function () {
       value,
       gasLimit: 300_000n,
     };
-    // TODO: fix gas estimation
-    // aaTx.gasLimit = await provider.estimateGas(aaTx);
+    aaTx.gasLimit = await provider.estimateGas(aaTx);
 
     const signedTransaction = await smartAccount.signTransaction(aaTx);
     assert(signedTransaction != null, "valid transaction to sign");
