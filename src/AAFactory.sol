@@ -17,8 +17,8 @@ contract AAFactory {
   event AccountCreated(address indexed accountAddress, string uniqueAccountId);
 
   /// @dev The bytecode hash of the beacon proxy, used for deploying proxy accounts.
-  bytes32 private immutable beaconProxyBytecodeHash;
-  address private immutable beacon;
+  bytes32 public immutable beaconProxyBytecodeHash;
+  address public immutable beacon;
 
   /// @notice A mapping from unique account IDs to their corresponding deployed account addresses.
   mapping(string => address) public accountMappings;
@@ -29,6 +29,10 @@ contract AAFactory {
   constructor(bytes32 _beaconProxyBytecodeHash, address _beacon) {
     beaconProxyBytecodeHash = _beaconProxyBytecodeHash;
     beacon = _beacon;
+  }
+
+  function getEncodedBeacon() external view returns (bytes memory) {
+    return abi.encode(beacon);
   }
 
   /// @notice Deploys a new SSO account as a beacon proxy with the specified parameters.
