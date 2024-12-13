@@ -34,7 +34,7 @@ describe("Basic tests", function () {
     assert(accountImplContract != null, "No account impl deployed");
   });
 
-  it.only("should deploy proxy account via factory", async () => {
+  it("should deploy proxy account via factory", async () => {
     const aaFactoryContract = await fixtures.getAaFactory();
     assert(aaFactoryContract != null, "No AA Factory deployed");
 
