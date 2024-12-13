@@ -39,7 +39,7 @@ describe("Basic tests", function () {
     const factoryAddress = await aaFactoryContract.getAddress();
     expect(factoryAddress, "the factory address").to.equal(await fixtures.getAaFactoryAddress(), "factory address match");
 
-    const bytecodeHash = await aaFactoryContract.getBeaconProxyBytecodeHash();
+    const bytecodeHash = await aaFactoryContract.beaconProxyBytecodeHash();
     const deployedAccountContract = await fixtures.getAccountProxyContract();
     const deployedAccountContractCode = await deployedAccountContract.getDeployedCode();
     assert(deployedAccountContractCode != null, "No account code deployed");
