@@ -2,13 +2,11 @@ import { assert, expect } from "chai";
 import { ethers, parseEther, randomBytes } from "ethers";
 import { Wallet, ZeroAddress } from "ethers";
 import { it } from "mocha";
-import { ContractFactory, SmartAccount, utils } from "zksync-ethers";
+import { SmartAccount, utils } from "zksync-ethers";
 
 import { SsoAccount__factory } from "../typechain-types";
 import { CallStruct } from "../typechain-types/src/batch/BatchCaller";
-import { ContractFixtures, create2, ethersStaticSalt, getProvider } from "./utils";
-
-import * as hre from "hardhat";
+import { ContractFixtures, getProvider } from "./utils";
 
 describe("Basic tests", function () {
   const fixtures = new ContractFixtures();

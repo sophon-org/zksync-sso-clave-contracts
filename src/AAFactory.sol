@@ -5,7 +5,6 @@ import { DEPLOYER_SYSTEM_CONTRACT, IContractDeployer } from "@matterlabs/zksync-
 import { SystemContractsCaller } from "@matterlabs/zksync-contracts/l2/system-contracts/libraries/SystemContractsCaller.sol";
 
 import { ISsoAccount } from "./interfaces/ISsoAccount.sol";
-import { AccountProxy } from "./AccountProxy.sol";
 
 /// @title AAFactory
 /// @author Matter Labs
@@ -59,10 +58,6 @@ contract AAFactory {
   ) external returns (address accountAddress) {
     require(accountMappings[_uniqueAccountId] == address(0), "Account already exists");
 
-    /*
-    AccountProxy beaconProxy = new AccountProxy{ salt: _salt }(beacon);
-    accountAddress = address(beaconProxy);
-    */
     (bool success, bytes memory returnData) = SystemContractsCaller.systemCallWithReturndata(
       uint32(gasleft()),
       address(DEPLOYER_SYSTEM_CONTRACT),
