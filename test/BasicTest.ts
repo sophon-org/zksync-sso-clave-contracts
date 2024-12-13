@@ -37,29 +37,39 @@ describe("Basic tests", function () {
   it.only("should deploy proxy account via factory", async () => {
     const aaFactoryContract = await fixtures.getAaFactory();
     assert(aaFactoryContract != null, "No AA Factory deployed");
+
     const factoryAddress = await aaFactoryContract.getAddress();
+    expect(factoryAddress, "the factory address").to.equal(await fixtures.getAaFactoryAddress(), "factory address match");
+
     const bytecodeHash = await aaFactoryContract.getBeaconProxyBytecodeHash();
+    const deployedAccountContract = await fixtures.getAccountProxyContract();
+    const deployedAccountContractCode = await deployedAccountContract.getDeployedCode();
+    assert(deployedAccountContractCode != null, "No account code deployed");
+    const ssoBeaconBytecodeHash = ethers.hexlify(utils.hashBytecode(deployedAccountContractCode));
+    expect(bytecodeHash, "deployed account bytecode hash").to.equal(ssoBeaconBytecodeHash, "deployed account code doesn't match");
+
     const args = await aaFactoryContract.getEncodedBeacon();
-    console.log("factoryAddress", factoryAddress);
+    const deployedBeaconAddress = new ethers.AbiCoder().encode(["address"], [await fixtures.getBeaconAddress()]);
+    expect(args, "the beacon address").to.equal(deployedBeaconAddress, "the deployment beacon");
     
-    const standardCreate2Address = utils.create2Address(factoryAddress, bytecodeHash, ethersStaticSalt, args) ;
-    console.log("standardCreate2Address ", standardCreate2Address);
-    // standardCreate2Address should be: "0x7dd7a774a1CBCe9Fa8Ab8A639262aBde60C20FC9"
-    // but the create2address thinks it should be: "0xABE9055866F575Ad8DF70d473EDb385c1deD62fC"
-    const accountCode = await fixtures.wallet.provider.getCode(standardCreate2Address);
-    // deployed directly via beacon: 0x068cf1D7c2e99F2CCE75F104687DaC5658081915
+    const randomSalt = randomBytes(32);
+    const standardCreate2Address = utils.create2Address(factoryAddress, bytecodeHash, randomSalt, args) ;
+
+    const preDeployAccountCode = await fixtures.wallet.provider.getCode(standardCreate2Address);
+    expect(preDeployAccountCode , "expected deploy location").to.equal("0x", "nothing deployed here (yet)");
 
     const deployTx = await aaFactoryContract.deployProxySsoAccount(
-      ethersStaticSalt,
-      "id",
+      randomSalt,
+      "id" + randomBytes(32).toString(),
       [],
       [fixtures.wallet.address],
     );
     const deployTxReceipt = await deployTx.wait();
     proxyAccountAddress = deployTxReceipt!.contractAddress!;
-    console.log("proxyAccountAddress ", proxyAccountAddress);
 
-    expect(accountCode, "expected deploy location").to.not.equal("0x", "nothing deployed here");
+    const postDeployAccountCode = await fixtures.wallet.provider.getCode(standardCreate2Address);
+    expect(postDeployAccountCode, "expected deploy location").to.not.equal("0x", "deployment didn't match create2!");
+
     expect(proxyAccountAddress, "the proxy account location via logs").to.not.equal(ZeroAddress, "be a valid address");
     expect(proxyAccountAddress, "the proxy account location").to.equal(standardCreate2Address, "be what create2 returns");
 
