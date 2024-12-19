@@ -21,7 +21,7 @@ export const ethersStaticSalt = new Uint8Array([
 ]);
 
 export class ContractFixtures {
-  readonly wallet: Wallet = getWallet(LOCAL_RICH_WALLETS[0].privateKey);
+  readonly wallet: Wallet = getWallet("0xac1e735be8536c6534bb4f17f06f6afc73b2b5ba84ac2cfb12f7461b20c0bbe3" )//LOCAL_RICH_WALLETS[0].privateKey);
 
   private _aaFactory: AAFactory;
   async getAaFactory() {
