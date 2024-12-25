@@ -70,6 +70,11 @@ contract WebAuthValidator is VerifierCaller, IModuleValidator {
       fatSignature
     );
 
+    // Signed client data can't have non-ascii characters, as domains are converted into punycode
+    if (hasNonAscii(clientDataJSON)) {
+      return false;
+    }
+
     if (rs[1] > lowSmax) {
       return false;
     }
@@ -177,5 +182,14 @@ contract WebAuthValidator is VerifierCaller, IModuleValidator {
     bytes32[2] calldata pubKey
   ) external view returns (bool valid) {
     valid = callVerifier(P256_VERIFIER, message, rs, pubKey);
+  }
+
+  function hasNonAscii(string memory str) internal pure returns (bool) {
+    for (uint256 i = 0; i < bytes(str).length; i++) {
+      if (uint8(bytes(str)[i]) > 127) {
+        return true;
+      }
+    }
+    return false;
   }
 }
