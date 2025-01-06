@@ -128,13 +128,17 @@ library JsmnSolLib {
     bool success;
     bytes1 c;
     Token memory token;
+
+    // skip the first character because we assume we've already identified it as a primitive from parse
+    parser.pos++;
+
     for (; parser.pos < s.length; parser.pos++) {
       c = s[parser.pos];
       if (c == " " || c == "\t" || c == "\n" || c == "\r" || c == "," || c == 0x7d || c == 0x5d) {
         found = true;
         break;
       }
-      if (uint8(c) < 32 || uint8(c) > 127) {
+      if (uint8(c) < 32 || uint8(c) >= 127) {
         parser.pos = start;
         return RETURN_ERROR_INVALID_JSON;
       }
