@@ -28,7 +28,7 @@ abstract contract ERC1271Handler is IERC1271Upgradeable, EIP712("Sso1271", "1.0.
    * @param signature bytes calldata - Validator address concatenated to signature
    * @return magicValue bytes4 - Magic value if the signature is valid, 0 otherwise
    */
-  function isValidSignature(bytes32 hash, bytes memory signature) public view override returns (bytes4 magicValue) {
+  function isValidSignature(bytes32 hash, bytes memory signature) external view override returns (bytes4 magicValue) {
     (bytes memory decodedSignature, address validator) = SignatureDecoder.decodeSignatureNoHookData(signature);
 
     bytes32 eip712Hash = _hashTypedDataV4(_ssoMessageHash(SsoMessage(hash)));
@@ -56,7 +56,7 @@ abstract contract ERC1271Handler is IERC1271Upgradeable, EIP712("Sso1271", "1.0.
     return _SSO_MESSAGE_TYPEHASH;
   }
 
-  function _ssoMessageHash(SsoMessage memory ssoMessage) internal pure returns (bytes32) {
+  function _ssoMessageHash(SsoMessage memory ssoMessage) private pure returns (bytes32) {
     return keccak256(abi.encode(_SSO_MESSAGE_TYPEHASH, ssoMessage.signedHash));
   }
 }
