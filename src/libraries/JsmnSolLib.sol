@@ -134,7 +134,7 @@ library JsmnSolLib {
 
     for (; parser.pos < s.length; parser.pos++) {
       c = s[parser.pos];
-      if (c == " " || c == "\t" || c == "\n" || c == "\r" || c == "," || c == 0x7d || c == 0x5d) {
+      if (c == " " || c == "\t" || c == "\n" || c == "\r" || c == "," || c == "}" || c == "]") {
         found = true;
         break;
       }
@@ -172,8 +172,7 @@ library JsmnSolLib {
     for (; parser.pos < s.length; parser.pos++) {
       bytes1 c = s[parser.pos];
 
-      // 0x7b, 0x5b opening curly braces or square brackets
-      if (c == 0x7b || c == 0x5b) {
+      if (c == "{" || c == "[") {
         (success, token) = allocateToken(parser, tokens);
         if (!success) {
           return (RETURN_ERROR_NO_MEM, tokens, 0);
@@ -181,7 +180,7 @@ library JsmnSolLib {
         if (parser.toksuper != -1) {
           tokens[uint(parser.toksuper)].size++;
         }
-        token.jsmnType = (c == 0x7b ? JsmnType.OBJECT : JsmnType.ARRAY);
+        token.jsmnType = (c == "{" ? JsmnType.OBJECT : JsmnType.ARRAY);
         token.start = parser.pos;
         token.startSet = true;
         parser.toksuper = int(parser.toknext - 1);
@@ -189,8 +188,8 @@ library JsmnSolLib {
       }
 
       // closing curly parentheses or brackets
-      if (c == 0x7d || c == 0x5d) {
-        JsmnType tokenType = (c == 0x7d ? JsmnType.OBJECT : JsmnType.ARRAY);
+      if (c == "}" || c == "]") {
+        JsmnType tokenType = (c == "}" ? JsmnType.OBJECT : JsmnType.ARRAY);
         bool isUpdated = false;
         for (i = parser.toknext - 1; i >= 0; i--) {
           token = tokens[i];
@@ -237,8 +236,7 @@ library JsmnSolLib {
         continue;
       }
 
-      // ' ', \r, \t, \n
-      if (c == " " || c == 0x11 || c == 0x12 || c == 0x14) {
+      if (c == " " || c == "\r" || c == "\t" || c == "\n") {
         continue;
       }
 
