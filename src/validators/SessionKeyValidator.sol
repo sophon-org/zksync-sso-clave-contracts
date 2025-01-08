@@ -12,6 +12,10 @@ import { IValidatorManager } from "../interfaces/IValidatorManager.sol";
 import { SessionLib } from "../libraries/SessionLib.sol";
 import { SignatureDecoder } from "../libraries/SignatureDecoder.sol";
 
+/// @title SessionKeyValidator
+/// @author Matter Labs
+/// @custom:security-contact security@matterlabs.dev
+/// @dev This contract is used to manage sessions for a smart account.
 contract SessionKeyValidator is IModuleValidator {
   using SessionLib for SessionLib.SessionStorage;
 
@@ -40,7 +44,7 @@ contract SessionKeyValidator is IModuleValidator {
     return false;
   }
 
-  function addValidationKey(bytes memory key) external returns (bool) {
+  function addValidationKey(bytes calldata key) external returns (bool) {
     return _addValidationKey(key);
   }
 
@@ -61,7 +65,7 @@ contract SessionKeyValidator is IModuleValidator {
     }
   }
 
-  function _addValidationKey(bytes memory sessionData) internal returns (bool) {
+  function _addValidationKey(bytes calldata sessionData) internal returns (bool) {
     SessionLib.SessionSpec memory sessionSpec = abi.decode(sessionData, (SessionLib.SessionSpec));
     createSession(sessionSpec);
     return true;
