@@ -6,6 +6,7 @@ import { Wallet } from "zksync-ethers";
 
 const WEBAUTH_NAME = "WebAuthValidator";
 const SESSIONS_NAME = "SessionKeyValidator";
+const GUARDIAN_RECOVERY_NAME = "GuardianRecoveryValidator";
 const ACCOUNT_IMPL_NAME = "SsoAccount";
 const FACTORY_NAME = "AAFactory";
 const PAYMASTER_NAME = "ExampleAuthServerPaymaster";
@@ -82,6 +83,7 @@ task("deploy", "Deploys ZKsync SSO contracts")
       const beacon = await deploy(BEACON_NAME, deployer, false, [implementation]);
       const factory = await deploy(FACTORY_NAME, deployer, !cmd.noProxy, [beacon]);
       const paymaster = await deploy(PAYMASTER_NAME, deployer, false, [factory, sessions]);
+      await deploy(GUARDIAN_RECOVERY_NAME, deployer, !cmd.noProxy);
 
       await fundPaymaster(paymaster, cmd.fund);
     } else {
