@@ -29,7 +29,7 @@ contract GuardianRecoveryValidator is IGuardianRecoveryValidator {
     Guardian[] storage guardians = accountGuardians[msg.sender];
 
     // If the guardian exist this method stops
-    for (uint i = 0; i < guardians.length; i++) {
+    for (uint256 i = 0; i < guardians.length; i++) {
       if (guardians[i].addr == newGuardian) {
         return;
       }
@@ -45,7 +45,7 @@ contract GuardianRecoveryValidator is IGuardianRecoveryValidator {
     Guardian[] storage guardians = accountGuardians[msg.sender];
 
     // Searchs guardian with given address
-    for (uint i = 0; i < guardians.length; i++) {
+    for (uint256 i = 0; i < guardians.length; i++) {
       if (guardians[i].addr == guardianToRemove) {
         // If found last guardian is moved to current position, and then
         // last element is removed from array.
@@ -67,7 +67,7 @@ contract GuardianRecoveryValidator is IGuardianRecoveryValidator {
 
     // Searchs if the caller is in the list of guardians.
     // If guardian found is set to true.
-    for (uint i = 0; i < guardians.length; i++) {
+    for (uint256 i = 0; i < guardians.length; i++) {
       if (guardians[i].addr == msg.sender) {
         // We return true if the guardian was not confirmed before.
         bool retValue = !guardians[i].isReady;
