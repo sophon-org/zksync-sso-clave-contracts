@@ -15,6 +15,7 @@ import type {
   AccountProxy,
   ERC20,
   ExampleAuthServerPaymaster,
+  GuardianRecoveryValidator,
   SessionKeyValidator,
   SsoAccount,
   SsoBeacon,
@@ -24,6 +25,7 @@ import {
   AccountProxy__factory,
   ERC20__factory,
   ExampleAuthServerPaymaster__factory,
+  GuardianRecoveryValidator__factory,
   SessionKeyValidator__factory,
   SsoAccount__factory,
   SsoBeacon__factory,
@@ -89,6 +91,15 @@ export class ContractFixtures {
       this._webauthnValidatorModule = WebAuthValidator__factory.connect(await contract.getAddress(), this.wallet);
     }
     return this._webauthnValidatorModule;
+  }
+
+  private _guardianRecoveryValidator: GuardianRecoveryValidator;
+  async getGuardianRecoveryValidator() {
+    if (this._guardianRecoveryValidator === undefined) {
+      const contract = await create2("GuardianRecoveryValidator", this.wallet, ethersStaticSalt);
+      this._guardianRecoveryValidator = GuardianRecoveryValidator__factory.connect(await contract.getAddress(), this.wallet);
+    }
+    return this._guardianRecoveryValidator;
   }
 
   async getPasskeyModuleAddress(): Promise<Address> {
