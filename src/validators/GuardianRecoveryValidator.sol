@@ -43,22 +43,19 @@ contract GuardianRecoveryValidator is IGuardianRecoveryValidator {
   //   2. Removing the account from the list of guardians
   function removeValidationKey(address guardianToRemove) external {
     Guardian[] storage guardians = accountGuardians[msg.sender];
-    bool found = false;
 
     // Searchs guardian with given address
     for (uint i = 0; i < guardians.length; i++) {
       if (guardians[i].addr == guardianToRemove) {
-        // If found last guardian is moved to current position.
-        // Last element will be popped out the array.
-        found = true;
-        guardians[i] = guardians[guardians.length];
-        break;
+        // If found last guardian is moved to current position, and then
+        // last element is removed from array.
+        guardians[i] = guardians[guardians.length - 1];
+        guardians.pop();
+        return;
       }
     }
 
-    if (found) {
-      guardians.pop();
-    }
+    revert("Guardian not found.");
   }
 
   // IModuleValidator
