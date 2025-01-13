@@ -4,10 +4,13 @@ pragma solidity ^0.8.24;
 import { Transaction } from "@matterlabs/zksync-contracts/l2/system-contracts/libraries/TransactionHelper.sol";
 import { IPaymasterFlow } from "@matterlabs/zksync-contracts/l2/system-contracts/interfaces/IPaymasterFlow.sol";
 import { TimestampAsserterLocator } from "../helpers/TimestampAsserterLocator.sol";
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { LibBytes } from "solady/src/utils/LibBytes.sol";
 
 library SessionLib {
   using SessionLib for SessionLib.Constraint;
   using SessionLib for SessionLib.UsageLimit;
+  using LibBytes for bytes;
 
   // We do not permit session keys to be reused to open multiple sessions
   // (after one expires or is closed, e.g.).
@@ -136,11 +139,11 @@ library SessionLib {
   function checkAndUpdate(
     Constraint memory constraint,
     UsageTracker storage tracker,
-    bytes calldata data,
+    bytes memory data,
     uint64 period
   ) internal {
-    uint256 index = 4 + constraint.index * 32;
-    bytes32 param = bytes32(data[index:index + 32]);
+    require(data.length >= 4 + constraint.index * 32 + 32, "Invalid data length");
+    bytes32 param = data.load(4 + constraint.index * 32);
     Condition condition = constraint.condition;
     bytes32 refValue = constraint.refValue;
 
@@ -159,6 +162,35 @@ library SessionLib {
     }
 
     constraint.limit.checkAndUpdate(tracker, uint256(param), period);
+  }
+
+  function checkCallPolicy(
+    SessionStorage storage state,
+    bytes memory data,
+    address target,
+    bytes4 selector,
+    CallSpec[] memory callPolicies,
+    uint64[] memory periodIds,
+    uint256 periodIdsOffset
+  ) internal returns (CallSpec memory) {
+    CallSpec memory callPolicy;
+    bool found = false;
+
+    for (uint256 i = 0; i < callPolicies.length; i++) {
+      if (callPolicies[i].target == target && callPolicies[i].selector == selector) {
+        callPolicy = callPolicies[i];
+        found = true;
+        break;
+      }
+    }
+
+    require(found, "Call to this contract is not allowed");
+
+    for (uint256 i = 0; i < callPolicy.constraints.length; i++) {
+      callPolicy.constraints[i].checkAndUpdate(state.params[target][selector][i], data, periodIds[periodIdsOffset + i]);
+    }
+
+    return callPolicy;
   }
 
   function validateFeeLimit(
@@ -193,9 +225,11 @@ library SessionLib {
   ) internal {
     // Here we additionally pass uint64[] periodId to check allowance limits
     // periodId is defined as block.timestamp / limit.period if limitType == Allowance, and 0 otherwise (which will be ignored).
-    // periodIds[0] is for fee limit,
+    // periodIds[0] is for fee limit (not used in this function),
     // periodIds[1] is for value limit,
-    // periodIds[2:] are for call constraints, if there are any.
+    // peroidIds[2:2+n] are for `ERC20.approve()` constraints, if an approval-based paymaster is used
+    //   where `n` is the number of constraints in the `ERC20.approve()` policy if an approval-based paymaster is used, 0 otherwise.
+    // periodIds[2+n:] are for call constraints, if there are any.
     // It is required to pass them in (instead of computing via block.timestamp) since during validation
     // we can only assert the range of the timestamp, but not access its value.
 
@@ -205,34 +239,44 @@ library SessionLib {
     require(transaction.to <= type(uint160).max, "Overflow");
     address target = address(uint160(transaction.to));
 
+    // Validate paymaster input
+    uint256 periodIdsOffset = 2;
     if (transaction.paymasterInput.length >= 4) {
-      bytes4 paymasterInputSelector = bytes4(transaction.paymasterInput[0:4]);
-      require(
-        paymasterInputSelector != IPaymasterFlow.approvalBased.selector,
-        "Approval based paymaster flow not allowed"
-      );
+      bytes4 paymasterInputSelector = bytes4(transaction.paymasterInput[:4]);
+      // SsoAccount will automatically `approve()` a token for an approval-based paymaster in `prepareForPaymaster()` call.
+      // We need to make sure that the session spec allows this.
+      if (paymasterInputSelector == IPaymasterFlow.approvalBased.selector) {
+        require(transaction.paymasterInput.length >= 68, "Invalid paymaster input length");
+        (address token, uint256 amount, ) = abi.decode(transaction.paymasterInput[4:], (address, uint256, bytes));
+        bytes memory data = abi.encodeWithSelector(IERC20.approve.selector, transaction.paymaster, amount);
+
+        // check that session allows .approve() for this token
+        CallSpec memory approvePolicy = checkCallPolicy(
+          state,
+          data,
+          token,
+          IERC20.approve.selector,
+          spec.callPolicies,
+          periodIds,
+          periodIdsOffset
+        );
+        periodIdsOffset += approvePolicy.constraints.length;
+      }
     }
 
     if (transaction.data.length >= 4) {
       bytes4 selector = bytes4(transaction.data[:4]);
-      CallSpec memory callPolicy;
-      bool found = false;
-
-      for (uint256 i = 0; i < spec.callPolicies.length; i++) {
-        if (spec.callPolicies[i].target == target && spec.callPolicies[i].selector == selector) {
-          callPolicy = spec.callPolicies[i];
-          found = true;
-          break;
-        }
-      }
-
-      require(found, "Call to this contract is not allowed");
+      CallSpec memory callPolicy = checkCallPolicy(
+        state,
+        transaction.data,
+        target,
+        selector,
+        spec.callPolicies,
+        periodIds,
+        periodIdsOffset
+      );
       require(transaction.value <= callPolicy.maxValuePerUse, "Value exceeds limit");
       callPolicy.valueLimit.checkAndUpdate(state.callValue[target][selector], transaction.value, periodIds[1]);
-
-      for (uint256 i = 0; i < callPolicy.constraints.length; i++) {
-        callPolicy.constraints[i].checkAndUpdate(state.params[target][selector][i], transaction.data, periodIds[i + 2]);
-      }
     } else {
       TransferSpec memory transferPolicy;
       bool found = false;
