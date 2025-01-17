@@ -156,7 +156,7 @@ async function getPublicKey(publicPasskey: Uint8Array): Promise<[Hex, Hex]> {
   return [`0x${Buffer.from(x).toString("hex")}`, `0x${Buffer.from(y).toString("hex")}`];
 }
 
-async function getRawPublicKeyFromCrpyto(cryptoKeyPair: CryptoKeyPair) {
+export async function getRawPublicKeyFromCrpyto(cryptoKeyPair: CryptoKeyPair) {
   const keyMaterial = await crypto.subtle.exportKey("raw", cryptoKeyPair.publicKey);
   return [new Uint8Array(keyMaterial.slice(1, 33)), new Uint8Array(keyMaterial.slice(33, 65))];
 }
@@ -273,7 +273,7 @@ export async function toHash(data: Uint8Array | string): Promise<Uint8Array> {
 }
 
 // Generate an ECDSA key pair with the P-256 curve (secp256r1)
-async function generateES256R1Key() {
+export async function generateES256R1Key() {
   return await crypto.subtle.generateKey(r1KeygenParams, false, ["sign", "verify"]);
 }
 
@@ -396,7 +396,7 @@ function encodeKeyFromHex(hexStrings: [Hex, Hex], domain: string) {
   )
 }
 
-function encodeKeyFromBytes(bytes: [Uint8Array<ArrayBuffer>, Uint8Array<ArrayBuffer>], domain: string) {
+export function encodeKeyFromBytes(bytes: [Uint8Array<ArrayBuffer>, Uint8Array<ArrayBuffer>], domain: string) {
   return encodeKeyFromHex([toHex(bytes[0]), toHex(bytes[1])], domain);
 }
 
