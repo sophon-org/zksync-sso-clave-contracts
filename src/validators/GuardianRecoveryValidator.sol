@@ -21,6 +21,9 @@ contract GuardianRecoveryValidator is IGuardianRecoveryValidator {
 
   error GuardianNotFound(address guardian);
   error GuardianNotProposed(address guardian);
+  error PasskeyNotMatched();
+  error CooldownPerionNotPassed();
+  error ExpiredRequest();
 
   event RecoveryInitiated();
 
@@ -28,7 +31,7 @@ contract GuardianRecoveryValidator is IGuardianRecoveryValidator {
   uint256 constant REQUEST_DELAY_TIME = 24 * 60 * 60; // 24 hours
 
   mapping(address account => Guardian[]) public accountGuardians;
-  mapping(address account => mapping(address validator => RecoveryRequest)) public pendingRecoveryData;
+  mapping(address account => RecoveryRequest) public pendingRecoveryData;
 
   address public webAuthValidator;
 
@@ -113,7 +116,8 @@ contract GuardianRecoveryValidator is IGuardianRecoveryValidator {
   // This method has to start the recovery.
   // It's called by the sso account.
   function initRecovery(bytes memory passkey) external {
-    pendingRecoveryData[msg.sender][webAuthValidator] = RecoveryRequest(passkey, block.timestamp);
+    pendingRecoveryData[msg.sender] = RecoveryRequest(passkey, block.timestamp);
+
     emit RecoveryInitiated();
   }
 
@@ -142,6 +146,7 @@ contract GuardianRecoveryValidator is IGuardianRecoveryValidator {
     require(transaction.to <= type(uint160).max, "Overflow");
     address target = address(uint160(transaction.to));
 
+    // Check for calling "initRecovery" method by guardian on GuardianRecoveryValidator contract
     if (target == address(this)) {
       require(selector == this.initRecovery.selector, "Unsupported function call");
 
@@ -153,21 +158,25 @@ contract GuardianRecoveryValidator is IGuardianRecoveryValidator {
         if (accountGuardians[msg.sender][i].addr == recoveredAddress && accountGuardians[msg.sender][i].isReady)
           return true;
       }
+      revert GuardianNotFound(recoveredAddress);
     } else if (target == address(webAuthValidator)) {
+      // Check for calling "addValidationKey" method by anyone on WebAuthValidator contract
       require(selector == WebAuthValidator.addValidationKey.selector, "Unsupported function call");
       bytes memory validationKeyData = abi.decode(transaction.data[4:], (bytes));
 
-      require(
-        pendingRecoveryData[msg.sender][target].passkey.length == validationKeyData.length &&
-          keccak256(pendingRecoveryData[msg.sender][target].passkey) == keccak256(validationKeyData),
-        "New Passkey not matched with recent request"
-      );
+      // Verify that current request matches pending one
+      if (
+        pendingRecoveryData[msg.sender].passkey.length != validationKeyData.length ||
+        keccak256(pendingRecoveryData[msg.sender].passkey) != keccak256(validationKeyData)
+      ) revert PasskeyNotMatched();
 
-      uint256 timePassedSinceRequest = block.timestamp - pendingRecoveryData[msg.sender][target].timestamp;
-      require(timePassedSinceRequest > REQUEST_DELAY_TIME, "Cooldown period not passed");
-      require(timePassedSinceRequest < REQUEST_VALIDITY_TIME, "Request not valid anymore");
+      // Ensure time constraints
+      uint256 timePassedSinceRequest = block.timestamp - pendingRecoveryData[msg.sender].timestamp;
+      if (timePassedSinceRequest < REQUEST_DELAY_TIME) revert CooldownPerionNotPassed();
+      if (timePassedSinceRequest > REQUEST_VALIDITY_TIME) revert ExpiredRequest();
 
-      delete pendingRecoveryData[msg.sender][target];
+      // Cleanup currently processed recovery data
+      delete pendingRecoveryData[msg.sender];
 
       return true;
     }
