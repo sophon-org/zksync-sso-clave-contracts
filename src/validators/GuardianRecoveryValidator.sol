@@ -1,18 +1,49 @@
 // SPDX-License-Identifier: MIT
+pragma solidity ^0.8.24;
+
 import { IGuardianRecoveryValidator } from "../interfaces/IGuardianRecoveryValidator.sol";
+import { WebAuthValidator } from "./WebAuthValidator.sol";
 import { Transaction } from "@matterlabs/zksync-contracts/l2/system-contracts/libraries/TransactionHelper.sol";
+import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import { IERC165 } from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import { IModuleValidator } from "../interfaces/IModuleValidator.sol";
+import { SignatureDecoder } from "../libraries/SignatureDecoder.sol";
 
 contract GuardianRecoveryValidator is IGuardianRecoveryValidator {
   struct Guardian {
     address addr;
     bool isReady;
   }
+  struct RecoveryRequest {
+    bytes passkey;
+    uint256 timestamp;
+  }
 
-  mapping(address account => Guardian[]) accountGuardians;
+  error GuardianNotFound(address guardian);
+  error GuardianNotProposed(address guardian);
 
-  function init(bytes calldata initData) external {}
+  event RecoveryInitiated();
+
+  uint256 constant REQUEST_VALIDITY_TIME = 72 * 60 * 60; // 72 hours
+  uint256 constant REQUEST_DELAY_TIME = 24 * 60 * 60; // 24 hours
+
+  mapping(address account => Guardian[]) public accountGuardians;
+  mapping(address account => mapping(address validator => RecoveryRequest)) public pendingRecoveryData;
+
+  address public webAuthValidator;
+
+  constructor(address _webAuthValidator) {
+    webAuthValidator = _webAuthValidator;
+  }
+
+  function init(bytes calldata initData) external {
+    address[] memory initialGuardians = abi.decode(initData, (address[]));
+    Guardian[] storage guardians = accountGuardians[msg.sender];
+
+    for (uint256 i = 0; i < initialGuardians.length; i++) {
+      guardians.push(Guardian(initialGuardians[i], true)); // Make initial guardians active instanenously
+    }
+  }
 
   // When this module is disabled in an account all the
   // data associated with that account is freed.
@@ -55,7 +86,7 @@ contract GuardianRecoveryValidator is IGuardianRecoveryValidator {
       }
     }
 
-    revert("Guardian not found.");
+    revert GuardianNotFound(guardianToRemove);
   }
 
   // IModuleValidator
@@ -76,12 +107,15 @@ contract GuardianRecoveryValidator is IGuardianRecoveryValidator {
       }
     }
 
-    revert("Guardian was not proposed for given account.");
+    revert GuardianNotProposed(msg.sender);
   }
 
   // This method has to start the recovery.
   // It's called by the sso account.
-  function initRecovery(bytes memory passkey) external {}
+  function initRecovery(bytes memory passkey) external {
+    pendingRecoveryData[msg.sender][webAuthValidator] = RecoveryRequest(passkey, block.timestamp);
+    emit RecoveryInitiated();
+  }
 
   // IModuleValidator
   function validateTransaction(
@@ -99,6 +133,45 @@ contract GuardianRecoveryValidator is IGuardianRecoveryValidator {
     //   3. Verify the new passkey is the one stored in `initRecovery`
     //   4. Allows anyone to call this method, as the recovery was already verified in `initRecovery`
     //   5. Verifies that the required timelock period has passed since `initRecovery` was called
+    (bytes memory transactionSignature, address _validator, bytes memory validatorData) = SignatureDecoder
+      .decodeSignature(transaction.signature);
+
+    require(transaction.data.length >= 4, "Only function calls are supported");
+    bytes4 selector = bytes4(transaction.data[:4]);
+
+    require(transaction.to <= type(uint160).max, "Overflow");
+    address target = address(uint160(transaction.to));
+
+    if (target == address(this)) {
+      require(selector == this.initRecovery.selector, "Unsupported function call");
+
+      (address recoveredAddress, ECDSA.RecoverError recoverError) = ECDSA.tryRecover(signedHash, transactionSignature);
+      if (recoverError != ECDSA.RecoverError.NoError || recoveredAddress == address(0)) {
+        return false;
+      }
+      for (uint256 i = 0; i < accountGuardians[msg.sender].length; i++) {
+        if (accountGuardians[msg.sender][i].addr == recoveredAddress && accountGuardians[msg.sender][i].isReady)
+          return true;
+      }
+    } else if (target == address(webAuthValidator)) {
+      require(selector == WebAuthValidator.addValidationKey.selector, "Unsupported function call");
+      bytes memory validationKeyData = abi.decode(transaction.data[4:], (bytes));
+
+      require(
+        pendingRecoveryData[msg.sender][target].passkey.length == validationKeyData.length &&
+          keccak256(pendingRecoveryData[msg.sender][target].passkey) == keccak256(validationKeyData),
+        "New Passkey not matched with recent request"
+      );
+
+      uint256 timePassedSinceRequest = block.timestamp - pendingRecoveryData[msg.sender][target].timestamp;
+      require(timePassedSinceRequest > REQUEST_DELAY_TIME, "Cooldown period not passed");
+      require(timePassedSinceRequest < REQUEST_VALIDITY_TIME, "Request not valid anymore");
+
+      delete pendingRecoveryData[msg.sender][target];
+
+      return true;
+    }
+
     return false;
   }
 

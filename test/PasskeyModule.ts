@@ -8,7 +8,7 @@ import { assert, expect } from "chai";
 import { randomBytes } from "crypto";
 import { parseEther, ZeroAddress } from "ethers";
 import * as hre from "hardhat";
-import { encodeAbiParameters, Hex, hexToBytes, toHex, pad } from "viem";
+import { encodeAbiParameters, Hex, hexToBytes, pad, toHex } from "viem";
 import { SmartAccount, Wallet } from "zksync-ethers";
 import { base64UrlToUint8Array } from "zksync-sso/utils";
 
@@ -165,7 +165,7 @@ async function getPublicKey(publicPasskey: Uint8Array): Promise<[Hex, Hex]> {
   return [`0x${Buffer.from(x).toString("hex")}`, `0x${Buffer.from(y).toString("hex")}`];
 }
 
-async function getRawPublicKeyFromCrpyto(cryptoKeyPair: CryptoKeyPair) {
+export async function getRawPublicKeyFromCrpyto(cryptoKeyPair: CryptoKeyPair) {
   const keyMaterial = await crypto.subtle.exportKey("raw", cryptoKeyPair.publicKey);
   return [new Uint8Array(keyMaterial.slice(1, 33)), new Uint8Array(keyMaterial.slice(33, 65))];
 }
@@ -282,7 +282,7 @@ export async function toHash(data: Uint8Array | string): Promise<Uint8Array> {
 }
 
 // Generate an ECDSA key pair with the P-256 curve (secp256r1)
-async function generateES256R1Key() {
+export async function generateES256R1Key() {
   return await crypto.subtle.generateKey(r1KeygenParams, false, ["sign", "verify"]);
 }
 
@@ -453,9 +453,9 @@ async function validateSignatureTest(
     sampleClientString,
     [
       pad(toHex(rNormalization(generatedSignature.r))),
-      pad(toHex(sNormalization(generatedSignature.s)))
+      pad(toHex(sNormalization(generatedSignature.s))),
     ],
-    credentialId
+    credentialId,
   ]);
   return await passkeyValidator.validateSignature(transactionHash, fatSignature);
 }
