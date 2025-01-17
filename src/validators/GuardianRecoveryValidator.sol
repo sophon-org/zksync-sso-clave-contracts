@@ -44,7 +44,7 @@ contract GuardianRecoveryValidator is IGuardianRecoveryValidator {
     Guardian[] storage guardians = accountGuardians[msg.sender];
 
     for (uint256 i = 0; i < initialGuardians.length; i++) {
-      guardians.push(Guardian(initialGuardians[i], true)); // Make initial guardians active instanenously
+      guardians.push(Guardian(initialGuardians[i], false)); // Make initial guardians non active on init
     }
   }
 
