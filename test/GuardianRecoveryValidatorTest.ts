@@ -1,4 +1,4 @@
-import { Address, encodeAbiParameters, Hex, parseEther } from "viem";
+import { Address, encodeAbiParameters, Hex, parseEther, zeroHash } from "viem";
 import { cacheBeforeEach, ContractFixtures, getProvider } from "./utils";
 import { expect } from "chai";
 import { Provider, SmartAccount, utils, Wallet } from "zksync-ethers";
@@ -17,8 +17,10 @@ describe("GuardianRecoveryValidator", function () {
     let ssoAccountInstance: SsoAccount;
     let newGuardianConnectedSsoAccount: SmartAccount;
     let ownerConnectedSsoAccount: SmartAccount;
+    let externalUserConnectedSsoAccount: SmartAccount;
     let guardianWallet: Wallet;
     let ownerWallet: Wallet;
+    let externalUserWallet: Wallet;
     let webauthn: WebAuthValidator;
     let guardianValidator: GuardianRecoveryValidator;
 
@@ -26,9 +28,7 @@ describe("GuardianRecoveryValidator", function () {
     cacheBeforeEach(async () => {
         guardianWallet = new Wallet(Wallet.createRandom().privateKey, provider);
         ownerWallet = new Wallet(Wallet.createRandom().privateKey, provider);
-        console.log("guardianWallet")
-
-        console.log(guardianWallet.address)
+        externalUserWallet = new Wallet(Wallet.createRandom().privateKey, provider);
 
         const generatedKey = await generatePassKey();
 
@@ -68,8 +68,8 @@ describe("GuardianRecoveryValidator", function () {
                         guardianWallet.signingKey.sign(hash).serialized,
                         guardiansValidatorAddr,
                         abiCoder.encode(
-                            [],
-                            []
+                            ['uint256'],
+                            [123]
                         ),
                     ],
                 );
@@ -81,6 +81,10 @@ describe("GuardianRecoveryValidator", function () {
         ownerConnectedSsoAccount = new SmartAccount({
             address: await ssoAccountInstance.getAddress(),
             secret: ownerWallet.privateKey,
+        }, provider);
+        externalUserConnectedSsoAccount = new SmartAccount({
+            address: await ssoAccountInstance.getAddress(),
+            secret: externalUserWallet.privateKey,
         }, provider);
     })
 
@@ -226,11 +230,10 @@ describe("GuardianRecoveryValidator", function () {
 
                 cacheBeforeEach(async () => {
                     newKey = await generatePassKey();
-                    refTimestamp = (await provider.getBlock('latest')).timestamp + 240;
-                    await helpers.time.setNextBlockTimestamp(refTimestamp)
+                    refTimestamp = (await provider.getBlock('latest')).timestamp;
                 })
-                const sut = async () => {
-                        
+                const sut = async (ssoAccount: SmartAccount = newGuardianConnectedSsoAccount) => {
+
                     const functionData = guardianValidator.interface.encodeFunctionData(
                         'initRecovery',
                         [newKey]
@@ -241,30 +244,29 @@ describe("GuardianRecoveryValidator", function () {
                         data: functionData
                     };
                     txToSign.gasLimit = await provider.estimateGas(txToSign);
-                    const txData = await newGuardianConnectedSsoAccount.signTransaction(txToSign)
+                    const txData = await ssoAccount.signTransaction(txToSign)
                     const tx = await provider.broadcastTransaction(txData);
-                    await tx.wait()
+                    return tx;
                 }
                 it("it creates new recovery process.", async function () {
                     await sut();
 
                     const request = (await guardianValidator.pendingRecoveryData(
-                        newGuardianConnectedSsoAccount.address,
-                        webauthn
+                        newGuardianConnectedSsoAccount.address
                     ));
                     expect(request.passkey).to.eq(newKey)
-                    expect(request.timestamp).to.eq(refTimestamp);
+                    expect(Math.abs(Number(request.timestamp) - refTimestamp)).to.lt(10);
+                })
+                it("it prohibits non guardian from starting recovery process", async function () {
+                    await expect(sut(externalUserConnectedSsoAccount)).to.be.reverted
                 })
             })
             describe('And has active recovery process and trying to execute', () => {
                 let newKey: string;
-                let refTimestamp: number;
 
                 cacheBeforeEach(async () => {
                     newKey = await generatePassKey();
-                    refTimestamp = (await provider.getBlock('latest')).timestamp + 480;
-                    await helpers.time.setNextBlockTimestamp(refTimestamp)
-                        
+
                     const functionData = guardianValidator.interface.encodeFunctionData(
                         'initRecovery',
                         [newKey]
@@ -277,12 +279,11 @@ describe("GuardianRecoveryValidator", function () {
                     txToSign.gasLimit = await provider.estimateGas(txToSign);
                     const txData = await newGuardianConnectedSsoAccount.signTransaction(txToSign)
                     const tx = await provider.broadcastTransaction(txData);
-                    await tx.wait()
                 })
-                const sut = async () => {
+                const sut = async (keyToAdd: string, ssoAccount: SmartAccount = newGuardianConnectedSsoAccount) => {
                     const functionData = webauthn.interface.encodeFunctionData(
                         'addValidationKey',
-                        [newKey]
+                        [keyToAdd]
                     );
                     const txToSign = {
                         ...(await aaTxTemplate(await ssoAccountInstance.getAddress(), provider)),
@@ -290,22 +291,34 @@ describe("GuardianRecoveryValidator", function () {
                         data: functionData
                     };
                     txToSign.gasLimit = await provider.estimateGas(txToSign);
-                    const txData = await newGuardianConnectedSsoAccount.signTransaction(txToSign)
-                    const tx = await provider.broadcastTransaction(txData);
-                    await tx.wait()
+                    return await ssoAccount.sendTransaction(txToSign)
                 }
-                it("it should clean up pending request.", async function () {
+                describe('but not enough time has passed', () => {
+                    it("it should not accept transaction.", async function () {
+                        await helpers.time.increase(12 * 60 * 60);
+                        await expect(sut(newKey)).to.be.reverted
+                    })
+                });
+                describe('but passing wrong new key', () => {
+                    it("it should revert.", async function () {
+                        const wrongKey = await generatePassKey();
+                        await helpers.time.increase(1 * 24 * 60 * 60 + 60);
+                        expect(sut(wrongKey)).to.be.reverted
+                    })
+                });
+                describe('and passing correct new key', () => {
+                    it("it should clean up pending request.", async function () {
 
-                    await helpers.time.increase(2*24*60*60)
-                    await sut();
+                        await helpers.time.increase(2 * 24 * 60 * 60)
+                        await sut(newKey);
 
-                    const request = (await guardianValidator.pendingRecoveryData(
-                        newGuardianConnectedSsoAccount.address,
-                        webauthn
-                    ));
-                    expect(request.passkey).to.eq('0x')
-                    expect(request.timestamp).to.eq(0);
-                })
+                        const request = (await guardianValidator.pendingRecoveryData(
+                            newGuardianConnectedSsoAccount.address
+                        ));
+                        expect(request.passkey).to.eq('0x')
+                        expect(request.timestamp).to.eq(0);
+                    })
+                });
             })
         })
     })
