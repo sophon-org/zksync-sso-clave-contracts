@@ -37,7 +37,7 @@ describe("GuardianRecoveryValidator", function () {
         guardiansValidatorAddr = await guardianValidator.getAddress() as Address;
         factory = await fixtures.getAaFactory()
         const randomSalt = randomBytes(32);
-        const accountId = "session-key-test-id" + randomBytes(32).toString();
+        const accountId = "recovery-key-test-id" + randomBytes(32).toString();
         const initialValidators = [
             ethers.AbiCoder.defaultAbiCoder().encode(['address', 'bytes'], [await webauthn.getAddress(), generatedKey]),
             ethers.AbiCoder.defaultAbiCoder().encode(['address', 'bytes'], [await guardianValidator.getAddress(), ethers.AbiCoder.defaultAbiCoder().encode(
@@ -58,8 +58,6 @@ describe("GuardianRecoveryValidator", function () {
             [ownerWallet]
         )
         const ssoAccountInstanceAddress = await ssoAccountInstance.getAddress();
-        console.log("ssoAccountInstanceAddress")
-        console.log(ssoAccountInstanceAddress)
         const fundTx = await fixtures.wallet.sendTransaction({ value: parseEther("0.2"), to: ssoAccountInstanceAddress });
         const fundTx2 = await (await fixtures.wallet.sendTransaction({ value: parseEther("0.2"), to: guardianWallet.address })).wait();
         newGuardianConnectedSsoAccount = new SmartAccount({
@@ -70,8 +68,8 @@ describe("GuardianRecoveryValidator", function () {
                         guardianWallet.signingKey.sign(hash).serialized,
                         guardiansValidatorAddr,
                         abiCoder.encode(
-                            ['uint256'],
-                            [123]
+                            [],
+                            []
                         ),
                     ],
                 );
@@ -139,7 +137,6 @@ describe("GuardianRecoveryValidator", function () {
     it("works to confirm a proposed account.", async function () {
         const [user1, user1Connected] = await randomWallet();
         const [guardian, guardianConnected] = await randomWallet();
-        console.log(user1.address);
 
         const tx = await user1Connected.proposeValidationKey(guardian.address);
         await tx.wait();
