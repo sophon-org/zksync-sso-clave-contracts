@@ -33,7 +33,6 @@ async function deploy(name: string, deployer: Wallet, proxy: boolean, args?: any
   return proxyAddress;
 }
 
-
 task("deploy", "Deploys ZKsync SSO contracts")
   .addOptionalParam("only", "name of a specific contract to deploy")
   .addFlag("noProxy", "do not deploy transparent proxies for factory and modules")
@@ -77,13 +76,13 @@ task("deploy", "Deploys ZKsync SSO contracts")
     }
 
     if (!cmd.only) {
-      await deploy(WEBAUTH_NAME, deployer, !cmd.noProxy);
+      const webauth = await deploy(WEBAUTH_NAME, deployer, !cmd.noProxy);
       const sessions = await deploy(SESSIONS_NAME, deployer, !cmd.noProxy);
       const implementation = await deploy(ACCOUNT_IMPL_NAME, deployer, false);
       const beacon = await deploy(BEACON_NAME, deployer, false, [implementation]);
       const factory = await deploy(FACTORY_NAME, deployer, !cmd.noProxy, [beacon]);
       const paymaster = await deploy(PAYMASTER_NAME, deployer, false, [factory, sessions]);
-      await deploy(GUARDIAN_RECOVERY_NAME, deployer, !cmd.noProxy);
+      await deploy(GUARDIAN_RECOVERY_NAME, deployer, false, [webauth]);
 
       await fundPaymaster(paymaster, cmd.fund);
     } else {
