@@ -106,7 +106,7 @@ task("deploy", "Deploys ZKsync SSO contracts")
       const beacon = await deploy(BEACON_NAME, deployer, false, [implementation]);
       const accountFactory = await deploy(FACTORY_NAME, deployer, !cmd.noProxy, [beacon]);
       const accountPaymaster = await deploy(PAYMASTER_NAME, deployer, false, [accountFactory, session]);
-      await deploy(GUARDIAN_RECOVERY_NAME, deployer, !cmd.noProxy);
+      await deploy(GUARDIAN_RECOVERY_NAME, deployer, !cmd.noProxy, [passkey]);
 
       await fundPaymaster(deployer, accountPaymaster, cmd.fund);
       if (cmd.file) {

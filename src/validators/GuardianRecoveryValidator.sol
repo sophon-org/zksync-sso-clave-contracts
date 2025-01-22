@@ -25,6 +25,9 @@ contract GuardianRecoveryValidator is IGuardianRecoveryValidator {
   error CooldownPerionNotPassed();
   error ExpiredRequest();
 
+  /**
+   * @dev Event indicating new recovery process being initiated
+   */
   event RecoveryInitiated();
 
   uint256 constant REQUEST_VALIDITY_TIME = 72 * 60 * 60; // 72 hours
@@ -35,30 +38,34 @@ contract GuardianRecoveryValidator is IGuardianRecoveryValidator {
 
   address public webAuthValidator;
 
+  /**
+   *  @notice The constructor sets the web authn validator for which recovery process can be initiated
+   */
   constructor(address _webAuthValidator) {
     webAuthValidator = _webAuthValidator;
   }
 
-  function init(bytes calldata initData) external {
-    address[] memory initialGuardians = abi.decode(initData, (address[]));
-    Guardian[] storage guardians = accountGuardians[msg.sender];
+  /**
+   *  @notice Validator initiator for given sso account. This module does not support initialization on creation
+   * @param initData
+   */
+  function init(bytes calldata initData) external {}
 
-    for (uint256 i = 0; i < initialGuardians.length; i++) {
-      guardians.push(Guardian(initialGuardians[i], false)); // Make initial guardians non active on init
-    }
-  }
-
-  // When this module is disabled in an account all the
-  // data associated with that account is freed.
+  /**
+   *  @notice Removes all past guardians when this module is disabled in a account
+   */
   function disable() external {
     Guardian[] storage guardians = accountGuardians[msg.sender];
 
     delete accountGuardians[msg.sender];
   }
 
-  // The `proposeValidationKey` method handles the initial registration of external accounts by:
-  //   1. Taking an external account address and store it as pending guardian
-  //   2. Enable `addValidationKey` to confirm this account
+  /**
+   * @notice The `proposeValidationKey` method handles the initial registration of external accounts by:
+   *  1. Taking an external account address and store it as pending guardian
+   *  2. Enable `addValidationKey` to confirm this account
+   * @param newGuardian    New Guardian's address
+   */
   function proposeValidationKey(address newGuardian) external {
     Guardian[] storage guardians = accountGuardians[msg.sender];
 
@@ -72,9 +79,12 @@ contract GuardianRecoveryValidator is IGuardianRecoveryValidator {
     guardians.push(Guardian(newGuardian, false));
   }
 
-  // This method handles the removal of external accounts by:
-  //   1. Accepting an address as input
-  //   2. Removing the account from the list of guardians
+  /**
+   * @notice This method handles the removal of external accounts by:
+   * 1. Accepting an address as input
+   * 2. Removing the account from the list of guardians
+   * @param guardianToRemove    Guardian's address to remove
+   */
   function removeValidationKey(address guardianToRemove) external {
     Guardian[] storage guardians = accountGuardians[msg.sender];
 
@@ -92,14 +102,16 @@ contract GuardianRecoveryValidator is IGuardianRecoveryValidator {
     revert GuardianNotFound(guardianToRemove);
   }
 
-  // IModuleValidator
-  // This is called by the guardian.
+  /**
+   * @notice This method allows to accept being a guardian of given account
+   * @param key    Encoded address of account which msg.sender is becoming guardian of
+   */
   function addValidationKey(bytes memory key) external returns (bool) {
     // Interprets argument as address;
     address accountToGuard = abi.decode(key, (address));
     Guardian[] storage guardians = accountGuardians[accountToGuard];
 
-    // Searchs if the caller is in the list of guardians.
+    // Searches if the caller is in the list of guardians.
     // If guardian found is set to true.
     for (uint256 i = 0; i < guardians.length; i++) {
       if (guardians[i].addr == msg.sender) {
@@ -113,24 +125,45 @@ contract GuardianRecoveryValidator is IGuardianRecoveryValidator {
     revert GuardianNotProposed(msg.sender);
   }
 
-  // This method has to start the recovery.
-  // It's called by the sso account.
-  function initRecovery(bytes memory passkey) external {
+  modifier onlyGuardianOf(address accountToRecover) {
+    bool isGuardian = false;
+    for (uint256 i = 0; i < accountGuardians[accountToRecover].length; i++) {
+      if (accountGuardians[accountToRecover][i].addr == msg.sender && accountGuardians[accountToRecover][i].isReady)
+        isGuardian = true;
+      break;
+    }
+    if (!isGuardian) revert GuardianNotFound(recoveredAddress);
+    // Continue execution if called by guardian
+    _;
+  }
+
+  /**
+   * @notice This method allows to accept being a guardian of given account
+   * @param accountToRecover    Encoded new passkey, that will be passed to WebAuthnModule
+   * @param passkey    Encoded new passkey, that will be passed to WebAuthnModule
+   */
+  function initRecovery(address accountToRecover, bytes memory passkey) external onlyGuardianOf(accountToRecover) {
     pendingRecoveryData[msg.sender] = RecoveryRequest(passkey, block.timestamp);
 
     emit RecoveryInitiated();
   }
 
-  // IModuleValidator
+  /**
+   * @notice This method allows to discard currently pending recovery
+   */
+  function discardRecovery() external {
+    delete pendingRecoveryData[msg.sender];
+  }
+
+  /**
+   * @inheritdoc IModuleValidator
+   */
   function validateTransaction(
     bytes32 signedHash,
     bytes memory signature,
     Transaction calldata transaction
   ) external returns (bool) {
     // The `validateTransaction` method will perform different validations according to the stage of the recovery flow.
-    // If the user hasn’t initiated a recovery yet then:
-    //   1. The method will allow calls only to `initRecovery`
-    //   2. Verifies the transaction is signed by the guardian of the sso account.
     // If the user has a recovery in progress then:
     //   1. The method will verify calls to `WebAuthnModule`
     //   2. Checks if the transaction is attempting to modify passkeys
@@ -146,20 +179,7 @@ contract GuardianRecoveryValidator is IGuardianRecoveryValidator {
     require(transaction.to <= type(uint160).max, "Overflow");
     address target = address(uint160(transaction.to));
 
-    // Check for calling "initRecovery" method by guardian on GuardianRecoveryValidator contract
-    if (target == address(this)) {
-      require(selector == this.initRecovery.selector, "Unsupported function call");
-
-      (address recoveredAddress, ECDSA.RecoverError recoverError) = ECDSA.tryRecover(signedHash, transactionSignature);
-      if (recoverError != ECDSA.RecoverError.NoError || recoveredAddress == address(0)) {
-        return false;
-      }
-      for (uint256 i = 0; i < accountGuardians[msg.sender].length; i++) {
-        if (accountGuardians[msg.sender][i].addr == recoveredAddress && accountGuardians[msg.sender][i].isReady)
-          return true;
-      }
-      revert GuardianNotFound(recoveredAddress);
-    } else if (target == address(webAuthValidator)) {
+    if (target == address(webAuthValidator)) {
       // Check for calling "addValidationKey" method by anyone on WebAuthValidator contract
       require(selector == WebAuthValidator.addValidationKey.selector, "Unsupported function call");
       bytes memory validationKeyData = abi.decode(transaction.data[4:], (bytes));
