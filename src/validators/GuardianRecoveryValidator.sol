@@ -47,7 +47,7 @@ contract GuardianRecoveryValidator is IGuardianRecoveryValidator {
 
   /**
    *  @notice Validator initiator for given sso account. This module does not support initialization on creation
-   * @param initData
+   * @param initData Not used
    */
   function init(bytes calldata initData) external {}
 
@@ -132,7 +132,7 @@ contract GuardianRecoveryValidator is IGuardianRecoveryValidator {
         isGuardian = true;
       break;
     }
-    if (!isGuardian) revert GuardianNotFound(recoveredAddress);
+    if (!isGuardian) revert GuardianNotFound(msg.sender);
     // Continue execution if called by guardian
     _;
   }
