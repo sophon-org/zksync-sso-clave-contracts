@@ -11,7 +11,7 @@ interface IGuardianRecoveryValidator is IModuleValidator {
 
   function removeValidationKey(address externalAccount) external;
 
-  function initRecovery(bytes memory passkey) external;
+  function initRecovery(address accountToRecover, bytes memory passkey) external;
 
   // IModuleValidator
   function addValidationKey(bytes memory key) external returns (bool);
