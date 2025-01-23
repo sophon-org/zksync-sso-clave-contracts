@@ -55,8 +55,6 @@ contract GuardianRecoveryValidator is IGuardianRecoveryValidator {
    *  @notice Removes all past guardians when this module is disabled in a account
    */
   function disable() external {
-    Guardian[] storage guardians = accountGuardians[msg.sender];
-
     delete accountGuardians[msg.sender];
   }
 
