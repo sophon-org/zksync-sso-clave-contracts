@@ -105,6 +105,7 @@ contract GuardianRecoveryValidator is IGuardianRecoveryValidator {
   /**
    * @notice This method allows to accept being a guardian of given account
    * @param key    Encoded address of account which msg.sender is becoming guardian of
+   * @return       Flag indicating whether guardian was already valid or not
    */
   function addValidationKey(bytes memory key) external returns (bool) {
     // Interprets argument as address;
@@ -125,11 +126,14 @@ contract GuardianRecoveryValidator is IGuardianRecoveryValidator {
     revert GuardianNotProposed(msg.sender);
   }
 
-  modifier onlyGuardianOf(address accountToRecover) {
+  /**
+   * @notice This modifier allows execution only by active guardian of account
+   * @param account    Address of account for which we verify guardian existence
+   */
+  modifier onlyGuardianOf(address account) {
     bool isGuardian = false;
-    for (uint256 i = 0; i < accountGuardians[accountToRecover].length; i++) {
-      if (accountGuardians[accountToRecover][i].addr == msg.sender && accountGuardians[accountToRecover][i].isReady)
-        isGuardian = true;
+    for (uint256 i = 0; i < accountGuardians[account].length; i++) {
+      if (accountGuardians[account][i].addr == msg.sender && accountGuardians[account][i].isReady) isGuardian = true;
       break;
     }
     if (!isGuardian) revert GuardianNotFound(msg.sender);
@@ -139,11 +143,11 @@ contract GuardianRecoveryValidator is IGuardianRecoveryValidator {
 
   /**
    * @notice This method allows to accept being a guardian of given account
-   * @param accountToRecover    Encoded new passkey, that will be passed to WebAuthnModule
-   * @param passkey    Encoded new passkey, that will be passed to WebAuthnModule
+   * @param accountToRecover   Address of account for which given recovery is initiated
+   * @param passkey            Encoded new passkey, that will be passed to WebAuthnModule
    */
   function initRecovery(address accountToRecover, bytes memory passkey) external onlyGuardianOf(accountToRecover) {
-    pendingRecoveryData[msg.sender] = RecoveryRequest(passkey, block.timestamp);
+    pendingRecoveryData[accountToRecover] = RecoveryRequest(passkey, block.timestamp);
 
     emit RecoveryInitiated();
   }
@@ -163,7 +167,6 @@ contract GuardianRecoveryValidator is IGuardianRecoveryValidator {
     bytes memory signature,
     Transaction calldata transaction
   ) external returns (bool) {
-    // The `validateTransaction` method will perform different validations according to the stage of the recovery flow.
     // If the user has a recovery in progress then:
     //   1. The method will verify calls to `WebAuthnModule`
     //   2. Checks if the transaction is attempting to modify passkeys
@@ -211,9 +214,5 @@ contract GuardianRecoveryValidator is IGuardianRecoveryValidator {
 
   function supportsInterface(bytes4 interfaceId) external view returns (bool) {
     return interfaceId == type(IERC165).interfaceId || interfaceId == type(IModuleValidator).interfaceId;
-  }
-
-  function guardiansFor(address addr) public view returns (Guardian[] memory) {
-    return accountGuardians[addr];
   }
 }
