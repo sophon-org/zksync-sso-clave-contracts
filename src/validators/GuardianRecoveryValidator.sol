@@ -6,10 +6,11 @@ import { WebAuthValidator } from "./WebAuthValidator.sol";
 import { Transaction } from "@matterlabs/zksync-contracts/l2/system-contracts/libraries/TransactionHelper.sol";
 import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import { IERC165 } from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
+import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import { IModuleValidator } from "../interfaces/IModuleValidator.sol";
 import { SignatureDecoder } from "../libraries/SignatureDecoder.sol";
 
-contract GuardianRecoveryValidator is IGuardianRecoveryValidator {
+contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator {
   struct Guardian {
     address addr;
     bool isReady;
@@ -39,9 +40,16 @@ contract GuardianRecoveryValidator is IGuardianRecoveryValidator {
   address public webAuthValidator;
 
   /**
-   *  @notice The constructor sets the web authn validator for which recovery process can be initiated
+   *  @notice The constructor sets the web authn validator for which recovery process can be initiated. Used only for non proxied deployment
    */
   constructor(address _webAuthValidator) {
+    initializeCustom(_webAuthValidator);
+  }
+
+  /// @notice Initializer function that sets validator initial configuration. Expected to be used in the proxy.
+  /// @dev Sets webAuthValidator address
+  /// @param _webAuthValidator Address of WebAuthnValidator contracts
+  function initializeCustom(address _webAuthValidator) public initializer {
     webAuthValidator = _webAuthValidator;
   }
 
