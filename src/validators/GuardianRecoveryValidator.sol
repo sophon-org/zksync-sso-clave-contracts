@@ -215,4 +215,8 @@ contract GuardianRecoveryValidator is IGuardianRecoveryValidator {
   function supportsInterface(bytes4 interfaceId) external view returns (bool) {
     return interfaceId == type(IERC165).interfaceId || interfaceId == type(IModuleValidator).interfaceId;
   }
+
+  function guardiansFor(address addr) public view returns (Guardian[] memory) {
+    return accountGuardians[addr];
+  }
 }
