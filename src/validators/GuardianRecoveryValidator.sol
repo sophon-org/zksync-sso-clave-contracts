@@ -29,7 +29,7 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
   /**
    * @dev Event indicating new recovery process being initiated
    */
-  event RecoveryInitiated();
+  event RecoveryInitiated(address account, address guardian);
 
   uint256 constant REQUEST_VALIDITY_TIME = 72 * 60 * 60; // 72 hours
   uint256 constant REQUEST_DELAY_TIME = 24 * 60 * 60; // 24 hours
@@ -43,13 +43,13 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
    *  @notice The constructor sets the web authn validator for which recovery process can be initiated. Used only for non proxied deployment
    */
   constructor(address _webAuthValidator) {
-    initializeCustom(_webAuthValidator);
+    initialize(_webAuthValidator);
   }
 
   /// @notice Initializer function that sets validator initial configuration. Expected to be used in the proxy.
   /// @dev Sets webAuthValidator address
   /// @param _webAuthValidator Address of WebAuthnValidator contracts
-  function initializeCustom(address _webAuthValidator) public initializer {
+  function initialize(address _webAuthValidator) public initializer {
     webAuthValidator = _webAuthValidator;
   }
 
@@ -155,7 +155,7 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
   function initRecovery(address accountToRecover, bytes memory passkey) external onlyGuardianOf(accountToRecover) {
     pendingRecoveryData[accountToRecover] = RecoveryRequest(passkey, block.timestamp);
 
-    emit RecoveryInitiated();
+    emit RecoveryInitiated(accountToRecover, msg.sender);
   }
 
   /**
