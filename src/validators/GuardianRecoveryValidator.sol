@@ -35,6 +35,7 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
   uint256 constant REQUEST_DELAY_TIME = 24 * 60 * 60; // 24 hours
 
   mapping(address account => Guardian[]) public accountGuardians;
+  mapping(address guardian => address[]) public guardedAccounts;
   mapping(address account => RecoveryRequest) public pendingRecoveryData;
 
   address public webAuthValidator;
@@ -63,6 +64,22 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
    *  @notice Removes all past guardians when this module is disabled in a account
    */
   function disable() external {
+    Guardian[] storage guardians = accountGuardians[msg.sender];
+    for (uint256 i = 0; i < guardians.length; i++) {
+      address guardian = guardians[i].addr;
+
+      address[] storage accounts = guardedAccounts[guardian];
+      for (uint256 i = 0; i < accounts.length; i++) {
+        if (accounts[i] == msg.sender) {
+          // If found last account is moved to current position, and then
+          // last element is removed from array.
+          accounts[i] = accounts[accounts.length - 1];
+          accounts.pop();
+          break;
+        }
+      }
+    }
+
     delete accountGuardians[msg.sender];
   }
 
@@ -101,6 +118,17 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
         // last element is removed from array.
         guardians[i] = guardians[guardians.length - 1];
         guardians.pop();
+        break;
+      }
+    }
+
+    address[] storage accounts = guardedAccounts[guardianToRemove];
+    for (uint256 i = 0; i < accounts.length; i++) {
+      if (accounts[i] == msg.sender) {
+        // If found last account is moved to current position, and then
+        // last element is removed from array.
+        accounts[i] = accounts[accounts.length - 1];
+        accounts.pop();
         return;
       }
     }
@@ -123,9 +151,11 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
     for (uint256 i = 0; i < guardians.length; i++) {
       if (guardians[i].addr == msg.sender) {
         // We return true if the guardian was not confirmed before.
-        bool retValue = !guardians[i].isReady;
+        if (guardians[i].isReady) return false;
+
         guardians[i].isReady = true;
-        return retValue;
+        guardedAccounts[msg.sender].push(accountToGuard);
+        return true;
       }
     }
 
@@ -224,5 +254,8 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
 
   function guardiansFor(address addr) public view returns (Guardian[] memory) {
     return accountGuardians[addr];
+  }
+  function guardianOf(address guardian) public view returns (address[] memory) {
+    return guardedAccounts[guardian];
   }
 }
