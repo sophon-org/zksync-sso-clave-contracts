@@ -100,7 +100,6 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
     }
 
     guardians.push(Guardian(newGuardian, false));
-    guardedAccounts[newGuardian].push(msg.sender);
   }
 
   /**
@@ -152,9 +151,11 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
     for (uint256 i = 0; i < guardians.length; i++) {
       if (guardians[i].addr == msg.sender) {
         // We return true if the guardian was not confirmed before.
-        bool retValue = !guardians[i].isReady;
+        if (guardians[i].isReady) return false;
+
         guardians[i].isReady = true;
-        return retValue;
+        guardedAccounts[msg.sender].push(accountToGuard);
+        return true;
       }
     }
 
