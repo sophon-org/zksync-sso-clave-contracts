@@ -83,7 +83,7 @@ task("deploy", "Deploys ZKsync SSO contracts")
       const factory = await deploy(FACTORY_NAME, deployer, !cmd.noProxy, [beacon]);
       const paymaster = await deploy(PAYMASTER_NAME, deployer, false, [factory, sessions]);
       const guardianInterface = new ethers.Interface((await hre.artifacts.readArtifact(GUARDIAN_RECOVERY_NAME)).abi);
-      await deploy(GUARDIAN_RECOVERY_NAME, deployer, !cmd.noProxy, [webauth], guardianInterface.encodeFunctionData("initializeCustom", [webauth]));
+      await deploy(GUARDIAN_RECOVERY_NAME, deployer, !cmd.noProxy, [webauth], guardianInterface.encodeFunctionData("initialize", [webauth]));
 
       await fundPaymaster(paymaster, cmd.fund);
     } else {
