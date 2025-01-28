@@ -255,6 +255,7 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
   function guardiansFor(address addr) public view returns (Guardian[] memory) {
     return accountGuardians[addr];
   }
+
   function guardianOf(address guardian) public view returns (address[] memory) {
     return guardedAccounts[guardian];
   }
