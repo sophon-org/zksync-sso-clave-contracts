@@ -20,7 +20,7 @@ import { SmartAccount, utils } from "zksync-ethers";
 import { BaseHookExecution__factory, BaseHookValidator__factory, FailHookValidator, SsoAccount__factory, SuccessHookExecutor } from "../typechain-types";
 import { ContractFixtures, create2, ethersStaticSalt, getProvider, getWallet, LOCAL_RICH_WALLETS, logInfo } from "./utils";
 
-describe.only("Hook coverage", function () {
+describe("Hook coverage", function () {
   const ownerWallet = getWallet(LOCAL_RICH_WALLETS[0].privateKey);
   const provider = getProvider();
   const ssoAbi = SsoAccount__factory.createInterface();
@@ -162,7 +162,7 @@ describe.only("Hook coverage", function () {
       await expect(testAaTx(proxyAccountAddress, ssoAbi.encodeFunctionData("addHook", [hookModuleAddress, "0x"]))).to.be.reverted;
     });
 
-    it.only("should uninstall executor from account", async function () {
+    it("should uninstall executor from account", async function () {
       const { proxyAccountAddress } = await deployFundedAccount();
       const hookContract = await getExecutionHookContract("Success");
       const hookModuleAddress = await hookContract.getAddress();

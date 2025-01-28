@@ -63,7 +63,7 @@ contract SuccessHookValidator is BaseHookValidator {
 /// @custom:security-contact security@matterlabs.dev
 /// @dev Sample hook executor that always fails on pre-execute (BURNS THE ACCOUNT)
 contract PreFailHookExecutor is BaseHookExecution {
-  function preExecutionHook(Transaction calldata) external override returns (bytes memory _context) {
+  function preExecutionHook(Transaction calldata) external override {
     emit Preexecute(msg.sender);
     require(false, "SampleHookExecutor: execution hook failed");
   }
@@ -78,7 +78,7 @@ contract PreFailHookExecutor is BaseHookExecution {
 /// @custom:security-contact security@matterlabs.dev
 /// @dev Sample hook executor that always fails on post-execute (BURNS THE ACCOUNT)
 contract PostFailHookExecutor is BaseHookExecution {
-  function preExecutionHook(Transaction calldata) external override returns (bytes memory _context) {
+  function preExecutionHook(Transaction calldata) external override {
     emit Preexecute(msg.sender);
   }
 
@@ -93,7 +93,7 @@ contract PostFailHookExecutor is BaseHookExecution {
 /// @custom:security-contact security@matterlabs.dev
 /// @dev Sample hook validator that always passes
 contract SuccessHookExecutor is BaseHookExecution {
-  function preExecutionHook(Transaction calldata) external override returns (bytes memory _context) {
+  function preExecutionHook(Transaction calldata) external override {
     emit Preexecute(msg.sender);
   }
 
@@ -123,7 +123,7 @@ contract SuccessBothHook is IExecutionHook, IValidationHook {
       interfaceId == type(IERC165).interfaceId;
   }
 
-  function preExecutionHook(Transaction calldata) external override returns (bytes memory _context) {
+  function preExecutionHook(Transaction calldata) external override {
     emit Preexecute(msg.sender);
   }
 
