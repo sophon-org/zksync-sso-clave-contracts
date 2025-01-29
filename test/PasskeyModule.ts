@@ -9,7 +9,7 @@ import { randomBytes } from "crypto";
 import { parseEther, ZeroAddress } from "ethers";
 import * as hre from "hardhat";
 import { encodeAbiParameters, Hex, hexToBytes, toHex } from "viem";
-import { SmartAccount, Wallet } from "zksync-ethers";
+import { Provider, SmartAccount, Wallet } from "zksync-ethers";
 import { base64UrlToUint8Array } from "zksync-sso/utils";
 
 import { SsoAccount__factory, WebAuthValidator, WebAuthValidator__factory } from "../typechain-types";
@@ -337,11 +337,7 @@ function encodeFatSignature(
     authenticatorData: string;
     clientDataJSON: string;
     signature: string;
-  },
-  contracts: {
-    passkey: string;
-  },
-) {
+  }) {
   const signature = unwrapEC2Signature(base64UrlToUint8Array(passkeyResponse.signature));
   return encodeAbiParameters(
     [
@@ -378,11 +374,11 @@ async function verifyKeyStorage(
   domain: string,
   index: number,
   publicKeys,
-  wallet: Wallet,
+  accountAddress: string,
   error: string,
 ) {
-  const lowerKey = await passkeyValidator.lowerKeyHalf(domain, index, wallet.address);
-  const upperKey = await passkeyValidator.upperKeyHalf(domain, index, wallet.address);
+  const lowerKey = await passkeyValidator.lowerKeyHalf(domain, index, accountAddress);
+  const upperKey = await passkeyValidator.upperKeyHalf(domain, index, accountAddress);
   expect(lowerKey).to.eq(publicKeys[0], `lower key ${error}`);
   expect(upperKey).to.eq(publicKeys[1], `upper key ${error}`);
 }
@@ -402,6 +398,19 @@ function encodeKeyFromBytes(bytes: [Uint8Array, Uint8Array], domain: string) {
   return encodeKeyFromHex([toHex(bytes[0]), toHex(bytes[1])], domain);
 }
 
+async function addNewWebAuthnKey(wallet: Wallet, keyDomain: string) {
+  const passkeyValidator = await deployValidator(wallet);
+  const generatedR1Key = await generateES256R1Key();
+  assert(generatedR1Key != null, "no key was generated");
+  const [generatedX, generatedY] = await getRawPublicKeyFromCrpyto(generatedR1Key);
+  const generatedKey = encodeKeyFromBytes([generatedX, generatedY], keyDomain);
+  const addingKey = await passkeyValidator.addValidationKey(generatedKey);
+  const addingKeyResult = await addingKey.wait();
+  expect(addingKeyResult?.status).to.eq(1, "failed to add key during setup");
+
+  return { generatedR1Key, passkeyValidator };
+}
+
 async function validateSignatureTest(
   wallet: Wallet,
   keyDomain: string,
@@ -411,14 +420,7 @@ async function validateSignatureTest(
   sampleClientString: string,
   transactionHash: Buffer,
 ) {
-  const passkeyValidator = await deployValidator(wallet);
-  const generatedR1Key = await generateES256R1Key();
-  assert(generatedR1Key != null, "no key was generated");
-  const [generatedX, generatedY] = await getRawPublicKeyFromCrpyto(generatedR1Key);
-  const generatedKey = encodeKeyFromBytes([generatedX, generatedY], keyDomain);
-  const addingKey = await passkeyValidator.addValidationKey(generatedKey);
-  const addingKeyResult = await addingKey.wait();
-  expect(addingKeyResult?.status).to.eq(1, "failed to add key during setup");
+  const { generatedR1Key, passkeyValidator } = await addNewWebAuthnKey(wallet, keyDomain);
 
   const sampleClientBuffer = Buffer.from(sampleClientString);
   const partiallyHashedData = concat([authData, await toHash(sampleClientBuffer)]);
@@ -434,6 +436,59 @@ async function validateSignatureTest(
   return await passkeyValidator.validateSignature(transactionHash, fatSignature);
 }
 
+async function addPasskey(index: number, passKeyModuleAddress: string, proxyAccountAddress: string, r1Key: CryptoKeyPair, sampleDomain: string, wallet: Wallet, provider: Provider) {
+  const passkeyValidator = WebAuthValidator__factory.connect(passKeyModuleAddress, new SmartAccount({ address: proxyAccountAddress, secret: wallet.privateKey }, provider));
+  assert(r1Key != null, "no key was generated");
+  const [generatedX, generatedY] = await getRawPublicKeyFromCrpyto(r1Key);
+  const initPasskeyData = encodeKeyFromBytes([generatedX, generatedY], sampleDomain);
+  const addedSecondPasskey = await passkeyValidator.addValidationKey(initPasskeyData);
+  const secondRecipt = await addedSecondPasskey.wait();
+  expect(secondRecipt?.status).to.eq(1, "second key added");
+  await verifyKeyStorage(passkeyValidator, sampleDomain, index, [toHex(generatedX), toHex(generatedY)], proxyAccountAddress, "second key");
+}
+
+async function createSmartAccount(
+  sampleDomain: string,
+  r1Key: CryptoKeyPair,
+  authData: Uint8Array,
+  passKeyModuleAddress: Hex,
+  proxyAccountAddress: string,
+  wallet: Wallet,
+  provider: Provider,
+) {
+  return new SmartAccount({
+    payloadSigner: async (hash: Hex) => {
+      const sampleClientObject = {
+        type: "webauthn.get",
+        challenge: fromBuffer(hexToBytes(hash)),
+        origin: sampleDomain,
+        crossOrigin: false,
+      };
+      const sampleClientString = JSON.stringify(sampleClientObject);
+      const sampleClientBuffer = Buffer.from(sampleClientString);
+      const partiallyHashedData = concat([authData, await toHash(sampleClientBuffer)]);
+      const generatedSignature = await signStringWithR1Key(r1Key.privateKey, partiallyHashedData);
+      assert(generatedSignature != null, "no signature generated");
+      const fatSignature = encodeAbiParameters([
+        { name: "authData", type: "bytes" },
+        { name: "clientDataJson", type: "string" },
+        { name: "rs", type: "bytes32[2]" },
+      ], [
+        toHex(authData),
+        sampleClientString,
+        [toHex(normalizeR(generatedSignature.r)), toHex(normalizeS(generatedSignature.s))],
+      ]);
+
+      const moduleSignature = encodeAbiParameters(
+        [{ name: "signature", type: "bytes" }, { name: "moduleAddress", type: "address" }, { name: "validatorData", type: "bytes" }],
+        [fatSignature, passKeyModuleAddress, "0x"]);
+      return moduleSignature;
+    },
+    address: proxyAccountAddress,
+    secret: wallet.privateKey, // generatedR1Key.privateKey,
+  }, provider);
+}
+
 describe("Passkey validation", function () {
   const wallet = getWallet(LOCAL_RICH_WALLETS[0].privateKey);
   const ethersResponse = new RecordedResponse("test/signed-challenge.json");
@@ -447,6 +502,19 @@ describe("Passkey validation", function () {
   describe("account integration", () => {
     const fixtures = new ContractFixtures();
     const provider = getProvider();
+    async function createTx(proxyAccountAddress: string) {
+      return {
+        to: wallet.address,
+        type: 113,
+        from: proxyAccountAddress,
+        data: "0x",
+        value: 0,
+        chainId: (await provider.getNetwork()).chainId,
+        nonce: await provider.getTransactionCount(proxyAccountAddress),
+        gasPrice: await provider.getGasPrice(),
+        gasLimit: 100_000_000n,
+      };
+    }
 
     async function deployAccount() {
       const factoryContract = await fixtures.getAaFactory();
@@ -504,55 +572,33 @@ describe("Passkey validation", function () {
       const authData = toBuffer(ethersResponse.authenticatorData);
       const { sampleDomain, proxyAccountAddress, generatedR1Key, passKeyModuleAddress } = await deployAccount();
 
-      const sessionAccount = new SmartAccount({
-        payloadSigner: async (hash: Hex) => {
-          const sampleClientObject = {
-            type: "webauthn.get",
-            challenge: fromBuffer(hexToBytes(hash)),
-            origin: sampleDomain,
-            crossOrigin: false,
-          };
-          const sampleClientString = JSON.stringify(sampleClientObject);
-          const sampleClientBuffer = Buffer.from(sampleClientString);
-          const partiallyHashedData = concat([authData, await toHash(sampleClientBuffer)]);
-          const generatedSignature = await signStringWithR1Key(generatedR1Key.privateKey, partiallyHashedData);
-          assert(generatedSignature != null, "no signature generated");
-          const fatSignature = encodeAbiParameters([
-            { name: "authData", type: "bytes" },
-            { name: "clientDataJson", type: "string" },
-            { name: "rs", type: "bytes32[2]" },
-          ], [
-            toHex(authData),
-            sampleClientString,
-            [toHex(normalizeR(generatedSignature.r)), toHex(normalizeS(generatedSignature.s))],
-          ]);
-
-          const moduleSignature = encodeAbiParameters(
-            [{ name: "signature", type: "bytes" }, { name: "moduleAddress", type: "address" }, { name: "validatorData", type: "bytes" }],
-            [fatSignature, passKeyModuleAddress, "0x"]);
-          return moduleSignature;
-        },
-        address: proxyAccountAddress,
-        secret: wallet.privateKey, // generatedR1Key.privateKey,
-      }, provider);
-
-      const aaTransaction = {
-        to: wallet.address,
-        type: 113,
-        from: proxyAccountAddress,
-        data: "0x",
-        value: 0,
-        chainId: (await provider.getNetwork()).chainId,
-        nonce: await provider.getTransactionCount(proxyAccountAddress),
-        gasPrice: await provider.getGasPrice(),
-        gasLimit: 100_000_000n,
-      };
+      const sessionAccount = await createSmartAccount(sampleDomain, generatedR1Key, authData, passKeyModuleAddress, proxyAccountAddress, wallet, provider);
+      const aaTransaction = await createTx(proxyAccountAddress);
 
       const signedTransaction = await sessionAccount.signTransaction(aaTransaction);
       const transactionResponse = await provider.broadcastTransaction(signedTransaction);
       const transactionReceipt = await transactionResponse.wait();
       expect(transactionReceipt.status).to.eq(1, "transaction should be successful");
-      logInfo(`passkey transaction gas used: ${transactionReceipt?.gasUsed.toString()}`);
+      logInfo(`passkey transaction gas used: ${transactionReceipt.gasUsed.toString()}`);
+    });
+
+    it("should sign transaction with second passkey", async () => {
+      const authData = toBuffer(ethersResponse.authenticatorData);
+      const { sampleDomain, proxyAccountAddress, passKeyModuleAddress } = await deployAccount();
+
+      // can add more passkeys here to measure per-gas increase
+      const lastPasskey = await generateES256R1Key();
+      await addPasskey(1, passKeyModuleAddress, proxyAccountAddress, lastPasskey, sampleDomain, wallet, provider);
+
+      const sessionAccount = await createSmartAccount(sampleDomain, lastPasskey, authData, passKeyModuleAddress, proxyAccountAddress, wallet, provider);
+
+      const aaTransaction = await createTx(proxyAccountAddress);
+
+      const signedTransaction = await sessionAccount.signTransaction(aaTransaction);
+      const transactionResponse = await provider.broadcastTransaction(signedTransaction);
+      const transactionReceipt = await transactionResponse.wait();
+      expect(transactionReceipt.status).to.eq(1, "transaction should be successful");
+      logInfo(`passkey transaction gas used: ${transactionReceipt.gasUsed.toString()}`);
     });
   });
 
@@ -593,8 +639,8 @@ describe("Passkey validation", function () {
       const keyReceipt = await secondCreatedKey.wait();
       assert(keyReceipt?.status == 1, "second key was saved");
 
-      await verifyKeyStorage(passkeyValidator, firstDomain, 0, publicKeys, wallet, "first domain");
-      await verifyKeyStorage(passkeyValidator, secondDomain, 0, publicKeys, wallet, "second domain");
+      await verifyKeyStorage(passkeyValidator, firstDomain, 0, publicKeys, wallet.address, "first domain");
+      await verifyKeyStorage(passkeyValidator, secondDomain, 0, publicKeys, wallet.address, "second domain");
     });
 
     it("should add second key to the same domain", async () => {
@@ -608,7 +654,7 @@ describe("Passkey validation", function () {
       const receipt = await generatedKeyAdded.wait();
       assert(receipt?.status == 1, "generated key added");
 
-      await verifyKeyStorage(passkeyValidator, keyDomain, 0, [toHex(generatedX), toHex(generatedY)], wallet, "first key");
+      await verifyKeyStorage(passkeyValidator, keyDomain, 0, [toHex(generatedX), toHex(generatedY)], wallet.address, "first key");
 
       const nextR1Key = await generateES256R1Key();
       assert(nextR1Key != null, "no second key was generated");
@@ -618,8 +664,8 @@ describe("Passkey validation", function () {
       const newReceipt = await nextKeyAdded.wait();
       assert(newReceipt?.status == 1, "new generated key added");
 
-      await verifyKeyStorage(passkeyValidator, keyDomain, 0, [toHex(generatedX), toHex(generatedY)], wallet, "first key");
-      await verifyKeyStorage(passkeyValidator, keyDomain, 1, [toHex(newX), toHex(newY)], wallet, "updated key");
+      await verifyKeyStorage(passkeyValidator, keyDomain, 0, [toHex(generatedX), toHex(generatedY)], wallet.address, "first key");
+      await verifyKeyStorage(passkeyValidator, keyDomain, 1, [toHex(newX), toHex(newY)], wallet.address, "updated key");
     });
 
     it("should allow clearing existing key", async () => {
@@ -632,14 +678,14 @@ describe("Passkey validation", function () {
       const generatedKeyAdded = await passkeyValidator.addValidationKey(generatedKey);
       const receipt = await generatedKeyAdded.wait();
       assert(receipt?.status == 1, "generated key added");
-      await verifyKeyStorage(passkeyValidator, keyDomain, 0, [toHex(generatedX), toHex(generatedY)], wallet, "added");
+      await verifyKeyStorage(passkeyValidator, keyDomain, 0, [toHex(generatedX), toHex(generatedY)], wallet.address, "added");
 
       const zeroKey = new Uint8Array(32).fill(0);
       const emptyKeyAdded = await passkeyValidator.removeValidationKey(keyDomain, 0);
       const emptyReceipt = await emptyKeyAdded.wait();
       assert(emptyReceipt?.status == 1, "empty key added");
 
-      await verifyKeyStorage(passkeyValidator, keyDomain, 0, [toHex(zeroKey), toHex(zeroKey)], wallet, "key removed");
+      await verifyKeyStorage(passkeyValidator, keyDomain, 0, [toHex(zeroKey), toHex(zeroKey)], wallet.address, "key removed");
     });
   });
 
@@ -654,7 +700,6 @@ describe("Passkey validation", function () {
           clientDataJSON: ethersResponse.clientData,
           signature: ethersResponse.b64SignedChallenge,
         },
-        { passkey: publicKeys[0] },
       );
 
       const initData = encodeKeyFromHex(publicKeys, "http://localhost:5173");
@@ -784,6 +829,30 @@ describe("Passkey validation", function () {
       const sampleClientString = JSON.stringify(sampleClientObject);
       const authData = toBuffer(ethersResponse.authenticatorData);
       const transactionHash = Buffer.from(sampleClientObject.challenge, "base64url");
+      const isValidSignature = await validateSignatureTest(
+        wallet,
+        keyDomain,
+        authData,
+        normalizeS,
+        normalizeR,
+        sampleClientString,
+        transactionHash,
+      );
+      assert(isValidSignature, "valid signature");
+    });
+
+    it("should verify signature from the 2nd passkey", async () => {
+      const keyDomain = randomBytes(32).toString("hex");
+      const sampleClientObject = {
+        type: "webauthn.get",
+        challenge: "iBBiiOGt1aSBy1WAuRGxqU7YzRM5oWpMA9g8MKydjPI",
+        origin: keyDomain,
+        crossOrigin: false,
+      };
+      const sampleClientString = JSON.stringify(sampleClientObject);
+      const authData = toBuffer(ethersResponse.authenticatorData);
+      const transactionHash = Buffer.from(sampleClientObject.challenge, "base64url");
+      await addNewWebAuthnKey(wallet, keyDomain);
       const isValidSignature = await validateSignatureTest(
         wallet,
         keyDomain,

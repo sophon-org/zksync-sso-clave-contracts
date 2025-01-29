@@ -170,8 +170,8 @@ contract WebAuthValidator is VerifierCaller, IModuleValidator {
 
     // try all possible passkeys for this domain
     for (uint8 index = 0; index < 255; index++) {
-      pubkey[0] = lowerKeyHalf[origin][0][msg.sender];
-      pubkey[1] = upperKeyHalf[origin][0][msg.sender];
+      pubkey[0] = lowerKeyHalf[origin][index][msg.sender];
+      pubkey[1] = upperKeyHalf[origin][index][msg.sender];
       // This really only validates the origin is set
       if (pubkey[0] == 0 || pubkey[1] == 0) {
         continue;
