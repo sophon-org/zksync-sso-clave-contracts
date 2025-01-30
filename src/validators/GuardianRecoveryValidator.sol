@@ -8,6 +8,7 @@ import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import { IERC165 } from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import { IModuleValidator } from "../interfaces/IModuleValidator.sol";
+import { IModule } from "../interfaces/IModule.sol";
 import { SignatureDecoder } from "../libraries/SignatureDecoder.sol";
 
 contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator {
@@ -58,12 +59,12 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
    *  @notice Validator initiator for given sso account. This module does not support initialization on creation
    * @param initData Not used
    */
-  function init(bytes calldata initData) external {}
+  function onInstall(bytes calldata initData) external {}
 
   /**
    *  @notice Removes all past guardians when this module is disabled in a account
    */
-  function disable() external {
+  function onUninstall(bytes calldata data) external {
     Guardian[] storage guardians = accountGuardians[msg.sender];
     for (uint256 i = 0; i < guardians.length; i++) {
       address guardian = guardians[i].addr;
@@ -249,7 +250,10 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
   }
 
   function supportsInterface(bytes4 interfaceId) external view returns (bool) {
-    return interfaceId == type(IERC165).interfaceId || interfaceId == type(IModuleValidator).interfaceId;
+    return
+      interfaceId == type(IERC165).interfaceId ||
+      interfaceId == type(IModuleValidator).interfaceId ||
+      interfaceId == type(IModule).interfaceId;
   }
 
   function guardiansFor(address addr) public view returns (Guardian[] memory) {
