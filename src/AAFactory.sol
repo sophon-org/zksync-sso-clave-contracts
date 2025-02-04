@@ -153,7 +153,6 @@ contract AAFactory {
       accountMappings[_uniqueAccountId] == address(0),
       AccountAlreadyRegistered(_uniqueAccountId, _accountAddress)
     );
-    require(accountIds[_accountAddress].equal(""), AccountAlreadyRegistered(_uniqueAccountId, _accountAddress));
     require(
       recoveryAccountIds[_uniqueAccountId] == address(0),
       AccountUsedForRecovery(_uniqueAccountId, _accountAddress)
