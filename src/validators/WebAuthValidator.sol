@@ -24,47 +24,65 @@ contract WebAuthValidator is VerifierCaller, IModuleValidator {
   bytes32 private constant LOW_S_MAX = 0x7fffffff800000007fffffffffffffffde737d56d38bcf4279dce5617e3192a8;
   bytes32 private constant HIGH_R_MAX = 0xffffffff00000000ffffffffffffffffbce6faada7179e84f3b9cac2fc632551;
 
-  event PasskeyCreated(address indexed keyOwner, string originDomain);
+  event PasskeyCreated(address indexed keyOwner, string originDomain, string credentialId);
+  event PasskeyRemoved(address indexed keyOwner, string originDomain, string credentialId);
 
   // The layout is unusual due to EIP-7562 storage read restrictions for validation phase.
-  mapping(string originDomain => mapping(address accountAddress => bytes32)) public lowerKeyHalf;
-  mapping(string originDomain => mapping(address accountAddress => bytes32)) public upperKeyHalf;
+  mapping(string originDomain => mapping(string credentialId => mapping(address accountAddress => bytes32 publicKey)))
+    public lowerKeyHalf;
+  mapping(string originDomain => mapping(string credentialId => mapping(address accountAddress => bytes32 publicKey)))
+    public upperKeyHalf;
+
+  struct PasskeyId {
+    string domain;
+    string credentialId;
+  }
 
   /// @notice Runs on module install
   /// @param data ABI-encoded WebAuthn passkey to add immediately, or empty if not needed
   function onInstall(bytes calldata data) external override {
     if (data.length > 0) {
-      require(addValidationKey(data), "WebAuthValidator: key already exists");
+      (string memory credentialId, bytes32[2] memory rawPublicKey, string memory originDomain) = abi.decode(
+        data,
+        (string, bytes32[2], string)
+      );
+      require(addValidationKey(credentialId, rawPublicKey, originDomain), "WebAuthValidator: key already exists");
     }
   }
 
   /// @notice Runs on module uninstall
   /// @param data ABI-encoded array of origin domains to remove keys for
   function onUninstall(bytes calldata data) external override {
-    string[] memory domains = abi.decode(data, (string[]));
-    for (uint256 i = 0; i < domains.length; i++) {
-      string memory domain = domains[i];
-      lowerKeyHalf[domain][msg.sender] = 0x0;
-      upperKeyHalf[domain][msg.sender] = 0x0;
+    PasskeyId[] memory passkeyIds = abi.decode(data, (PasskeyId[]));
+    for (uint256 i = 0; i < passkeyIds.length; i++) {
+      PasskeyId memory passkeyId = passkeyIds[i];
+      lowerKeyHalf[passkeyId.domain][passkeyId.credentialId][msg.sender] = 0x0;
+      upperKeyHalf[passkeyId.domain][passkeyId.credentialId][msg.sender] = 0x0;
+      emit PasskeyRemoved(msg.sender, passkeyId.domain, passkeyId.credentialId);
     }
   }
 
   /// @notice Adds a WebAuthn passkey for the caller
-  /// @param key ABI-encoded WebAuthn public key to add
+  /// @param credentialId unique public identifier for the key
+  /// @param rawPublicKey ABI-encoded WebAuthn public key to add
+  /// @param originDomain the domain this associated with
   /// @return true if the key was added, false if it was updated
-  function addValidationKey(bytes calldata key) public returns (bool) {
-    (bytes32[2] memory key32, string memory originDomain) = abi.decode(key, (bytes32[2], string));
-    bytes32 initialLowerHalf = lowerKeyHalf[originDomain][msg.sender];
-    bytes32 initialUpperHalf = upperKeyHalf[originDomain][msg.sender];
+  function addValidationKey(
+    string memory credentialId,
+    bytes32[2] memory rawPublicKey,
+    string memory originDomain
+  ) public returns (bool) {
+    bytes32 initialLowerHalf = lowerKeyHalf[originDomain][credentialId][msg.sender];
+    bytes32 initialUpperHalf = upperKeyHalf[originDomain][credentialId][msg.sender];
 
     // we might want to support multiple passkeys per domain
-    lowerKeyHalf[originDomain][msg.sender] = key32[0];
-    upperKeyHalf[originDomain][msg.sender] = key32[1];
+    lowerKeyHalf[originDomain][credentialId][msg.sender] = rawPublicKey[0];
+    upperKeyHalf[originDomain][credentialId][msg.sender] = rawPublicKey[1];
 
     // we're returning true if this was a new key, false for update
     bool keyExists = initialLowerHalf == 0 && initialUpperHalf == 0;
 
-    emit PasskeyCreated(msg.sender, originDomain);
+    emit PasskeyCreated(msg.sender, originDomain, credentialId);
 
     return keyExists;
   }
@@ -90,6 +108,32 @@ contract WebAuthValidator is VerifierCaller, IModuleValidator {
     return webAuthVerify(signedHash, signature);
   }
 
+  function bytesSliceToUint16(bytes memory _slice, uint256 _start) internal pure returns (uint16) {
+    require(_slice.length >= _start + 2, "Slice too short"); // Ensure enough bytes
+
+    uint16 result;
+    assembly {
+      // Load the two bytes from the slice into a temporary variable
+      let temp := mload(add(add(_slice, 32), _start)) // _slice + 32 (for length) + _start
+
+      // Zero out the higher bytes to get a uint16
+      result := and(temp, 0xffff) // 0xffff is a mask for the lower 16 bits
+    }
+    return result;
+  }
+
+  function sliceToString(bytes memory _data, uint256 _start, uint256 _end) internal pure returns (string memory) {
+    require(_start <= _end, "Invalid slice indices");
+    require(_end <= _data.length, "Slice out of bounds");
+
+    bytes memory sliced = new bytes(_end - _start);
+    for (uint256 i = _start; i < _end; i++) {
+      sliced[i - _start] = _data[i];
+    }
+
+    return string(sliced); // Convert bytes to string
+  }
+
   /// @notice Validates a WebAuthn signature
   /// @dev Performs r & s range validation to prevent signature malleability
   /// @dev Checks passkey authenticator data flags (valid number of credentials)
@@ -99,6 +143,8 @@ contract WebAuthValidator is VerifierCaller, IModuleValidator {
   /// @param fatSignature The signature to validate (authenticator data, client data, [r, s])
   /// @return true if the signature is valid
   function webAuthVerify(bytes32 transactionHash, bytes memory fatSignature) internal view returns (bool) {
+    // authenticatorData format:
+    // rpId 0-31, flags[32], signCount 33-36, aaguid 37-52, credIdLen 53-54, credId 56+
     (bytes memory authenticatorData, string memory clientDataJSON, bytes32[2] memory rs) = _decodeFatSignature(
       fatSignature
     );
@@ -128,10 +174,13 @@ contract WebAuthValidator is VerifierCaller, IModuleValidator {
       return false;
     }
 
+    uint16 credentialIdLength = bytesSliceToUint16(authenticatorData, 53);
+    string authId = sliceToString(authenticatorData, 54, 54 + credentialIdLength);
+
     string memory origin = root.at('"origin"').value().decodeString();
     bytes32[2] memory pubkey;
-    pubkey[0] = lowerKeyHalf[origin][msg.sender];
-    pubkey[1] = upperKeyHalf[origin][msg.sender];
+    pubkey[0] = lowerKeyHalf[origin][authId][msg.sender];
+    pubkey[1] = upperKeyHalf[origin][authId][msg.sender];
     // This really only validates the origin is set
     if (pubkey[0] == 0 || pubkey[1] == 0) {
       return false;
