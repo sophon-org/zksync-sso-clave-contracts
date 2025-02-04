@@ -146,7 +146,6 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
         if (guardians[i].isReady) return false;
 
         guardians[i].isReady = true;
-        guardedAccounts[msg.sender].push(accountToGuard);
         return true;
       }
     }
