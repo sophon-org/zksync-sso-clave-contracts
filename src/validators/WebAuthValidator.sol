@@ -175,7 +175,7 @@ contract WebAuthValidator is VerifierCaller, IModuleValidator {
     }
 
     uint16 credentialIdLength = bytesSliceToUint16(authenticatorData, 53);
-    string authId = sliceToString(authenticatorData, 54, 54 + credentialIdLength);
+    string memory authId = sliceToString(authenticatorData, 54, 54 + credentialIdLength);
 
     string memory origin = root.at('"origin"').value().decodeString();
     bytes32[2] memory pubkey;
