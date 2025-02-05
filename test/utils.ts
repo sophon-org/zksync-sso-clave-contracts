@@ -382,7 +382,7 @@ export class RecordedResponse {
     this.b64SignedChallenge = responseData.response.response.signature;
     this.passkeyBytes = convertObjArrayToUint8Array(responseData.authenticator.credentialPublicKey);
     this.expectedOrigin = responseData.expectedOrigin;
-    this.credentialId = responseData.authenticator.credentialId;
+    this.credentialId = responseData.authenticator.credentialID;
   }
 
   getXyPublicKeys() {

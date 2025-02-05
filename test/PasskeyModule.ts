@@ -337,18 +337,21 @@ function encodeFatSignature(
     authenticatorData: string;
     clientDataJSON: string;
     signature: string;
-  }) {
+  },
+  credentialId: string) {
   const signature = unwrapEC2Signature(base64UrlToUint8Array(passkeyResponse.signature));
   return encodeAbiParameters(
     [
       { type: "bytes" }, // authData
       { type: "bytes" }, // clientDataJson
       { type: "bytes32[2]" }, // signature (two elements)
+      { type: "bytes" }, // credentialId
     ],
     [
       toHex(base64UrlToUint8Array(passkeyResponse.authenticatorData)),
       toHex(base64UrlToUint8Array(passkeyResponse.clientDataJSON)),
       [toHex(signature[0]), toHex(signature[1])],
+      toHex(base64UrlToUint8Array(credentialId)),
     ],
   );
 }
@@ -383,11 +386,11 @@ async function verifyKeyStorage(
   expect(upperKey).to.eq(publicKeys[1], `upper key ${error}`);
 }
 
-function encodeKeyFromHex(credentialId: string, keyHexStrings: [Hex, Hex], domain: string) {
+function encodeKeyFromHex(credentialId: Hex, keyHexStrings: [Hex, Hex], domain: string) {
   // the same as the ethers: new AbiCoder().encode(["bytes32[2]", "string"], [bytes, domain]);
   return encodeAbiParameters(
     [
-      { name: "credentialId", type: "string" },
+      { name: "credentialId", type: "bytes" },
       { name: "publicKeys", type: "bytes32[2]" },
       { name: "domain", type: "string" },
     ],
@@ -395,16 +398,8 @@ function encodeKeyFromHex(credentialId: string, keyHexStrings: [Hex, Hex], domai
   );
 }
 
-function encodeKeyFromBytes(credentialId: string, bytes: [Uint8Array, Uint8Array], domain: string) {
+function encodeKeyFromBytes(credentialId: Hex, bytes: [Uint8Array, Uint8Array], domain: string) {
   return encodeKeyFromHex(credentialId, [toHex(bytes[0]), toHex(bytes[1])], domain);
-}
-
-function uint8ArrayToNumber(arr: Uint8Array): number {
-  let result = 0;
-  for (let i = 0; i < arr.length; i++) {
-    result = (result << 8) | arr[i]; // Bitwise left shift and OR
-  }
-  return result;
 }
 
 async function validateSignatureTest(
@@ -418,7 +413,7 @@ async function validateSignatureTest(
 ) {
   const passkeyValidator = await deployValidator(wallet);
   const generatedR1Key = await generateES256R1Key();
-  const credentialId = fromBuffer(authData.slice(54, 54 + uint8ArrayToNumber(authData.slice(53, 54))));
+  const credentialId = toHex(randomBytes(64));
 
   assert(generatedR1Key != null, "no key was generated");
   const [generatedX, generatedY] = await getRawPublicKeyFromCrpyto(generatedR1Key);
@@ -434,13 +429,14 @@ async function validateSignatureTest(
     { name: "authData", type: "bytes" },
     { name: "clientDataJson", type: "string" },
     { name: "rs", type: "bytes32[2]" },
+    { name: "credentialId", type: "bytes" },
   ],
-  [toHex(authData), sampleClientString, [toHex(rNormalization(generatedSignature.r)), toHex(sNormalization(generatedSignature.s))]],
+  [toHex(authData), sampleClientString, [toHex(rNormalization(generatedSignature.r)), toHex(sNormalization(generatedSignature.s))], credentialId],
   );
   return await passkeyValidator.validateSignature(transactionHash, fatSignature);
 }
 
-describe.only("Passkey validation", function () {
+describe("Passkey validation", function () {
   const wallet = getWallet(LOCAL_RICH_WALLETS[0].privateKey);
   const ethersResponse = new RecordedResponse("test/signed-challenge.json");
   // this is a binary object formatted by @simplewebauthn that contains the alg type and public key
@@ -459,10 +455,8 @@ describe.only("Passkey validation", function () {
       const passKeyModuleAddress = await fixtures.getPasskeyModuleAddress();
       const passKeyModuleContract = await fixtures.getWebAuthnVerifierContract();
 
-      const authData = toBuffer(ethersResponse.authenticatorData);
-      const credentialId = fromBuffer(authData.slice(54, 54 + uint8ArrayToNumber(authData.slice(53, 54))));
-      console.log("credentialId ", credentialId);
       const randomSalt = randomBytes(32);
+      const credentialId = toHex(randomBytes(64));
       const sampleDomain = "http://example.com";
       const generatedR1Key = await generateES256R1Key();
       assert(generatedR1Key != null, "no key was generated");
@@ -490,7 +484,7 @@ describe.only("Passkey validation", function () {
       const receipt = await fundTx.wait();
       expect(receipt.status).to.eq(1, "send funds to proxy account");
 
-      return { passKeyModuleContract, sampleDomain, proxyAccountAddress, generatedR1Key, passKeyModuleAddress, credentialId, authData };
+      return { passKeyModuleContract, sampleDomain, proxyAccountAddress, generatedR1Key, passKeyModuleAddress, credentialId };
     }
 
     it("should deploy proxy account via factory", async () => {
@@ -509,8 +503,9 @@ describe.only("Passkey validation", function () {
       assert(await account.isModuleValidator(passKeyModuleAddress), "passkey module should be a validator");
     });
 
-    it.only("should sign transaction with passkey", async () => {
-      const { sampleDomain, proxyAccountAddress, generatedR1Key, passKeyModuleAddress, authData } = await deployAccount();
+    it("should sign transaction with passkey", async () => {
+      const authData = toBuffer(ethersResponse.authenticatorData);
+      const { sampleDomain, proxyAccountAddress, generatedR1Key, passKeyModuleAddress, credentialId } = await deployAccount();
 
       const sessionAccount = new SmartAccount({
         payloadSigner: async (hash: Hex) => {
@@ -529,10 +524,12 @@ describe.only("Passkey validation", function () {
             { name: "authData", type: "bytes" },
             { name: "clientDataJson", type: "string" },
             { name: "rs", type: "bytes32[2]" },
+            { name: "credentialId", type: "bytes" },
           ], [
             toHex(authData),
             sampleClientString,
             [toHex(normalizeR(generatedSignature.r)), toHex(normalizeS(generatedSignature.s))],
+            credentialId,
           ]);
 
           const moduleSignature = encodeAbiParameters(
@@ -575,7 +572,7 @@ describe.only("Passkey validation", function () {
   describe("addValidationKey", () => {
     it("should save a passkey", async function () {
       const passkeyValidator = await deployValidator(wallet);
-      const credentialId = randomBytes(64).toString("base64");
+      const credentialId = toHex(randomBytes(64));
 
       const publicKeys = await getPublicKey(publicKeyEs256Bytes);
       const createdKey = await passkeyValidator.addValidationKey(credentialId, publicKeys, "http://localhost:5173");
@@ -587,7 +584,7 @@ describe.only("Passkey validation", function () {
 
     it("should add a second validation key", async function () {
       const passkeyValidator = await deployValidator(wallet);
-      const credentialId = randomBytes(64).toString("base64");
+      const credentialId = toHex(randomBytes(64));
       const firstDomain = randomBytes(32).toString("hex");
 
       const publicKeys = await getPublicKey(publicKeyEs256Bytes);
@@ -607,7 +604,7 @@ describe.only("Passkey validation", function () {
     it("should update existing key", async () => {
       const passkeyValidator = await deployValidator(wallet);
       const keyDomain = randomBytes(32).toString("hex");
-      const credentialId = randomBytes(64).toString("base64");
+      const credentialId = toHex(randomBytes(64));
       const generatedR1Key = await generateES256R1Key();
       assert(generatedR1Key != null, "no key was generated");
       const [generatedX, generatedY] = await getRawPublicKeyFromCrpyto(generatedR1Key);
@@ -633,7 +630,7 @@ describe.only("Passkey validation", function () {
       assert(generatedR1Key != null, "no key was generated");
       const [generatedX, generatedY] = await getRawPublicKeyFromCrpyto(generatedR1Key);
       const keyDomain = randomBytes(32).toString("hex");
-      const credentialId = randomBytes(64).toString("base64");
+      const credentialId = toHex(randomBytes(64));
       const generatedKeyAdded = await passkeyValidator.addValidationKey(credentialId, [generatedX, generatedY], keyDomain);
       const receipt = await generatedKeyAdded.wait();
       assert(receipt?.status == 1, "generated key added");
@@ -659,9 +656,11 @@ describe.only("Passkey validation", function () {
           clientDataJSON: ethersResponse.clientData,
           signature: ethersResponse.b64SignedChallenge,
         },
+        ethersResponse.credentialId,
       );
 
-      await passkeyValidator.addValidationKey(ethersResponse.credentialId, publicKeys, ethersResponse.expectedOrigin);
+      const credentialId = toHex(base64UrlToUint8Array(ethersResponse.credentialId));
+      await passkeyValidator.addValidationKey(credentialId, publicKeys, ethersResponse.expectedOrigin);
 
       // get the signature from the same place the checker gets it
       const clientDataJson = JSON.parse(new TextDecoder().decode(ethersResponse.clientDataBuffer));
