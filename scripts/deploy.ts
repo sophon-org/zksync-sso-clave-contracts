@@ -10,8 +10,9 @@ const ACCOUNT_IMPL_NAME = "SsoAccount";
 const FACTORY_NAME = "AAFactory";
 const PAYMASTER_NAME = "ExampleAuthServerPaymaster";
 const BEACON_NAME = "SsoBeacon";
+const OIDC_KEY_REGISTRY_NAME = "OidcKeyRegistry";
 
-async function deploy(name: string, deployer: Wallet, proxy: boolean, args?: any[]): Promise<string> {
+async function deploy(name: string, deployer: Wallet, proxy: boolean, args?: any[], initArgs?: any): Promise<string> {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   const { deployFactory, create2, ethersStaticSalt } = require("../test/utils");
   console.log("Deploying", name, "contract...");
@@ -26,7 +27,7 @@ async function deploy(name: string, deployer: Wallet, proxy: boolean, args?: any
     console.log(name, "contract deployed at:", implAddress, "\n");
     return implAddress;
   }
-  const proxyContract = await create2("TransparentProxy", deployer, ethersStaticSalt, [implAddress]);
+  const proxyContract = await create2("TransparentProxy", deployer, ethersStaticSalt, [implAddress, initArgs ?? "0x"]);
   const proxyAddress = await proxyContract.getAddress();
   console.log(name, "proxy contract deployed at:", proxyAddress, "\n");
   return proxyAddress;
@@ -82,6 +83,8 @@ task("deploy", "Deploys ZKsync SSO contracts")
       const beacon = await deploy(BEACON_NAME, deployer, false, [implementation]);
       const factory = await deploy(FACTORY_NAME, deployer, !cmd.noProxy, [beacon]);
       const paymaster = await deploy(PAYMASTER_NAME, deployer, false, [factory, sessions]);
+      const oidcKeyRegistryInterface = new ethers.Interface((await hre.artifacts.readArtifact(OIDC_KEY_REGISTRY_NAME)).abi);
+      await deploy(OIDC_KEY_REGISTRY_NAME, deployer, !cmd.noProxy, [], oidcKeyRegistryInterface.encodeFunctionData("initialize", []));
 
       await fundPaymaster(paymaster, cmd.fund);
     } else {
@@ -104,6 +107,9 @@ task("deploy", "Deploys ZKsync SSO contracts")
           throw "Factory (--factory <value>) and SessionModule (--sessions <value>) addresses must be provided to deploy paymaster";
         }
         args = [cmd.factory, cmd.sessions];
+      }
+      if (cmd.only == OIDC_KEY_REGISTRY_NAME) {
+        args = [];
       }
       const deployedContract = await deploy(cmd.only, deployer, false, args);
 
