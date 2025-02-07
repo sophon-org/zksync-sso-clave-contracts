@@ -33,6 +33,9 @@ contract WebAuthValidator is VerifierCaller, IModuleValidator {
   mapping(string originDomain => mapping(bytes credentialId => mapping(address accountAddress => bytes32 publicKey)))
     public upperKeyHalf;
 
+  // so you can check if you are using this passkey on this or related domains
+  mapping(string originDomain => mapping(bytes credentialId => address accountAddress)) public keyExistsOnDomain;
+
   struct PasskeyId {
     string domain;
     bytes credentialId;
@@ -67,6 +70,7 @@ contract WebAuthValidator is VerifierCaller, IModuleValidator {
   function _removeValidationKey(bytes memory credentialId, string memory domain) internal {
     lowerKeyHalf[domain][credentialId][msg.sender] = 0x0;
     upperKeyHalf[domain][credentialId][msg.sender] = 0x0;
+    keyExistsOnDomain[domain][credentialId] = address(0);
     emit PasskeyRemoved(msg.sender, domain, credentialId);
   }
 
@@ -88,6 +92,7 @@ contract WebAuthValidator is VerifierCaller, IModuleValidator {
 
     lowerKeyHalf[originDomain][credentialId][msg.sender] = rawPublicKey[0];
     upperKeyHalf[originDomain][credentialId][msg.sender] = rawPublicKey[1];
+    keyExistsOnDomain[originDomain][credentialId] = msg.sender;
 
     emit PasskeyCreated(msg.sender, originDomain, credentialId);
 
