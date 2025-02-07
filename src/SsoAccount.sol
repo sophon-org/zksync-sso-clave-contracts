@@ -24,6 +24,7 @@ import { BatchCaller } from "./batch/BatchCaller.sol";
 
 import { ISsoAccount } from "./interfaces/ISsoAccount.sol";
 import { IModuleValidator } from "./interfaces/IModuleValidator.sol";
+import { Logger } from "./helpers/Logger.sol";
 
 /// @title SSO Account
 /// @author Matter Labs
@@ -183,13 +184,15 @@ contract SsoAccount is Initializable, HookManager, ERC1271Handler, TokenCallback
   /// @param _transaction The transaction data.
   /// @return The magic value if the validation was successful and bytes4(0) otherwise.
   function _validateTransaction(bytes32 _signedHash, Transaction calldata _transaction) internal returns (bytes4) {
-    // Run validation hooks
+    Logger.logString("starting transaction validation");
     bool hookSuccess = runValidationHooks(_signedHash, _transaction);
     if (!hookSuccess) {
+      Logger.logString("validation hook failed");
       return bytes4(0);
     }
 
     if (_transaction.signature.length == 65) {
+      Logger.logString("doing EOA validation based on signature length");
       (address signer, ECDSA.RecoverError error) = ECDSA.tryRecover(_signedHash, _transaction.signature);
       return
         signer == address(0) || error != ECDSA.RecoverError.NoError || !_k1IsOwner(signer)
@@ -200,6 +203,8 @@ contract SsoAccount is Initializable, HookManager, ERC1271Handler, TokenCallback
     // Extract the signature, validator address and hook data from the _transaction.signature
     (bytes memory signature, address validator) = SignatureDecoder.decodeSignatureNoHookData(_transaction.signature);
 
+    Logger.logString("Parsed custom signature, attempting modular validation");
+    Logger.logAddress(validator);
     bool validationSuccess = _isModuleValidator(validator) &&
       IModuleValidator(validator).validateTransaction(_signedHash, signature, _transaction);
     if (!validationSuccess) {

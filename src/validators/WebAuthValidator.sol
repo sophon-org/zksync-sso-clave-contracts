@@ -11,6 +11,8 @@ import { Strings } from "@openzeppelin/contracts/utils/Strings.sol";
 import { Base64 } from "solady/src/utils/Base64.sol";
 import { JSONParserLib } from "solady/src/utils/JSONParserLib.sol";
 
+import { Logger } from "../helpers/Logger.sol";
+
 /// @title WebAuthValidator
 /// @author Matter Labs
 /// @custom:security-contact security@matterlabs.dev
@@ -74,6 +76,7 @@ contract WebAuthValidator is VerifierCaller, IModuleValidator {
   /// @param signature The signature to validate
   /// @return true if the signature is valid
   function validateSignature(bytes32 signedHash, bytes memory signature) external view returns (bool) {
+    Logger.logString("Starting webauthn signature validation");
     return webAuthVerify(signedHash, signature);
   }
 
@@ -87,6 +90,7 @@ contract WebAuthValidator is VerifierCaller, IModuleValidator {
     bytes calldata signature,
     Transaction calldata
   ) external view returns (bool) {
+    Logger.logString("Starting webauthn transaction validation");
     return webAuthVerify(signedHash, signature);
   }
 
@@ -104,11 +108,13 @@ contract WebAuthValidator is VerifierCaller, IModuleValidator {
     );
 
     if (rs[0] <= 0 || rs[0] > HIGH_R_MAX || rs[1] <= 0 || rs[1] > LOW_S_MAX) {
+      Logger.logString("Signature points not normalized");
       return false;
     }
 
     // check if the flags are set
     if (authenticatorData[32] & AUTH_DATA_MASK != AUTH_DATA_MASK) {
+      Logger.logString("Bad passkey data (no user present or not backed up)");
       return false;
     }
 
@@ -117,14 +123,20 @@ contract WebAuthValidator is VerifierCaller, IModuleValidator {
     string memory challenge = root.at('"challenge"').value().decodeString();
     bytes memory challengeData = Base64.decode(challenge);
     if (challengeData.length != 32) {
+      Logger.logString("challenge data needs to be a transaction hash");
+      Logger.logUint(challengeData.length);
       return false; // wrong hash size
     }
     if (bytes32(challengeData) != transactionHash) {
+      Logger.logString("Signed data does not match transaction hash");
+      Logger.logBytes32(bytes32(challengeData));
+      Logger.logBytes32(transactionHash);
       return false;
     }
 
     string memory type_ = root.at('"type"').value().decodeString();
     if (!Strings.equal("webauthn.get", type_)) {
+      Logger.logString("not a verification request type");
       return false;
     }
 
@@ -134,6 +146,8 @@ contract WebAuthValidator is VerifierCaller, IModuleValidator {
     pubkey[1] = upperKeyHalf[origin][msg.sender];
     // This really only validates the origin is set
     if (pubkey[0] == 0 || pubkey[1] == 0) {
+      Logger.logString("No key found for provided origin");
+      Logger.logString(origin);
       return false;
     }
 
@@ -141,6 +155,7 @@ contract WebAuthValidator is VerifierCaller, IModuleValidator {
     if (!crossOriginItem.isUndefined()) {
       string memory crossOrigin = crossOriginItem.value();
       if (!Strings.equal("false", crossOrigin)) {
+        Logger.logString("Cross-origin is not allowed (yet)");
         return false;
       }
     }
