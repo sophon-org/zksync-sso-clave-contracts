@@ -436,7 +436,7 @@ async function validateSignatureTest(
   return await passkeyValidator.validateSignature(transactionHash, fatSignature);
 }
 
-describe.only("Passkey validation", function () {
+describe("Passkey validation", function () {
   const wallet = getWallet(LOCAL_RICH_WALLETS[0].privateKey);
   const ethersResponse = new RecordedResponse("test/signed-challenge.json");
   // this is a binary object formatted by @simplewebauthn that contains the alg type and public key
