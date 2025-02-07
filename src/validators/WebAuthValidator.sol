@@ -33,6 +33,9 @@ contract WebAuthValidator is VerifierCaller, IModuleValidator {
   mapping(string originDomain => mapping(bytes credentialId => mapping(address accountAddress => bytes32 publicKey)))
     public upperKeyHalf;
 
+  // allow tracking of passkey existence
+  mapping(string originDomain => mapping(bytes credentialId => bool keyExists)) public passkeyExists;
+
   struct PasskeyId {
     string domain;
     bytes credentialId;
@@ -56,17 +59,26 @@ contract WebAuthValidator is VerifierCaller, IModuleValidator {
     PasskeyId[] memory passkeyIds = abi.decode(data, (PasskeyId[]));
     for (uint256 i = 0; i < passkeyIds.length; i++) {
       PasskeyId memory passkeyId = passkeyIds[i];
-      lowerKeyHalf[passkeyId.domain][passkeyId.credentialId][msg.sender] = 0x0;
-      upperKeyHalf[passkeyId.domain][passkeyId.credentialId][msg.sender] = 0x0;
-      emit PasskeyRemoved(msg.sender, passkeyId.domain, passkeyId.credentialId);
+      _removeValidationKey(passkeyId.credentialId, passkeyId.domain);
     }
+  }
+
+  function removeValidationKey(bytes calldata credentialId, string calldata domain) external {
+    return _removeValidationKey(credentialId, domain);
+  }
+
+  function _removeValidationKey(bytes memory credentialId, string memory domain) internal {
+    lowerKeyHalf[domain][credentialId][msg.sender] = 0x0;
+    upperKeyHalf[domain][credentialId][msg.sender] = 0x0;
+    passkeyExists[domain][credentialId] = false;
+    emit PasskeyRemoved(msg.sender, domain, credentialId);
   }
 
   /// @notice Adds a WebAuthn passkey for the caller
   /// @param credentialId unique public identifier for the key
   /// @param rawPublicKey ABI-encoded WebAuthn public key to add
   /// @param originDomain the domain this associated with
-  /// @return true if the key was added, false if it was updated
+  /// @return true if the key was added, false if one already exists
   function addValidationKey(
     bytes memory credentialId,
     bytes32[2] memory rawPublicKey,
@@ -74,17 +86,17 @@ contract WebAuthValidator is VerifierCaller, IModuleValidator {
   ) public returns (bool) {
     bytes32 initialLowerHalf = lowerKeyHalf[originDomain][credentialId][msg.sender];
     bytes32 initialUpperHalf = upperKeyHalf[originDomain][credentialId][msg.sender];
+    if (initialLowerHalf != 0 || initialUpperHalf != 0) {
+      return false;
+    }
 
-    // we might want to support multiple passkeys per domain
     lowerKeyHalf[originDomain][credentialId][msg.sender] = rawPublicKey[0];
     upperKeyHalf[originDomain][credentialId][msg.sender] = rawPublicKey[1];
-
-    // we're returning true if this was a new key, false for update
-    bool keyExists = initialLowerHalf == 0 && initialUpperHalf == 0;
+    passkeyExists[originDomain][credentialId] = true;
 
     emit PasskeyCreated(msg.sender, originDomain, credentialId);
 
-    return keyExists;
+    return true;
   }
 
   /// @notice Validates a WebAuthn signature
