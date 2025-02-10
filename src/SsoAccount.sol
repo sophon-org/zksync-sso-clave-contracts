@@ -119,7 +119,7 @@ contract SsoAccount is
   /// @param _to The address to which the call is made.
   /// @param _value The value to send along with the call.
   /// @param _data The calldata to pass along with the call.
-  function _executeCall(address _to, uint128 _value, bytes calldata _data) internal {
+  function _executeCall(address _to, uint128 _value, bytes calldata _data) private {
     uint32 gas = Utils.safeCastToU32(gasleft());
     bool success;
 
@@ -192,7 +192,7 @@ contract SsoAccount is
   /// @param _signedHash The signed hash of the transaction.
   /// @param _transaction The transaction data.
   /// @return The magic value if the validation was successful and bytes4(0) otherwise.
-  function _validateTransaction(bytes32 _signedHash, Transaction calldata _transaction) internal returns (bytes4) {
+  function _validateTransaction(bytes32 _signedHash, Transaction calldata _transaction) private returns (bytes4) {
     // Run validation hooks
     bool hookSuccess = runValidationHooks(_signedHash, _transaction);
     if (!hookSuccess) {
@@ -222,7 +222,7 @@ contract SsoAccount is
   /// @dev Increments the nonce value in Nonce Holder system contract to ensure replay attack protection.
   /// @dev Reverts if the Nonce Holder stores different `_nonce` value from the expected one.
   /// @param _expectedNonce The nonce value expected for the account to be stored in the Nonce Holder.
-  function _incrementNonce(uint256 _expectedNonce) internal {
+  function _incrementNonce(uint256 _expectedNonce) private {
     // Allow-listing slither finding as the call's success is checked+revert within the fn
     // slither-disable-next-line unused-return
     SystemContractsCaller.systemCallWithPropagatedRevert(
@@ -235,7 +235,7 @@ contract SsoAccount is
 
   /// @dev Safely casts a uint256 to an address.
   /// @dev Revert if the value exceeds the maximum size for an address (160 bits).
-  function _safeCastToAddress(uint256 _value) internal pure returns (address) {
+  function _safeCastToAddress(uint256 _value) private pure returns (address) {
     require(_value <= type(uint160).max, "Overflow");
     return address(uint160(_value));
   }
