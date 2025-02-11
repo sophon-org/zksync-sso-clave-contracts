@@ -70,7 +70,9 @@ contract WebAuthValidator is VerifierCaller, IModuleValidator {
   function _removeValidationKey(bytes memory credentialId, string memory domain) internal {
     lowerKeyHalf[domain][credentialId][msg.sender] = 0x0;
     upperKeyHalf[domain][credentialId][msg.sender] = 0x0;
-    keyExistsOnDomain[domain][credentialId] = address(0);
+    if (keyExistsOnDomain[domain][credentialId] == msg.sender) {
+      keyExistsOnDomain[domain][credentialId] = address(0);
+    }
     emit PasskeyRemoved(msg.sender, domain, credentialId);
   }
 
@@ -87,6 +89,14 @@ contract WebAuthValidator is VerifierCaller, IModuleValidator {
     bytes32 initialLowerHalf = lowerKeyHalf[originDomain][credentialId][msg.sender];
     bytes32 initialUpperHalf = upperKeyHalf[originDomain][credentialId][msg.sender];
     if (initialLowerHalf != 0 || initialUpperHalf != 0) {
+      return false;
+    }
+    if (keyExistsOnDomain[originDomain][credentialId] != address(0)) {
+      // this key already exists on the domain (but it was zero before?)
+      return false;
+    }
+    if (rawPublicKey[0] == 0 && rawPublicKey[1] == 0) {
+      // empty keys aren't valid, if attempting to clear, use remove
       return false;
     }
 

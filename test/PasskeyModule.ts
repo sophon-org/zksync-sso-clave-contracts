@@ -372,6 +372,8 @@ async function rawVerify(
   return await passkeyValidator.rawVerify(hashedData, rs, publicKeys);
 }
 
+const ZEROKEY = toHex(new Uint8Array(32).fill(0));
+
 async function verifyKeyStorage(
   passkeyValidator: WebAuthValidator,
   domain: string,
@@ -384,6 +386,13 @@ async function verifyKeyStorage(
   const upperKey = await passkeyValidator.upperKeyHalf(domain, credentialId, wallet.address);
   expect(lowerKey).to.eq(publicKeys[0], `lower key ${error}`);
   expect(upperKey).to.eq(publicKeys[1], `upper key ${error}`);
+
+  const accountAddress = await passkeyValidator.keyExistsOnDomain(domain, credentialId);
+  if (publicKeys[0] == ZEROKEY && publicKeys[1] == ZEROKEY) {
+    expect(accountAddress).to.eq(ZeroAddress, `key ownership matches for ${error}`);
+  } else {
+    expect(accountAddress).to.eq(wallet.address, `key ownership matches for ${error}`);
+  }
 }
 
 function encodeKeyFromHex(credentialId: Hex, keyHexStrings: [Hex, Hex], domain: string) {
@@ -436,8 +445,9 @@ async function validateSignatureTest(
   return await passkeyValidator.validateSignature(transactionHash, fatSignature);
 }
 
-describe("Passkey validation", function () {
+describe.only("Passkey validation", function () {
   const wallet = getWallet(LOCAL_RICH_WALLETS[0].privateKey);
+  const otherWallet = getWallet(LOCAL_RICH_WALLETS[1].privateKey);
   const ethersResponse = new RecordedResponse("test/signed-challenge.json");
   // this is a binary object formatted by @simplewebauthn that contains the alg type and public key
   const publicKeyEs256Bytes = new Uint8Array([
@@ -580,6 +590,9 @@ describe("Passkey validation", function () {
       assert(keyReceipt != null, "key was saved");
       assert(keyReceipt?.status == 1, "key was saved");
       logInfo(`gas used to save a passkey: ${keyReceipt.gasUsed.toString()}`);
+
+      const savedAddress = await passkeyValidator.keyExistsOnDomain("http://localhost:5173", credentialId);
+      assert(savedAddress == wallet.address, "saved account address");
     });
 
     it("should add a second validation key", async function () {
@@ -645,10 +658,40 @@ describe("Passkey validation", function () {
 
       const emptyKeyAdded = await passkeyValidator.removeValidationKey(credentialId, keyDomain);
       const emptyReceipt = await emptyKeyAdded.wait();
-      assert(emptyReceipt?.status == 1, "empty key added");
+      assert(emptyReceipt?.status == 1, "key removed");
 
       const zeroKey = new Uint8Array(32).fill(0);
       await verifyKeyStorage(passkeyValidator, keyDomain, [toHex(zeroKey), toHex(zeroKey)], credentialId, wallet, "key removed");
+
+      const savedAddress = await passkeyValidator.keyExistsOnDomain(keyDomain, credentialId);
+      assert(savedAddress == ZeroAddress, "removed account address");
+    });
+
+    it("should not allow clearing other sender keys", async () => {
+      const passkeyValidator = await deployValidator(wallet);
+      const generatedR1Key = await generateES256R1Key();
+      assert(generatedR1Key != null, "no key was generated");
+      const [generatedX, generatedY] = await getRawPublicKeyFromCrpyto(generatedR1Key);
+      const keyDomain = randomBytes(32).toString("hex");
+      const credentialId = toHex(randomBytes(64));
+      const generatedKeyAdded = await passkeyValidator.addValidationKey(credentialId, [generatedX, generatedY], keyDomain);
+      const receipt = await generatedKeyAdded.wait();
+      assert(receipt?.status == 1, "generated key added");
+      await verifyKeyStorage(passkeyValidator, keyDomain, [toHex(generatedX), toHex(generatedY)], credentialId, wallet, "added");
+
+      expect(otherWallet.address).not.to.eq(wallet.address, "different wallet");
+      const otherPasskeyValidator = await deployValidator(otherWallet);
+      const otherGeneratedKeyAdded = await otherPasskeyValidator.addValidationKey(credentialId, [generatedX, generatedY], keyDomain);
+      const duplicateKeyReceipt = await otherGeneratedKeyAdded.wait();
+      assert(duplicateKeyReceipt?.status == 1, "attempted duplicate key");
+
+      await verifyKeyStorage(passkeyValidator, keyDomain, [toHex(generatedX), toHex(generatedY)], credentialId, wallet, "old key remains after duplicate");
+
+      const keyRemovalAttempt = await otherPasskeyValidator.removeValidationKey(credentialId, keyDomain);
+      const keyRemovalAttemptReceipt = await keyRemovalAttempt.wait();
+      assert(keyRemovalAttemptReceipt?.status == 1);
+
+      await verifyKeyStorage(passkeyValidator, keyDomain, [toHex(generatedX), toHex(generatedY)], credentialId, wallet, "old key remains after removal");
     });
   });
 
