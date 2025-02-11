@@ -4,7 +4,7 @@ pragma solidity ^0.8.24;
 import { EnumerableSet } from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import { SsoStorage } from "../libraries/SsoStorage.sol";
 import { Errors } from "../libraries/Errors.sol";
-import { Auth } from "../auth/Auth.sol";
+import { SelfAuth } from "../auth/SelfAuth.sol";
 import { IOwnerManager } from "../interfaces/IOwnerManager.sol";
 
 /**
@@ -14,7 +14,7 @@ import { IOwnerManager } from "../interfaces/IOwnerManager.sol";
  * @dev Owners are stored in a linked list
  * @author https://getclave.io
  */
-abstract contract OwnerManager is IOwnerManager, Auth {
+abstract contract OwnerManager is IOwnerManager, SelfAuth {
   using EnumerableSet for EnumerableSet.AddressSet;
 
   /// @inheritdoc IOwnerManager
@@ -37,13 +37,14 @@ abstract contract OwnerManager is IOwnerManager, Auth {
     k1OwnerList = _k1Owners().values();
   }
 
+  // Should not be set to private as it is called from SsoAccount's initialize
   function _k1AddOwner(address addr) internal {
     require(_k1Owners().add(addr), "K1 owner already exists");
 
     emit K1OwnerAdded(addr);
   }
 
-  function _k1RemoveOwner(address addr) internal {
+  function _k1RemoveOwner(address addr) private {
     require(_k1Owners().remove(addr), "K1 owner not found");
 
     emit K1OwnerRemoved(addr);
