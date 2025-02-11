@@ -445,7 +445,7 @@ async function validateSignatureTest(
   return await passkeyValidator.validateSignature(transactionHash, fatSignature);
 }
 
-describe.only("Passkey validation", function () {
+describe("Passkey validation", function () {
   const wallet = getWallet(LOCAL_RICH_WALLETS[0].privateKey);
   const otherWallet = getWallet(LOCAL_RICH_WALLETS[1].privateKey);
   const ethersResponse = new RecordedResponse("test/signed-challenge.json");
