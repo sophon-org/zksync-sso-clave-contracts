@@ -139,11 +139,14 @@ contract SessionKeyValidator is IModuleValidator {
   /// @dev Session spec and period IDs must be provided as validator data
   function validateTransaction(
     bytes32 signedHash,
-    bytes calldata,
+    bytes calldata providedTransactionSignature,
     Transaction calldata transaction
   ) external returns (bool) {
     (bytes memory transactionSignature, address _validator, bytes memory validatorData) = SignatureDecoder
       .decodeSignature(transaction.signature);
+    if (keccak256(providedTransactionSignature) != keccak256(transactionSignature)) {
+      return false;
+    }
     (SessionLib.SessionSpec memory spec, uint64[] memory periodIds) = abi.decode(
       validatorData, // this is passed by the signature builder
       (SessionLib.SessionSpec, uint64[])

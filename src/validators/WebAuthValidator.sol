@@ -7,6 +7,7 @@ import { IERC165 } from "@openzeppelin/contracts/utils/introspection/IERC165.sol
 import { IModuleValidator } from "../interfaces/IModuleValidator.sol";
 import { IModule } from "../interfaces/IModule.sol";
 import { VerifierCaller } from "../helpers/VerifierCaller.sol";
+import { SignatureDecoder } from "../libraries/SignatureDecoder.sol";
 import { Strings } from "@openzeppelin/contracts/utils/Strings.sol";
 import { Base64 } from "solady/src/utils/Base64.sol";
 import { JSONParserLib } from "solady/src/utils/JSONParserLib.sol";
@@ -85,8 +86,19 @@ contract WebAuthValidator is VerifierCaller, IModuleValidator {
   function validateTransaction(
     bytes32 signedHash,
     bytes calldata signature,
-    Transaction calldata
+    Transaction calldata transaction
   ) external view returns (bool) {
+    (bytes memory transactionSignature, address _validator, bytes memory validatorData) = SignatureDecoder
+      .decodeSignature(transaction.signature);
+    if (_validator != address(this)) {
+      return false;
+    }
+    if (keccak256(transactionSignature) != keccak256(signature)) {
+      return false;
+    }
+    if (validatorData.length != 0) {
+      return false;
+    }
     return webAuthVerify(signedHash, signature);
   }
 
@@ -103,7 +115,7 @@ contract WebAuthValidator is VerifierCaller, IModuleValidator {
       fatSignature
     );
 
-    if (rs[0] <= 0 || rs[0] > HIGH_R_MAX || rs[1] <= 0 || rs[1] > LOW_S_MAX) {
+    if (uint256(rs[0]) <= 0 || rs[0] > HIGH_R_MAX || uint256(rs[1]) <= 0 || rs[1] > LOW_S_MAX) {
       return false;
     }
 
