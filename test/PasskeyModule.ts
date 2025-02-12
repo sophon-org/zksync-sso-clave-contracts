@@ -8,11 +8,11 @@ import { assert, expect } from "chai";
 import { randomBytes } from "crypto";
 import { parseEther, ZeroAddress } from "ethers";
 import * as hre from "hardhat";
-import { encodeAbiParameters, Hex, hexToBytes, toHex } from "viem";
+import { encodeAbiParameters, Hex, hexToBytes, toHex, pad } from "viem";
 import { SmartAccount, Wallet } from "zksync-ethers";
 import { base64UrlToUint8Array } from "zksync-sso/utils";
 
-import { SsoAccount__factory, WebAuthValidator, WebAuthValidator__factory } from "../typechain-types";
+import { SsoAccount__factory, WebAuthValidator, WebAuthValidator__factory, WebAuthValidatorTest, WebAuthValidatorTest__factory } from "../typechain-types";
 import { ContractFixtures, getProvider, getWallet, LOCAL_RICH_WALLETS, logInfo, RecordedResponse } from "./utils";
 
 /**
@@ -34,6 +34,14 @@ async function deployValidator(wallet: Wallet): Promise<WebAuthValidator> {
 
   const validator = await deployer.deploy(passkeyValidatorArtifact, []);
   return WebAuthValidator__factory.connect(await validator.getAddress(), wallet);
+}
+
+async function deployP256Tester(wallet: Wallet): Promise<WebAuthValidatorTest> {
+  const deployer: Deployer = new Deployer(hre, wallet);
+  const passkeyValidatorArtifact = await deployer.loadArtifact("WebAuthValidatorTest");
+
+  const validator = await deployer.deploy(passkeyValidatorArtifact, []);
+  return WebAuthValidatorTest__factory.connect(await validator.getAddress(), wallet);
 }
 
 /**
@@ -357,7 +365,7 @@ function encodeFatSignature(
 }
 
 async function rawVerify(
-  passkeyValidator: WebAuthValidator,
+  passkeyValidator: WebAuthValidatorTest,
   authenticatorData: string,
   clientData: string,
   b64SignedChallange: string,
@@ -369,7 +377,7 @@ async function rawVerify(
   const rs = unwrapEC2Signature(toBuffer(b64SignedChallange));
   const publicKeys = await getPublicKey(publicKeyEs256Bytes);
 
-  return await passkeyValidator.rawVerify(hashedData, rs, publicKeys);
+  return await passkeyValidator.p256Verify(hashedData, rs, publicKeys);
 }
 
 const ZEROKEY = toHex(new Uint8Array(32).fill(0));
@@ -440,8 +448,15 @@ async function validateSignatureTest(
     { name: "rs", type: "bytes32[2]" },
     { name: "credentialId", type: "bytes" },
   ],
-  [toHex(authData), sampleClientString, [toHex(rNormalization(generatedSignature.r)), toHex(sNormalization(generatedSignature.s))], credentialId],
-  );
+  [
+    toHex(authData),
+    sampleClientString,
+    [
+      pad(toHex(rNormalization(generatedSignature.r))),
+      pad(toHex(sNormalization(generatedSignature.s)))
+    ],
+    credentialId
+  ]);
   return await passkeyValidator.validateSignature(transactionHash, fatSignature);
 }
 
@@ -724,7 +739,7 @@ describe("Passkey validation", function () {
   // fully expand the raw validation to compare step by step
   describe("P256 precompile comparison", () => {
     it("should verify passkey", async function () {
-      const passkeyValidator = await deployValidator(wallet);
+      const passkeyValidator = await deployP256Tester(wallet);
 
       // 37 bytes
       const authenticatorData = "SZYN5YgOjGh0NBcPZHZgW4_krrmihjLHmVzzuoMdl2MFAAAABQ";
@@ -744,7 +759,7 @@ describe("Passkey validation", function () {
       assert(verifyMessage == true, "valid sig");
     });
     it("should sign with new data", async function () {
-      const passkeyValidator = await deployValidator(wallet);
+      const passkeyValidator = await deployP256Tester(wallet);
       // The precompile expects the fully hashed data
       const preHashedData = await toHash(
         concat([toBuffer(ethersResponse.authenticatorData), await toHash(toBuffer(ethersResponse.clientData))]),
@@ -771,7 +786,7 @@ describe("Passkey validation", function () {
         [generatedSignature.r, generatedSignature.s],
         [generatedX, generatedY],
       );
-      const onChainGeneratedVerified = await passkeyValidator.rawVerify(
+      const onChainGeneratedVerified = await passkeyValidator.p256Verify(
         preHashedData,
         [generatedSignature.r, generatedSignature.s],
         [generatedX, generatedY],
@@ -781,7 +796,7 @@ describe("Passkey validation", function () {
         [recordedR, recordedS],
         [recordedX, recordedY],
       );
-      const onChainRecordedVerified = await passkeyValidator.rawVerify(
+      const onChainRecordedVerified = await passkeyValidator.p256Verify(
         preHashedData,
         [recordedR, recordedS],
         [recordedX, recordedY],
@@ -794,7 +809,7 @@ describe("Passkey validation", function () {
     });
 
     it("should verify other test passkey data", async function () {
-      const passkeyValidator = await deployValidator(wallet);
+      const passkeyValidator = await deployP256Tester(wallet);
 
       const verifyMessage = await rawVerify(
         passkeyValidator,
@@ -808,7 +823,7 @@ describe("Passkey validation", function () {
     });
 
     it("should fail when signature is bad", async function () {
-      const passkeyValidator = await deployValidator(wallet);
+      const passkeyValidator = await deployP256Tester(wallet);
 
       const b64SignedChallenge
         = "MEUCIQCYrSUCR_QUPAhvRNUVfYiJC2JlOKuqf4gx7i129n9QxgIgaY19A9vAAObuTQNs5_V9kZFizwRpUFpiRVW_dglpR2A";
