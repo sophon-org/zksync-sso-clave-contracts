@@ -24,6 +24,7 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
     string accountId;
   }
 
+  error GuardianCannotBeSelf();
   error GuardianNotFound(address guardian);
   error GuardianNotProposed(address guardian);
   error PasskeyNotMatched();
@@ -85,6 +86,8 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
   ///   2. Enable `addValidationKey` to confirm this account
   /// @param newGuardian New Guardian's address
   function proposeValidationKey(address newGuardian) external {
+    if (msg.sender == newGuardian) revert GuardianCannotBeSelf();
+
     Guardian[] storage guardians = accountGuardians[msg.sender];
 
     // If the guardian exist this method stops
@@ -134,7 +137,6 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
   /// @param key Encoded address of account which msg.sender is becoming guardian of
   /// @return Flag indicating whether guardian was already valid or not
   function addValidationKey(bytes memory key) external returns (bool) {
-    // Interprets argument as address;
     address accountToGuard = abi.decode(key, (address));
     Guardian[] storage guardians = accountGuardians[accountToGuard];
 
@@ -146,7 +148,6 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
         if (guardians[i].isReady) return false;
 
         guardians[i].isReady = true;
-        guardedAccounts[msg.sender].push(accountToGuard);
         return true;
       }
     }

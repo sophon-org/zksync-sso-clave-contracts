@@ -415,7 +415,7 @@ function encodeKeyFromHex(credentialId: Hex, keyHexStrings: [Hex, Hex], domain: 
   );
 }
 
-function encodeKeyFromBytes(credentialId: Hex, bytes: [Uint8Array, Uint8Array], domain: string) {
+export function encodeKeyFromBytes(credentialId: Hex, bytes: [Uint8Array, Uint8Array], domain: string) {
   return encodeKeyFromHex(credentialId, [toHex(bytes[0]), toHex(bytes[1])], domain);
 }
 

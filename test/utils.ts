@@ -1,7 +1,10 @@
 import "@matterlabs/hardhat-zksync-node/dist/type-extensions";
 import "@matterlabs/hardhat-zksync-verify/dist/src/type-extensions";
 
-import { SnapshotRestorer, takeSnapshot } from "@nomicfoundation/hardhat-network-helpers";
+import {
+  SnapshotRestorer,
+  takeSnapshot,
+} from "@nomicfoundation/hardhat-network-helpers";
 import dotenv from "dotenv";
 import { ethers, parseEther, randomBytes } from "ethers";
 import { readFileSync } from "fs";
@@ -95,21 +98,21 @@ export class ContractFixtures {
     return this._webauthnValidatorModule;
   }
 
-  private _guardianRecoveryValidator: GuardianRecoveryValidator;
-  async getGuardianRecoveryValidator() {
-    if (this._guardianRecoveryValidator === undefined) {
-      const webAuthVerifier = await this.getWebAuthnVerifierContract();
-      const aaFactoryAddress = await this.getAaFactoryAddress()
-      const contract = await create2("GuardianRecoveryValidator", this.wallet, ethersStaticSalt, [await webAuthVerifier.getAddress(), aaFactoryAddress]);
-      this._guardianRecoveryValidator = GuardianRecoveryValidator__factory.connect(await contract.getAddress(), this.wallet);
-    }
-    return this._guardianRecoveryValidator;
-  }
-
   async getPasskeyModuleAddress(): Promise<Address> {
     const webAuthnVerifierContract = await this.getWebAuthnVerifierContract();
     const contractAddress = await webAuthnVerifierContract.getAddress();
     return isHex(contractAddress) ? contractAddress : toHex(contractAddress);
+  }
+
+  private _guardianRecoveryValidator: GuardianRecoveryValidator;
+  async getGuardianRecoveryValidator() {
+    if (this._guardianRecoveryValidator === undefined) {
+      const webAuthVerifier = await this.getWebAuthnVerifierContract();
+      const aaFactoryAddress = await this.getAaFactoryAddress();
+      const contract = await create2("GuardianRecoveryValidator", this.wallet, ethersStaticSalt, [await webAuthVerifier.getAddress(), aaFactoryAddress]);
+      this._guardianRecoveryValidator = GuardianRecoveryValidator__factory.connect(await contract.getAddress(), this.wallet);
+    }
+    return this._guardianRecoveryValidator;
   }
 
   private _accountImplContract: SsoAccount;

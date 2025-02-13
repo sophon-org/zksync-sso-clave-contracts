@@ -22,8 +22,10 @@ contract ExampleAuthServerPaymaster is IPaymaster, Ownable {
   bytes4 constant SESSION_CREATE_SELECTOR = SessionKeyValidator.createSession.selector;
   bytes4 constant SESSION_REVOKE_KEY_SELECTOR = SessionKeyValidator.revokeKey.selector;
   bytes4 constant SESSION_REVOKE_KEYS_SELECTOR = SessionKeyValidator.revokeKeys.selector;
-  bytes4 constant ACCOUNT_RECOVERY_ADD_KEY_SELECTOR = GuardianRecoveryValidator.addValidationKey.selector;
-  bytes4 constant ACCOUNT_RECOVERY_PROPOSE_KEY_SELECTOR = GuardianRecoveryValidator.proposeValidationKey.selector;
+  bytes4 constant GUARDIAN_RECOVERY_ADD_KEY_SELECTOR = GuardianRecoveryValidator.addValidationKey.selector;
+  bytes4 constant GUARDIAN_RECOVERY_PROPOSE_KEY_SELECTOR = GuardianRecoveryValidator.proposeValidationKey.selector;
+  bytes4 constant GUARDIAN_RECOVERY_DISCARD_RECOVERY_SELECTOR = GuardianRecoveryValidator.discardRecovery.selector;
+  bytes4 constant GUARDIAN_RECOVERY_REMOVE_KEY_SELECTOR = GuardianRecoveryValidator.removeValidationKey.selector;
 
   modifier onlyBootloader() {
     require(msg.sender == BOOTLOADER_FORMAL_ADDRESS, "Only bootloader can call this method");
@@ -69,9 +71,13 @@ contract ExampleAuthServerPaymaster is IPaymaster, Ownable {
         "Unsupported method"
       );
     }
-    if (to == SESSION_KEY_VALIDATOR_CONTRACT_ADDRESS) {
+
+    if (to == ACCOUNT_RECOVERY_VALIDATOR_CONTRACT_ADDRESS) {
       require(
-        methodSelector == ACCOUNT_RECOVERY_ADD_KEY_SELECTOR || methodSelector == ACCOUNT_RECOVERY_PROPOSE_KEY_SELECTOR,
+        methodSelector == GUARDIAN_RECOVERY_ADD_KEY_SELECTOR ||
+          methodSelector == GUARDIAN_RECOVERY_PROPOSE_KEY_SELECTOR ||
+          methodSelector == GUARDIAN_RECOVERY_DISCARD_RECOVERY_SELECTOR ||
+          methodSelector == GUARDIAN_RECOVERY_REMOVE_KEY_SELECTOR,
         "Unsupported method"
       );
     }
