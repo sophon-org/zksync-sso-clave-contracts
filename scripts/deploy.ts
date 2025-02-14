@@ -11,6 +11,7 @@ const ACCOUNT_IMPL_NAME = "SsoAccount";
 const FACTORY_NAME = "AAFactory";
 const PAYMASTER_NAME = "ExampleAuthServerPaymaster";
 const BEACON_NAME = "SsoBeacon";
+const OIDC_KEY_REGISTRY_NAME = "OidcKeyRegistry";
 
 async function deploy(name: string, deployer: Wallet, proxy: boolean, args?: any[], initArgs?: any): Promise<string> {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -84,6 +85,8 @@ task("deploy", "Deploys ZKsync SSO contracts")
       const guardianInterface = new ethers.Interface((await hre.artifacts.readArtifact(GUARDIAN_RECOVERY_NAME)).abi);
       const recovery = await deploy(GUARDIAN_RECOVERY_NAME, deployer, !cmd.noProxy, [webauth, factory], guardianInterface.encodeFunctionData("initialize", [webauth, factory]));
       const paymaster = await deploy(PAYMASTER_NAME, deployer, false, [factory, sessions, recovery]);
+      const oidcKeyRegistryInterface = new ethers.Interface((await hre.artifacts.readArtifact(OIDC_KEY_REGISTRY_NAME)).abi);
+      await deploy(OIDC_KEY_REGISTRY_NAME, deployer, !cmd.noProxy, [], oidcKeyRegistryInterface.encodeFunctionData("initialize", []));
 
       await fundPaymaster(paymaster, cmd.fund);
     } else {
@@ -106,6 +109,9 @@ task("deploy", "Deploys ZKsync SSO contracts")
           throw "Factory (--factory <value>) and SessionModule (--sessions <value>) addresses must be provided to deploy paymaster";
         }
         args = [cmd.factory, cmd.sessions];
+      }
+      if (cmd.only == OIDC_KEY_REGISTRY_NAME) {
+        args = [];
       }
       const deployedContract = await deploy(cmd.only, deployer, false, args);
 

@@ -39,7 +39,9 @@ abstract contract ValidatorManager is IValidatorManager, Auth {
   ///@inheritdoc IValidatorManager
   function unlinkModuleValidator(address validator, bytes calldata deinitData) external onlySelf {
     _removeModuleValidator(validator);
-    validator.excessivelySafeCall(gasleft(), 0, abi.encodeWithSelector(IModule.onUninstall.selector, deinitData));
+    // Allow-listing slither finding as we don´t want reverting calls to prevent unlinking
+    // slither-disable-next-line unused-return
+    validator.excessivelySafeCall(gasleft(), 0, abi.encodeCall(IModule.onUninstall, (deinitData)));
   }
 
   /// @inheritdoc IValidatorManager
@@ -57,14 +59,14 @@ abstract contract ValidatorManager is IValidatorManager, Auth {
       revert Errors.VALIDATOR_ERC165_FAIL(validator);
     }
 
-    _moduleValidators().add(validator);
+    require(_moduleValidators().add(validator), "Validator already exists");
     IModule(validator).onInstall(initData);
 
     emit ValidatorAdded(validator);
   }
 
   function _removeModuleValidator(address validator) internal {
-    _moduleValidators().remove(validator);
+    require(_moduleValidators().remove(validator), "Validator not found");
 
     emit ValidatorRemoved(validator);
   }

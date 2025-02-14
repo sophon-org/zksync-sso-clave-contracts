@@ -5,14 +5,16 @@ import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import { ACCOUNT_VALIDATION_SUCCESS_MAGIC } from "@matterlabs/zksync-contracts/l2/system-contracts/interfaces/IAccount.sol";
 import { Transaction, TransactionHelper } from "@matterlabs/zksync-contracts/l2/system-contracts/libraries/TransactionHelper.sol";
 import { EfficientCall } from "@matterlabs/zksync-contracts/l2/system-contracts/libraries/EfficientCall.sol";
-import { NONCE_HOLDER_SYSTEM_CONTRACT, DEPLOYER_SYSTEM_CONTRACT, INonceHolder } from "@matterlabs/zksync-contracts/l2/system-contracts/Constants.sol";
+import { NONCE_HOLDER_SYSTEM_CONTRACT, DEPLOYER_SYSTEM_CONTRACT } from "@matterlabs/zksync-contracts/l2/system-contracts/Constants.sol";
+import { INonceHolder } from "@matterlabs/zksync-contracts/l2/system-contracts/interfaces/INonceHolder.sol";
 import { SystemContractsCaller } from "@matterlabs/zksync-contracts/l2/system-contracts/libraries/SystemContractsCaller.sol";
 import { Utils } from "@matterlabs/zksync-contracts/l2/system-contracts/libraries/Utils.sol";
 import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import { IERC165 } from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 
 import { HookManager } from "./managers/HookManager.sol";
 
-import { TokenCallbackHandler, IERC165 } from "./helpers/TokenCallbackHandler.sol";
+import { TokenCallbackHandler } from "./helpers/TokenCallbackHandler.sol";
 
 import { Errors } from "./libraries/Errors.sol";
 import { SignatureDecoder } from "./libraries/SignatureDecoder.sol";
@@ -196,7 +198,7 @@ contract SsoAccount is Initializable, HookManager, ERC1271Handler, TokenCallback
     }
 
     // Extract the signature, validator address and hook data from the _transaction.signature
-    (bytes memory signature, address validator, ) = SignatureDecoder.decodeSignature(_transaction.signature);
+    (bytes memory signature, address validator) = SignatureDecoder.decodeSignatureNoHookData(_transaction.signature);
 
     bool validationSuccess = _isModuleValidator(validator) &&
       IModuleValidator(validator).validateTransaction(_signedHash, signature, _transaction);
@@ -211,6 +213,8 @@ contract SsoAccount is Initializable, HookManager, ERC1271Handler, TokenCallback
   /// @dev Reverts if the Nonce Holder stores different `_nonce` value from the expected one.
   /// @param _expectedNonce The nonce value expected for the account to be stored in the Nonce Holder.
   function _incrementNonce(uint256 _expectedNonce) internal {
+    // Allow-listing slither finding as the call's success is checked+revert within the fn
+    // slither-disable-next-line unused-return
     SystemContractsCaller.systemCallWithPropagatedRevert(
       uint32(gasleft()),
       address(NONCE_HOLDER_SYSTEM_CONTRACT),
