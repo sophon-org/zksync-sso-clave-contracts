@@ -39,6 +39,7 @@ contract WebAuthValidator is VerifierCaller, IModuleValidator {
 
   // so you can check if you are using this passkey on this or related domains
   mapping(string originDomain => mapping(bytes credentialId => address accountAddress)) public keyExistsOnDomain;
+  mapping(string originDomain => mapping(address accountAddress => bytes[] credentialIds)) public domainAccountKeys;
 
   struct PasskeyId {
     string domain;
@@ -76,6 +77,16 @@ contract WebAuthValidator is VerifierCaller, IModuleValidator {
     upperKeyHalf[domain][credentialId][msg.sender] = 0x0;
     if (keyExistsOnDomain[domain][credentialId] == msg.sender) {
       keyExistsOnDomain[domain][credentialId] = address(0);
+      bytes[] storage keys = domainAccountKeys[domain][msg.sender];
+      for (uint256 i = 0; i < keys.length; i++) {
+        if (keccak256(keys[i]) == keccak256(credentialId)) {
+          // If found last account is moved to current position, and then
+          // last element is removed from array.
+          keys[i] = keys[keys.length - 1];
+          keys.pop();
+          break;
+        }
+      }
     }
     emit PasskeyRemoved(msg.sender, domain, credentialId);
   }
@@ -107,6 +118,7 @@ contract WebAuthValidator is VerifierCaller, IModuleValidator {
     lowerKeyHalf[originDomain][credentialId][msg.sender] = rawPublicKey[0];
     upperKeyHalf[originDomain][credentialId][msg.sender] = rawPublicKey[1];
     keyExistsOnDomain[originDomain][credentialId] = msg.sender;
+    domainAccountKeys[originDomain][msg.sender].push(credentialId);
 
     emit PasskeyCreated(msg.sender, originDomain, credentialId);
 
@@ -251,5 +263,12 @@ contract WebAuthValidator is VerifierCaller, IModuleValidator {
     bytes32[2] calldata pubKey
   ) internal view returns (bool valid) {
     valid = callVerifier(P256_VERIFIER, message, rs, pubKey);
+  }
+
+  function getDomainAccountKeys(
+    string calldata originDomain,
+    address accountAddress
+  ) external view returns (bytes[] memory) {
+    return domainAccountKeys[originDomain][accountAddress];
   }
 }

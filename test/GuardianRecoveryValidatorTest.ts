@@ -29,16 +29,16 @@ describe("GuardianRecoveryValidator", function () {
     ownerWallet = new Wallet(Wallet.createRandom().privateKey, provider);
     externalUserWallet = new Wallet(Wallet.createRandom().privateKey, provider);
 
-    const generatedKey = await generatePassKey();
+    const accountId = `0x${Buffer.from(ethers.toUtf8Bytes("recovery-key-test-id" + randomBytes(32).toString())).toString("hex")}` as `0x${string}`;
+    const generatedKey = await generatePassKey(accountId);
 
     guardianValidator = await fixtures.getGuardianRecoveryValidator();
     webauthn = await fixtures.getWebAuthnVerifierContract();
     guardiansValidatorAddr = await guardianValidator.getAddress() as Address;
     factory = await fixtures.getAaFactory();
     const randomSalt = randomBytes(32);
-    const accountId = "recovery-key-test-id" + randomBytes(32).toString();
     const initialValidators = [
-      ethers.AbiCoder.defaultAbiCoder().encode(["address", "bytes"], [await webauthn.getAddress(), generatedKey]),
+      ethers.AbiCoder.defaultAbiCoder().encode(["address", "bytes"], [await webauthn.getAddress(), generatedKey.generatedKey]),
       ethers.AbiCoder.defaultAbiCoder().encode(["address", "bytes"], [await guardianValidator.getAddress(), ethers.AbiCoder.defaultAbiCoder().encode(
         ["address[]"],
         [[]],
@@ -222,12 +222,12 @@ describe("GuardianRecoveryValidator", function () {
       describe("And initiating recovery process", () => {
         let newKey: string;
         let refTimestamp: number;
-        let accountId: string;
+        let accountId: `0x${string}`;
 
         cacheBeforeEach(async () => {
-          newKey = await generatePassKey();
+          accountId = `0x${Buffer.from(ethers.toUtf8Bytes(`id-${randomBytes(32).toString()}`)).toString("hex")}`;
+          newKey = (await generatePassKey(accountId)).generatedKey;
           refTimestamp = (await provider.getBlock("latest")).timestamp;
-          accountId = `id-${randomBytes(32).toString()}`;
         });
         const sut = async (signer: ethers.Signer = guardianWallet) => {
           const tx = await guardianValidator.connect(signer).initRecovery(
@@ -249,14 +249,17 @@ describe("GuardianRecoveryValidator", function () {
           await expect(sut(externalUserWallet)).to.be.reverted;
         });
       });
-      //FIXME
+      // FIXME
       describe.skip("And has active recovery process and trying to execute", () => {
         let newKey: string;
-        let accountId: string;
+        let newKeyArgs: Awaited<ReturnType<typeof generatePassKey>>["args"];
+        let accountId: `0x${string}`;
 
         cacheBeforeEach(async () => {
-          newKey = await generatePassKey();
-          accountId = `id-${randomBytes(32).toString()}`;
+          accountId = `0x${Buffer.from(ethers.toUtf8Bytes(`id-${randomBytes(32).toString()}`)).toString("hex")}`;
+          const key = await generatePassKey(accountId);
+          newKey = key.generatedKey;
+          newKeyArgs = key.args;
 
           await guardianValidator.connect(guardianWallet)
             .initRecovery(newGuardianConnectedSsoAccount.address, newKey, accountId);
@@ -264,7 +267,7 @@ describe("GuardianRecoveryValidator", function () {
         const sut = async (keyToAdd: string, ssoAccount: SmartAccount = newGuardianConnectedSsoAccount) => {
           const functionData = webauthn.interface.encodeFunctionData(
             "addValidationKey",
-            [keyToAdd],
+            [...newKeyArgs],
           );
           const txToSign = {
             ...(await aaTxTemplate(await ssoAccountInstance.getAddress(), provider)),
@@ -282,9 +285,9 @@ describe("GuardianRecoveryValidator", function () {
         });
         describe("but passing wrong new key", () => {
           it("it should revert.", async function () {
-            const wrongKey = await generatePassKey();
+            const wrongKey = await generatePassKey(accountId);
             await helpers.time.increase(1 * 24 * 60 * 60 + 60);
-            await expect(sut(wrongKey)).to.be.reverted;
+            await expect(sut(wrongKey.generatedKey)).to.be.reverted;
           });
         });
         describe("and passing correct new key", () => {
@@ -304,12 +307,15 @@ describe("GuardianRecoveryValidator", function () {
   });
 });
 
-async function generatePassKey() {
+async function generatePassKey(accountId: `0x${string}`) {
   const keyDomain = randomBytes(32).toString("hex");
   const generatedR1Key = await generateES256R1Key();
   const [generatedX, generatedY] = await getRawPublicKeyFromCrpyto(generatedR1Key);
-  const generatedKey = encodeKeyFromBytes([generatedX, generatedY], keyDomain);
-  return generatedKey;
+  const generatedKey = encodeKeyFromBytes(accountId, [generatedX, generatedY], keyDomain);
+  return {
+    generatedKey,
+    args: [accountId, [generatedX, generatedY], keyDomain] as [`0x${string}`, [Uint8Array<ArrayBuffer>, Uint8Array<ArrayBuffer>], string],
+  };
 }
 
 async function aaTxTemplate(proxyAccountAddress: string, provider: Provider) {

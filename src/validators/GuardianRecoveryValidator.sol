@@ -98,7 +98,6 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
     }
 
     guardians.push(Guardian(newGuardian, false, uint64(block.timestamp)));
-    guardedAccounts[newGuardian].push(msg.sender);
   }
 
   /// @notice This method handles the removal of guardians by:
@@ -111,21 +110,24 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
     // Searchs guardian with given address
     for (uint256 i = 0; i < guardians.length; i++) {
       if (guardians[i].addr == guardianToRemove) {
+        bool wasActiveGuardian = guardians[i].isReady;
         // If found last guardian is moved to current position, and then
         // last element is removed from array.
         guardians[i] = guardians[guardians.length - 1];
         guardians.pop();
-        break;
-      }
-    }
 
-    address[] storage accounts = guardedAccounts[guardianToRemove];
-    for (uint256 i = 0; i < accounts.length; i++) {
-      if (accounts[i] == msg.sender) {
-        // If found last account is moved to current position, and then
-        // last element is removed from array.
-        accounts[i] = accounts[accounts.length - 1];
-        accounts.pop();
+        if (wasActiveGuardian) {
+          address[] storage accounts = guardedAccounts[guardianToRemove];
+          for (uint256 i = 0; i < accounts.length; i++) {
+            if (accounts[i] == msg.sender) {
+              // If found last account is moved to current position, and then
+              // last element is removed from array.
+              accounts[i] = accounts[accounts.length - 1];
+              accounts.pop();
+              break;
+            }
+          }
+        }
         return;
       }
     }
@@ -148,6 +150,7 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
         if (guardians[i].isReady) return false;
 
         guardians[i].isReady = true;
+        guardedAccounts[msg.sender].push(accountToGuard);
         return true;
       }
     }
@@ -178,6 +181,7 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
     bytes memory passkey,
     string memory accountId
   ) external onlyGuardianOf(accountToRecover) {
+    //Fix overwriting existing
     pendingRecoveryData[accountToRecover] = RecoveryRequest(passkey, block.timestamp, accountId);
     aaFactory.registerRecoveryBlockedAccount(accountId, accountToRecover);
     emit RecoveryInitiated(accountToRecover, msg.sender);
@@ -240,7 +244,7 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
 
     // Check for calling "addValidationKey" method by anyone on WebAuthValidator contract
     require(selector == WebAuthValidator.addValidationKey.selector, "Unauthorized function call");
-    bytes memory validationKeyData = abi.decode(transaction.data[4:], (bytes));
+    bytes memory validationKeyData = transaction.data[4:];
 
     // Verify that current request matches pending one
     if (
