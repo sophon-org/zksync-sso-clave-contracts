@@ -78,7 +78,7 @@ contract WebAuthValidator is VerifierCaller, IModuleValidator {
   /// @param signedHash The hash of the signed message
   /// @param signature The signature to validate
   /// @return true if the signature is valid
-  function validateSignature(bytes32 signedHash, bytes memory signature) external view returns (bool) {
+  function validateSignature(bytes32 signedHash, bytes calldata signature) external view returns (bool) {
     return webAuthVerify(signedHash, signature);
   }
 
@@ -120,7 +120,7 @@ contract WebAuthValidator is VerifierCaller, IModuleValidator {
     );
 
     // prevent signature replay https://yondon.blog/2019/01/01/how-not-to-use-ecdsa/
-    if (uint256(rs[0]) <= 0 || rs[0] > HIGH_R_MAX || uint256(rs[1]) <= 0 || rs[1] > LOW_S_MAX) {
+    if (uint256(rs[0]) == 0 || rs[0] > HIGH_R_MAX || uint256(rs[1]) == 0 || rs[1] > LOW_S_MAX) {
       return false;
     }
 
