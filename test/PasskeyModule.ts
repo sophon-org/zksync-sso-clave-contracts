@@ -8,7 +8,7 @@ import { assert, expect } from "chai";
 import { randomBytes } from "crypto";
 import { parseEther, ZeroAddress } from "ethers";
 import * as hre from "hardhat";
-import { encodeAbiParameters, Hex, hexToBytes, toHex, pad } from "viem";
+import { encodeAbiParameters, Hex, hexToBytes, pad, toHex } from "viem";
 import { SmartAccount, Wallet } from "zksync-ethers";
 import { base64UrlToUint8Array } from "zksync-sso/utils";
 
@@ -390,10 +390,9 @@ async function verifyKeyStorage(
   wallet: Wallet,
   error: string,
 ) {
-  const lowerKey = await passkeyValidator.lowerKeyHalf(domain, credentialId, wallet.address);
-  const upperKey = await passkeyValidator.upperKeyHalf(domain, credentialId, wallet.address);
-  expect(lowerKey).to.eq(publicKeys[0], `lower key ${error}`);
-  expect(upperKey).to.eq(publicKeys[1], `upper key ${error}`);
+  const storedPublicKey = await passkeyValidator.getPublicKey(domain, credentialId, wallet.address);
+  expect(storedPublicKey[0]).to.eq(publicKeys[0], `lower key ${error}`);
+  expect(storedPublicKey[1]).to.eq(publicKeys[1], `upper key ${error}`);
 
   const accountAddress = await passkeyValidator.keyExistsOnDomain(domain, credentialId);
   if (publicKeys[0] == ZEROKEY && publicKeys[1] == ZEROKEY) {
@@ -453,9 +452,9 @@ async function validateSignatureTest(
     sampleClientString,
     [
       pad(toHex(rNormalization(generatedSignature.r))),
-      pad(toHex(sNormalization(generatedSignature.s)))
+      pad(toHex(sNormalization(generatedSignature.s))),
     ],
-    credentialId
+    credentialId,
   ]);
   return await passkeyValidator.validateSignature(transactionHash, fatSignature);
 }
@@ -517,10 +516,9 @@ describe("Passkey validation", function () {
 
       const [generatedX, generatedY] = await getRawPublicKeyFromCrpyto(generatedR1Key);
 
-      const initLowerKey = await passKeyModuleContract.lowerKeyHalf(sampleDomain, credentialId, proxyAccountAddress);
-      expect(initLowerKey).to.equal(toHex(generatedX), "initial lower key should exist");
-      const initUpperKey = await passKeyModuleContract.upperKeyHalf(sampleDomain, credentialId, proxyAccountAddress);
-      expect(initUpperKey).to.equal(toHex(generatedY), "initial upper key should exist");
+      const initKey = await passKeyModuleContract.getPublicKey(sampleDomain, credentialId, proxyAccountAddress);
+      expect(initKey[0]).to.equal(toHex(generatedX), "initial lower key should exist");
+      expect(initKey[1]).to.equal(toHex(generatedY), "initial upper key should exist");
 
       const account = SsoAccount__factory.connect(proxyAccountAddress, provider);
       assert(await account.k1IsOwner(fixtures.wallet.address));

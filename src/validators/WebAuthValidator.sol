@@ -31,11 +31,16 @@ contract WebAuthValidator is VerifierCaller, IModuleValidator {
   event PasskeyCreated(address indexed keyOwner, string originDomain, bytes credentialId);
   event PasskeyRemoved(address indexed keyOwner, string originDomain, bytes credentialId);
 
-  // The layout is unusual due to EIP-7562 storage read restrictions for validation phase.
-  mapping(string originDomain => mapping(bytes credentialId => mapping(address accountAddress => bytes32 publicKey)))
-    public lowerKeyHalf;
-  mapping(string originDomain => mapping(bytes credentialId => mapping(address accountAddress => bytes32 publicKey)))
-    public upperKeyHalf;
+  mapping(string originDomain => mapping(bytes credentialId => mapping(address accountAddress => bytes32[2] publicKey)))
+    public publicKeyByDomainByIdByAddress;
+
+  function getPublicKey(
+    string calldata originDomain,
+    bytes calldata credentialId,
+    address accountAddress
+  ) external view returns (bytes32[2] memory) {
+    return publicKeyByDomainByIdByAddress[originDomain][credentialId][accountAddress];
+  }
 
   // so you can check if you are using this passkey on this or related domains
   mapping(string originDomain => mapping(bytes credentialId => address accountAddress)) public keyExistsOnDomain;
@@ -72,8 +77,8 @@ contract WebAuthValidator is VerifierCaller, IModuleValidator {
   }
 
   function _removeValidationKey(bytes memory credentialId, string memory domain) internal {
-    lowerKeyHalf[domain][credentialId][msg.sender] = 0x0;
-    upperKeyHalf[domain][credentialId][msg.sender] = 0x0;
+    publicKeyByDomainByIdByAddress[domain][credentialId][msg.sender][0] = 0x0;
+    publicKeyByDomainByIdByAddress[domain][credentialId][msg.sender][1] = 0x0;
     if (keyExistsOnDomain[domain][credentialId] == msg.sender) {
       keyExistsOnDomain[domain][credentialId] = address(0);
     }
@@ -90,9 +95,8 @@ contract WebAuthValidator is VerifierCaller, IModuleValidator {
     bytes32[2] memory rawPublicKey,
     string memory originDomain
   ) public returns (bool) {
-    bytes32 initialLowerHalf = lowerKeyHalf[originDomain][credentialId][msg.sender];
-    bytes32 initialUpperHalf = upperKeyHalf[originDomain][credentialId][msg.sender];
-    if (uint256(initialLowerHalf) != 0 || uint256(initialUpperHalf) != 0) {
+    bytes32[2] memory initialKey = publicKeyByDomainByIdByAddress[originDomain][credentialId][msg.sender];
+    if (uint256(initialKey[0]) != 0 || uint256(initialKey[1]) != 0) {
       return false;
     }
     if (keyExistsOnDomain[originDomain][credentialId] != address(0)) {
@@ -104,8 +108,7 @@ contract WebAuthValidator is VerifierCaller, IModuleValidator {
       return false;
     }
 
-    lowerKeyHalf[originDomain][credentialId][msg.sender] = rawPublicKey[0];
-    upperKeyHalf[originDomain][credentialId][msg.sender] = rawPublicKey[1];
+    publicKeyByDomainByIdByAddress[originDomain][credentialId][msg.sender] = rawPublicKey;
     keyExistsOnDomain[originDomain][credentialId] = msg.sender;
 
     emit PasskeyCreated(msg.sender, originDomain, credentialId);
@@ -181,9 +184,7 @@ contract WebAuthValidator is VerifierCaller, IModuleValidator {
     // the origin determines which key to validate against
     // as passkeys are linked to domains, so the storage mapping reflects that
     string memory origin = root.at('"origin"').value().decodeString();
-    bytes32[2] memory pubkey;
-    pubkey[0] = lowerKeyHalf[origin][credentialId][msg.sender];
-    pubkey[1] = upperKeyHalf[origin][credentialId][msg.sender];
+    bytes32[2] memory pubkey = publicKeyByDomainByIdByAddress[origin][credentialId][msg.sender];
     // This really only validates the origin is set
     if (uint256(pubkey[0]) == 0 || uint256(pubkey[1]) == 0) {
       return false;
