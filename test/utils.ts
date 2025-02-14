@@ -24,6 +24,7 @@ import type {
   WebAuthValidator,
   SsoBeacon,
   AccountProxy,
+  OidcKeyRegistry,
   GuardianRecoveryValidator
 } from "../typechain-types";
 import {
@@ -36,6 +37,7 @@ import {
   WebAuthValidator__factory,
   SsoBeacon__factory,
   TestPaymaster__factory,
+  OidcKeyRegistry__factory,
   GuardianRecoveryValidator__factory
 } from "../typechain-types";
 
@@ -133,6 +135,15 @@ export class ContractFixtures {
       this._accountProxyContract = AccountProxy__factory.connect(await contract.getAddress(), this.wallet);
     }
     return this._accountProxyContract;
+  }
+
+  private _oicdKeyRegistryContract: OidcKeyRegistry;
+  async deployOidcKeyRegistryContract() {
+    if (!this._oicdKeyRegistryContract) {
+      const contract = await create2("OidcKeyRegistry", this.wallet, randomBytes(32));
+      this._oicdKeyRegistryContract = OidcKeyRegistry__factory.connect(await contract.getAddress(), this.wallet);
+    }
+    return this._oicdKeyRegistryContract;
   }
 
   async getAccountImplAddress(salt?: ethers.BytesLike) {
