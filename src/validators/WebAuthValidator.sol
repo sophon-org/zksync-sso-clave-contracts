@@ -4,6 +4,7 @@ pragma solidity ^0.8.24;
 import { Transaction } from "@matterlabs/zksync-contracts/l2/system-contracts/libraries/TransactionHelper.sol";
 import { IERC165 } from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 
+import { ISsoAccount } from "../interfaces/ISsoAccount.sol";
 import { IModuleValidator } from "../interfaces/IModuleValidator.sol";
 import { IModule } from "../interfaces/IModule.sol";
 import { VerifierCaller } from "../helpers/VerifierCaller.sol";
@@ -31,6 +32,8 @@ contract WebAuthValidator is VerifierCaller, IModuleValidator {
   event PasskeyCreated(address indexed keyOwner, string originDomain, bytes credentialId);
   event PasskeyRemoved(address indexed keyOwner, string originDomain, bytes credentialId);
 
+  error AccountAlreadyRegistered(string originDomain, bytes credentialId);
+
   // The layout is unusual due to EIP-7562 storage read restrictions for validation phase.
   mapping(string originDomain => mapping(bytes credentialId => mapping(address accountAddress => bytes32 publicKey)))
     public lowerKeyHalf;
@@ -40,6 +43,10 @@ contract WebAuthValidator is VerifierCaller, IModuleValidator {
   // so you can check if you are using this passkey on this or related domains
   mapping(string originDomain => mapping(bytes credentialId => address accountAddress)) public keyExistsOnDomain;
   mapping(string originDomain => mapping(address accountAddress => bytes[] credentialIds)) public domainAccountKeys;
+
+  /// @notice A mapping that marks account IDs as being reserved for use, but not yet working.
+  /// @dev This is used to prevent the same account ID from being used for recovery, deployment and future uses.
+  mapping(string originDomain => mapping(bytes credentialId => address accountAddress)) public reservedAccountIds;
 
   struct PasskeyId {
     string domain;
@@ -114,6 +121,10 @@ contract WebAuthValidator is VerifierCaller, IModuleValidator {
       // empty keys aren't valid, if attempting to clear, use remove
       return false;
     }
+    if (reservedAccountIds[originDomain][credentialId] != address(0)) {
+      // this key is already reserved for another user
+      return false;
+    }
 
     lowerKeyHalf[originDomain][credentialId][msg.sender] = rawPublicKey[0];
     upperKeyHalf[originDomain][credentialId][msg.sender] = rawPublicKey[1];
@@ -123,6 +134,46 @@ contract WebAuthValidator is VerifierCaller, IModuleValidator {
     emit PasskeyCreated(msg.sender, originDomain, credentialId);
 
     return true;
+  }
+
+  /// @notice Updates the account mapping for a given account ID during recovery.
+  /// @dev Can only be called by the account's validators.
+  /// @param credentialId unique public identifier for the key
+  /// @param originDomain the domain this associated with
+  /// @param accountAddress The address of the account to update the mapping for.
+  function reserveCredentialId(
+    bytes memory credentialId,
+    string memory originDomain,
+    address accountAddress
+  ) external onlyAccountValidator(accountAddress) {
+    require(
+      keyExistsOnDomain[originDomain][credentialId] == address(0),
+      AccountAlreadyRegistered(originDomain, credentialId)
+    );
+    require(
+      reservedAccountIds[originDomain][credentialId] == address(0),
+      AccountAlreadyRegistered(originDomain, credentialId)
+    );
+
+    reservedAccountIds[originDomain][credentialId] = accountAddress;
+  }
+
+  /// @notice Updates the account mapping for a given account ID during recovery.
+  /// @dev Can only be called by the account's validators.
+  /// @param credentialId unique public identifier for the key
+  /// @param originDomain the domain this associated with
+  /// @param accountAddress The address of the account to update the mapping for.
+  function releaseCredentialIdReservation(
+    bytes memory credentialId,
+    string memory originDomain,
+    address accountAddress
+  ) external onlyAccountValidator(accountAddress) {
+    require(
+      reservedAccountIds[originDomain][credentialId] == accountAddress,
+      AccountAlreadyRegistered(originDomain, credentialId)
+    );
+
+    reservedAccountIds[originDomain][credentialId] = address(0);
   }
 
   /// @notice Validates a WebAuthn signature
@@ -270,5 +321,12 @@ contract WebAuthValidator is VerifierCaller, IModuleValidator {
     address accountAddress
   ) external view returns (bytes[] memory) {
     return domainAccountKeys[originDomain][accountAddress];
+  }
+
+  /// @notice Modifier that checks if the caller is a validator for the given account.
+  /// @param _accountAddress The address of the account to check the validator for.
+  modifier onlyAccountValidator(address _accountAddress) {
+    require(ISsoAccount(_accountAddress).isModuleValidator(msg.sender), "Unauthorized validator");
+    _;
   }
 }

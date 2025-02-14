@@ -182,13 +182,23 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
     string memory accountId
   ) external onlyGuardianOf(accountToRecover) {
     //Fix overwriting existing
+    (bytes memory credentialId, bytes32[2] memory rawPublicKey, string memory originDomain) = abi.decode(
+      passkey,
+      (bytes, bytes32[2], string)
+    );
     pendingRecoveryData[accountToRecover] = RecoveryRequest(passkey, block.timestamp, accountId);
     aaFactory.registerRecoveryBlockedAccount(accountId, accountToRecover);
+    webAuthValidator.reserveCredentialId(credentialId, originDomain, accountToRecover);
     emit RecoveryInitiated(accountToRecover, msg.sender);
   }
 
   /// @notice This method allows to discard currently pending recovery
   function discardRecovery() external {
+    (bytes memory credentialId, bytes32[2] memory rawPublicKey, string memory originDomain) = abi.decode(
+      pendingRecoveryData[msg.sender].passkey,
+      (bytes, bytes32[2], string)
+    );
+    webAuthValidator.releaseCredentialIdReservation(credentialId, originDomain, msg.sender);
     aaFactory.unregisterRecoveryBlockedAccount(pendingRecoveryData[msg.sender].accountId, msg.sender);
     delete pendingRecoveryData[msg.sender];
   }
@@ -264,6 +274,12 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
     aaFactory.unregisterAccount(previousAccountId, msg.sender);
     aaFactory.unregisterRecoveryBlockedAccount(accountId, msg.sender);
     aaFactory.registerAccount(accountId, msg.sender);
+
+    (bytes memory credentialId, bytes32[2] memory rawPublicKey, string memory originDomain) = abi.decode(
+      validationKeyData,
+      (bytes, bytes32[2], string)
+    );
+    webAuthValidator.releaseCredentialIdReservation(credentialId, originDomain, msg.sender);
 
     // Cleanup currently processed recovery data
     delete pendingRecoveryData[msg.sender];
