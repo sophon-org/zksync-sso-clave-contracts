@@ -42,7 +42,9 @@ contract WebAuthValidator is VerifierCaller, IModuleValidator {
     return publicKeyByDomainByIdByAddress[originDomain][credentialId][accountAddress];
   }
 
-  // so you can check if you are using this passkey on this or related domains
+  // This exists to allow account creation to check if a passkey has already been added to another account
+  // While having 1 passkey tied to multiple accounts would have been possible,
+  // this allows us to reject it and serve as an account address lookup (replacing upstream chec)
   mapping(string originDomain => mapping(bytes credentialId => address accountAddress)) public keyExistsOnDomain;
 
   struct PasskeyId {
@@ -100,7 +102,7 @@ contract WebAuthValidator is VerifierCaller, IModuleValidator {
       return false;
     }
     if (keyExistsOnDomain[originDomain][credentialId] != address(0)) {
-      // this key already exists on the domain (but it was zero before?)
+      // this key already exists on the domain for an existing account
       return false;
     }
     if (rawPublicKey[0] == 0 && rawPublicKey[1] == 0) {
