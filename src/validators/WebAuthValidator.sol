@@ -10,6 +10,7 @@ import { VerifierCaller } from "../helpers/VerifierCaller.sol";
 import { Strings } from "@openzeppelin/contracts/utils/Strings.sol";
 import { Base64 } from "solady/src/utils/Base64.sol";
 import { JSONParserLib } from "solady/src/utils/JSONParserLib.sol";
+import { Errors } from "../libraries/Errors.sol";
 
 /// @title WebAuthValidator
 /// @author Matter Labs
@@ -60,7 +61,9 @@ contract WebAuthValidator is VerifierCaller, IModuleValidator {
         data,
         (bytes, bytes32[2], string)
       );
-      require(addValidationKey(credentialId, rawPublicKey, originDomain), "WebAuthValidator: key already exists");
+      if (!addValidationKey(credentialId, rawPublicKey, originDomain)) {
+        revert Errors.WEBAUTHN_KEY_EXISTS();
+      }
     }
   }
 
