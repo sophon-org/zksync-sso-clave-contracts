@@ -390,12 +390,11 @@ async function verifyKeyStorage(
   wallet: Wallet,
   error: string,
 ) {
-  const accountKey = await passkeyValidator.getAccountKey(domain, credentialId);
-  const storedPublicKey = accountKey.publicKey;
+  const storedPublicKey = await passkeyValidator.getAccountKey(domain, credentialId, wallet.address);
   expect(storedPublicKey[0]).to.eq(publicKeys[0], `lower key ${error}`);
   expect(storedPublicKey[1]).to.eq(publicKeys[1], `upper key ${error}`);
 
-  const accountAddress = accountKey.accountAddress;
+  const accountAddress = await passkeyValidator.accountAddressByDomainById(domain, credentialId);
   if (publicKeys[0] == ZEROKEY && publicKeys[1] == ZEROKEY) {
     expect(accountAddress).to.eq(ZeroAddress, `key ownership matches for ${error}`);
   } else {
@@ -516,9 +515,9 @@ describe("Passkey validation", function () {
 
       const [generatedX, generatedY] = await getRawPublicKeyFromCrpyto(generatedR1Key);
 
-      const initAccountKey = await passKeyModuleContract.getAccountKey(sampleDomain, credentialId);
-      expect(initAccountKey.publicKey[0]).to.equal(toHex(generatedX), "initial lower key should exist");
-      expect(initAccountKey.publicKey[1]).to.equal(toHex(generatedY), "initial upper key should exist");
+      const initAccountKey = await passKeyModuleContract.getAccountKey(sampleDomain, credentialId, proxyAccountAddress);
+      expect(initAccountKey[0]).to.equal(toHex(generatedX), "initial lower key should exist");
+      expect(initAccountKey[1]).to.equal(toHex(generatedY), "initial upper key should exist");
 
       const account = SsoAccount__factory.connect(proxyAccountAddress, provider);
       assert(await account.k1IsOwner(fixtures.wallet.address));
@@ -604,8 +603,8 @@ describe("Passkey validation", function () {
       assert(keyReceipt?.status == 1, "key was saved");
       logInfo(`gas used to save a passkey: ${keyReceipt.gasUsed.toString()}`);
 
-      const accountKey = await passkeyValidator.getAccountKey("http://localhost:5173", credentialId);
-      assert(accountKey.accountAddress == wallet.address, "saved account address");
+      const accountAddress = await passkeyValidator.accountAddressByDomainById("http://localhost:5173", credentialId);
+      assert(accountAddress == wallet.address, "saved account address");
     });
 
     it("should add a second validation key", async function () {
@@ -676,8 +675,8 @@ describe("Passkey validation", function () {
       const zeroKey = new Uint8Array(32).fill(0);
       await verifyKeyStorage(passkeyValidator, keyDomain, [toHex(zeroKey), toHex(zeroKey)], credentialId, wallet, "key removed");
 
-      const accountKey = await passkeyValidator.getAccountKey(keyDomain, credentialId);
-      assert(accountKey.accountAddress == ZeroAddress, "removed account address");
+      const accountAddress = await passkeyValidator.accountAddressByDomainById(keyDomain, credentialId);
+      assert(accountAddress == ZeroAddress, "removed account address");
     });
 
     it("should not allow clearing other sender keys", async () => {
