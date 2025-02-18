@@ -7,7 +7,7 @@ import { Wallet } from "zksync-ethers";
 const WEBAUTH_NAME = "WebAuthValidator";
 const SESSIONS_NAME = "SessionKeyValidator";
 const GUARDIAN_RECOVERY_NAME = "GuardianRecoveryValidator";
-const OIDC_RECOVERY_NAME = "OidcValidator";
+const OIDC_RECOVERY_NAME = "OidcRecoveryValidator";
 const OIDC_VERIFIER_NAME = "Groth16Verifier";
 const ACCOUNT_IMPL_NAME = "SsoAccount";
 const FACTORY_NAME = "AAFactory";
@@ -86,10 +86,12 @@ task("deploy", "Deploys ZKsync SSO contracts")
       const factory = await deploy(FACTORY_NAME, deployer, !cmd.noProxy, [beacon]);
       const guardianInterface = new ethers.Interface((await hre.artifacts.readArtifact(GUARDIAN_RECOVERY_NAME)).abi);
       const recovery = await deploy(GUARDIAN_RECOVERY_NAME, deployer, !cmd.noProxy, [webauth, factory], guardianInterface.encodeFunctionData("initialize", [webauth, factory]));
-      const paymaster = await deploy(PAYMASTER_NAME, deployer, false, [factory, sessions, recovery]);
       const oidcKeyRegistryInterface = new ethers.Interface((await hre.artifacts.readArtifact(OIDC_KEY_REGISTRY_NAME)).abi);
       const oidcKeyRegistry = await deploy(OIDC_KEY_REGISTRY_NAME, deployer, !cmd.noProxy, [], oidcKeyRegistryInterface.encodeFunctionData("initialize", []));
+      const oidcRecoveryInterface = new ethers.Interface((await hre.artifacts.readArtifact(OIDC_RECOVERY_NAME)).abi);
       const oidcVerifier = await deploy(OIDC_VERIFIER_NAME, deployer, false, []);
+      const oidcRecovery = await deploy(OIDC_RECOVERY_NAME, deployer, !cmd.noProxy, [oidcKeyRegistry, oidcVerifier], oidcRecoveryInterface.encodeFunctionData("initialize", [oidcKeyRegistry, oidcVerifier]));
+      const paymaster = await deploy(PAYMASTER_NAME, deployer, false, [factory, sessions, recovery, oidcRecovery]);
       await deploy(OIDC_RECOVERY_NAME, deployer, !cmd.noProxy, [oidcKeyRegistry, oidcVerifier]);
 
       await fundPaymaster(paymaster, cmd.fund);
