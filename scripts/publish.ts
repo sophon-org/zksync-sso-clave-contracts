@@ -23,7 +23,7 @@ function toAbiName(contractName: string) {
 }
 
 function writeAbiToTs(abi: string, contractName: string, destPath: string) {
-  const tsData = `export const ${toAbiName(contractName)} = ${JSON.stringify(abi, null, 2)};`;
+  const tsData = `export const ${toAbiName(contractName)} = ${JSON.stringify(abi, null, 2)} as const;`;
   const tsPath = path.join(destPath, `${contractName}.ts`);
   fs.writeFileSync(tsPath, tsData);
 }
