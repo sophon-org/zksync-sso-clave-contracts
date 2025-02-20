@@ -26,6 +26,7 @@ contract ExampleAuthServerPaymaster is IPaymaster, Ownable {
   bytes4 constant GUARDIAN_RECOVERY_PROPOSE_KEY_SELECTOR = GuardianRecoveryValidator.proposeValidationKey.selector;
   bytes4 constant GUARDIAN_RECOVERY_DISCARD_RECOVERY_SELECTOR = GuardianRecoveryValidator.discardRecovery.selector;
   bytes4 constant GUARDIAN_RECOVERY_REMOVE_KEY_SELECTOR = GuardianRecoveryValidator.removeValidationKey.selector;
+  bytes4 constant GUARDIAN_RECOVERY_INIT_RECOVERY_SELECTOR = GuardianRecoveryValidator.initRecovery.selector;
 
   modifier onlyBootloader() {
     require(msg.sender == BOOTLOADER_FORMAL_ADDRESS, "Only bootloader can call this method");
@@ -77,7 +78,8 @@ contract ExampleAuthServerPaymaster is IPaymaster, Ownable {
         methodSelector == GUARDIAN_RECOVERY_ADD_KEY_SELECTOR ||
           methodSelector == GUARDIAN_RECOVERY_PROPOSE_KEY_SELECTOR ||
           methodSelector == GUARDIAN_RECOVERY_DISCARD_RECOVERY_SELECTOR ||
-          methodSelector == GUARDIAN_RECOVERY_REMOVE_KEY_SELECTOR,
+          methodSelector == GUARDIAN_RECOVERY_REMOVE_KEY_SELECTOR ||
+          methodSelector == GUARDIAN_RECOVERY_INIT_RECOVERY_SELECTOR,
         "Unsupported method"
       );
     }
