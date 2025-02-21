@@ -12,7 +12,8 @@ import { encodeAbiParameters, Hex, hexToBytes, pad, toHex } from "viem";
 import { SmartAccount, Wallet } from "zksync-ethers";
 import { base64UrlToUint8Array } from "zksync-sso/utils";
 
-import { SsoAccount__factory, WebAuthValidator, WebAuthValidator__factory, WebAuthValidatorTest, WebAuthValidatorTest__factory } from "../typechain-types";
+import { SsoAccount__factory, WebAuthValidator__factory, WebAuthValidatorTest__factory, IModuleValidator__factory, IERC165__factory } from "../typechain-types";
+import type { WebAuthValidator, WebAuthValidatorTest } from "../typechain-types";
 import { ContractFixtures, getProvider, getWallet, LOCAL_RICH_WALLETS, logInfo, RecordedResponse } from "./utils";
 
 /**
@@ -390,12 +391,11 @@ async function verifyKeyStorage(
   wallet: Wallet,
   error: string,
 ) {
-  const lowerKey = await passkeyValidator.lowerKeyHalf(domain, credentialId, wallet.address);
-  const upperKey = await passkeyValidator.upperKeyHalf(domain, credentialId, wallet.address);
-  expect(lowerKey).to.eq(publicKeys[0], `lower key ${error}`);
-  expect(upperKey).to.eq(publicKeys[1], `upper key ${error}`);
+  const storedPublicKey = await passkeyValidator.getAccountKey(domain, credentialId, wallet.address);
+  expect(storedPublicKey[0]).to.eq(publicKeys[0], `lower key ${error}`);
+  expect(storedPublicKey[1]).to.eq(publicKeys[1], `upper key ${error}`);
 
-  const accountAddress = await passkeyValidator.keyExistsOnDomain(domain, credentialId);
+  const accountAddress = await passkeyValidator.accountAddressByDomainById(domain, credentialId);
   if (publicKeys[0] == ZEROKEY && publicKeys[1] == ZEROKEY) {
     expect(accountAddress).to.eq(ZeroAddress, `key ownership matches for ${error}`);
   } else {
@@ -404,7 +404,6 @@ async function verifyKeyStorage(
 }
 
 function encodeKeyFromHex(credentialId: Hex, keyHexStrings: [Hex, Hex], domain: string) {
-  // the same as the ethers: new AbiCoder().encode(["bytes32[2]", "string"], [bytes, domain]);
   return encodeAbiParameters(
     [
       { name: "credentialId", type: "bytes" },
@@ -517,10 +516,9 @@ describe("Passkey validation", function () {
 
       const [generatedX, generatedY] = await getRawPublicKeyFromCrpyto(generatedR1Key);
 
-      const initLowerKey = await passKeyModuleContract.lowerKeyHalf(sampleDomain, credentialId, proxyAccountAddress);
-      expect(initLowerKey).to.equal(toHex(generatedX), "initial lower key should exist");
-      const initUpperKey = await passKeyModuleContract.upperKeyHalf(sampleDomain, credentialId, proxyAccountAddress);
-      expect(initUpperKey).to.equal(toHex(generatedY), "initial upper key should exist");
+      const initAccountKey = await passKeyModuleContract.getAccountKey(sampleDomain, credentialId, proxyAccountAddress);
+      expect(initAccountKey[0]).to.equal(toHex(generatedX), "initial lower key should exist");
+      expect(initAccountKey[1]).to.equal(toHex(generatedY), "initial upper key should exist");
 
       const account = SsoAccount__factory.connect(proxyAccountAddress, provider);
       assert(await account.k1IsOwner(fixtures.wallet.address));
@@ -588,9 +586,16 @@ describe("Passkey validation", function () {
 
   it("should support ERC165 and IModuleValidator", async () => {
     const passkeyValidator = await deployValidator(wallet);
-    const erc165Supported = await passkeyValidator.supportsInterface("0x01ffc9a7");
+    const ierc165 = IERC165__factory.createInterface().getFunction("supportsInterface").selector;
+    const erc165Supported = await passkeyValidator.supportsInterface(ierc165);
     assert(erc165Supported, "should support ERC165");
-    const iModuleValidatorSupported = await passkeyValidator.supportsInterface("0x0c119b61");
+
+    const ivalidator = IModuleValidator__factory.createInterface();
+    const xoredSelectors =
+      BigInt(ivalidator.getFunction("validateSignature").selector) ^
+      BigInt(ivalidator.getFunction("validateTransaction").selector);
+    const ivalidatorId = '0x' + xoredSelectors.toString(16).padStart(8, '0');
+    const iModuleValidatorSupported = await passkeyValidator.supportsInterface(ivalidatorId);
     assert(iModuleValidatorSupported, "should support IModuleValidator");
   });
 
@@ -606,8 +611,8 @@ describe("Passkey validation", function () {
       assert(keyReceipt?.status == 1, "key was saved");
       logInfo(`gas used to save a passkey: ${keyReceipt.gasUsed.toString()}`);
 
-      const savedAddress = await passkeyValidator.keyExistsOnDomain("http://localhost:5173", credentialId);
-      assert(savedAddress == wallet.address, "saved account address");
+      const accountAddress = await passkeyValidator.accountAddressByDomainById("http://localhost:5173", credentialId);
+      assert(accountAddress == wallet.address, "saved account address");
     });
 
     it("should add a second validation key", async function () {
@@ -678,8 +683,8 @@ describe("Passkey validation", function () {
       const zeroKey = new Uint8Array(32).fill(0);
       await verifyKeyStorage(passkeyValidator, keyDomain, [toHex(zeroKey), toHex(zeroKey)], credentialId, wallet, "key removed");
 
-      const savedAddress = await passkeyValidator.keyExistsOnDomain(keyDomain, credentialId);
-      assert(savedAddress == ZeroAddress, "removed account address");
+      const accountAddress = await passkeyValidator.accountAddressByDomainById(keyDomain, credentialId);
+      assert(accountAddress == ZeroAddress, "removed account address");
     });
 
     it("should not allow clearing other sender keys", async () => {
