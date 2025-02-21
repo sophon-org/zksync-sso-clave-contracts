@@ -17,11 +17,7 @@ interface IGuardianRecoveryValidator is IModuleValidator {
 
   function addValidationKey(bytes memory key) external returns (bool);
 
-  function validateTransaction(
-    bytes32 signedHash,
-    bytes memory signature,
-    Transaction calldata transaction
-  ) external returns (bool);
+  function validateTransaction(bytes32 signedHash, Transaction calldata transaction) external returns (bool);
 
   function validateSignature(bytes32 signedHash, bytes memory signature) external view returns (bool);
 }

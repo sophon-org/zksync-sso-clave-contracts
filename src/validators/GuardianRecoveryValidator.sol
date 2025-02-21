@@ -9,8 +9,7 @@ import { IERC165 } from "@openzeppelin/contracts/utils/introspection/IERC165.sol
 import { IModuleValidator } from "../interfaces/IModuleValidator.sol";
 import { IModule } from "../interfaces/IModule.sol";
 import { TimestampAsserterLocator } from "../helpers/TimestampAsserterLocator.sol";
-import { SsoAccount } from "../SsoAccount.sol";
-import { Call } from "../batch/BatchCaller.sol";
+import { BatchCaller, Call } from "../batch/BatchCaller.sol";
 
 contract GuardianRecoveryValidator is IGuardianRecoveryValidator {
   struct Guardian {
@@ -189,7 +188,7 @@ contract GuardianRecoveryValidator is IGuardianRecoveryValidator {
       "Credential already being used"
     );
 
-    pendingRecoveryData[accountToRecover] = RecoveryRequest(passkey, block.timestamp, accountId);
+    pendingRecoveryData[accountToRecover] = RecoveryRequest(passkey, block.timestamp, accountId, false);
     reservedCredentialIds[originDomain][credentialId] = accountToRecover;
 
     emit RecoveryInitiated(accountToRecover, msg.sender);
@@ -217,14 +216,16 @@ contract GuardianRecoveryValidator is IGuardianRecoveryValidator {
   }
 
   /// @notice Checks if a given passkey matches a pending recovery request and is ready to be used
-  /// @param accountId The account ID to check
+  /// @param originDomain Origin domain to check
+  /// @param credentialId The account ID to check
   /// @return account The account being recovered (zero address if no match)
   /// @return ready True if the passkey matches and is ready to be used
   /// @return remainingTime Time in seconds until the passkey can be used (0 if ready or no match)
   function checkRecoveryRequest(
-    string memory accountId
+    string memory originDomain,
+    bytes memory credentialId
   ) external view returns (address account, bool ready, uint256 remainingTime) {
-    account = aaFactory.recoveryAccountIds(accountId);
+    account = reservedCredentialIds[originDomain][credentialId];
 
     if (account == address(0)) {
       return (account, false, 0);
@@ -248,8 +249,8 @@ contract GuardianRecoveryValidator is IGuardianRecoveryValidator {
   }
 
   /// @inheritdoc IModuleValidator
-  function validateTransaction(bytes32, bytes memory, Transaction calldata transaction) external returns (bool) {
-    // If the user has a recovery in progress then:
+  function validateTransaction(bytes32, Transaction calldata transaction) external returns (bool) {
+    // Finishing Recovery Process : If the user has a recovery in progress then:
     //   1. The method will verify transaction is a batch call
     //   2. Checks if the transaction is attempting to modify passkeys
     //   3. Verify the new passkey is the one stored in `initRecovery`
@@ -265,11 +266,11 @@ contract GuardianRecoveryValidator is IGuardianRecoveryValidator {
     }
 
     bytes4 selector = bytes4(transaction.data[:4]);
-    if (selector != SsoAccount.batchCall.selector) {
+    if (selector != BatchCaller.batchCall.selector) {
       return false;
     }
 
-    bytes memory data = transaction.data[4:];
+    bytes calldata data = transaction.data[4:];
     Call[] memory calls = abi.decode(data, (Call[]));
     if (calls.length != 2) {
       return false;
@@ -279,7 +280,9 @@ contract GuardianRecoveryValidator is IGuardianRecoveryValidator {
     if (calls[0].target != address(webAuthValidator)) {
       return false;
     }
-    bytes4 call0Selector = bytes4(calls[0].callData[:4]);
+
+    (bytes4 call0Selector, bytes memory credentialId, bytes32[2] memory rawPublicKey, string memory originDomain) = abi
+      .decode(calls[0].callData, (bytes4, bytes, bytes32[2], string));
     if (call0Selector != WebAuthValidator.addValidationKey.selector) {
       return false;
     }
@@ -287,12 +290,15 @@ contract GuardianRecoveryValidator is IGuardianRecoveryValidator {
       return false;
     }
 
-    bytes memory validationKeyData = calls[0].callData[4:];
+    (bytes memory storedCredentialId, bytes32[2] memory storedRawPublicKey, string memory storedOriginDomain) = abi
+      .decode(pendingRecoveryData[msg.sender].passkey, (bytes, bytes32[2], string));
 
     // Verify that current request matches pending one
     if (
-      pendingRecoveryData[msg.sender].passkey.length != validationKeyData.length ||
-      keccak256(pendingRecoveryData[msg.sender].passkey) != keccak256(validationKeyData)
+      keccak256(credentialId) != keccak256(storedCredentialId) ||
+      rawPublicKey[0] != storedRawPublicKey[0] ||
+      rawPublicKey[1] != storedRawPublicKey[1] ||
+      keccak256(abi.encode(originDomain)) != keccak256(abi.encode(storedOriginDomain))
     ) {
       return false;
     }
@@ -307,7 +313,7 @@ contract GuardianRecoveryValidator is IGuardianRecoveryValidator {
     if (calls[1].target != address(this)) {
       return false;
     }
-    bytes4 call1Selector = bytes4(calls[1].callData[:4]);
+    bytes4 call1Selector = abi.decode(calls[1].callData, (bytes4));
     if (call1Selector != GuardianRecoveryValidator.finishRecovery.selector) {
       return false;
     }
