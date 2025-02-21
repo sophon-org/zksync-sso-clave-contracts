@@ -5,14 +5,14 @@ import { IGuardianRecoveryValidator } from "../interfaces/IGuardianRecoveryValid
 import { WebAuthValidator } from "./WebAuthValidator.sol";
 import { AAFactory } from "../AAFactory.sol";
 import { Transaction } from "@matterlabs/zksync-contracts/l2/system-contracts/libraries/TransactionHelper.sol";
-import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import { IERC165 } from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
-import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import { IModuleValidator } from "../interfaces/IModuleValidator.sol";
 import { IModule } from "../interfaces/IModule.sol";
-import { SignatureDecoder } from "../libraries/SignatureDecoder.sol";
+import { TimestampAsserterLocator } from "../helpers/TimestampAsserterLocator.sol";
+import { SsoAccount } from "../SsoAccount.sol";
+import { Call } from "../batch/BatchCaller.sol";
 
-contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator {
+contract GuardianRecoveryValidator is IGuardianRecoveryValidator {
   struct Guardian {
     address addr;
     bool isReady;
@@ -22,6 +22,7 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
     bytes passkey;
     uint256 timestamp;
     string accountId;
+    bool isFinished;
   }
 
   error GuardianCannotBeSelf();
@@ -33,6 +34,8 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
 
   /// @dev Event indicating new recovery process being initiated
   event RecoveryInitiated(address account, address guardian);
+  event RecoveryFinished(address account);
+  event RecoveryDiscarded(address account);
 
   uint256 constant REQUEST_VALIDITY_TIME = 72 * 60 * 60; // 72 hours
   uint256 constant REQUEST_DELAY_TIME = 24 * 60 * 60; // 24 hours
@@ -40,19 +43,13 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
   mapping(address account => Guardian[]) public accountGuardians;
   mapping(address guardian => address[]) public guardedAccounts;
   mapping(address account => RecoveryRequest) public pendingRecoveryData;
+  mapping(string originDomain => mapping(bytes credentialId => address accountAddress)) public reservedCredentialIds;
 
-  WebAuthValidator public webAuthValidator;
-  AAFactory public aaFactory;
+  WebAuthValidator public immutable webAuthValidator;
+  AAFactory public immutable aaFactory;
 
   /// @notice The constructor sets the web authn validator for which recovery process can be initiated. Used only for non proxied deployment
   constructor(WebAuthValidator _webAuthValidator, AAFactory _aaFactory) {
-    initialize(_webAuthValidator, _aaFactory);
-  }
-
-  /// @notice Initializer function that sets validator initial configuration. Expected to be used in the proxy.
-  /// @dev Sets webAuthValidator address
-  /// @param _webAuthValidator Address of WebAuthnValidator contracts
-  function initialize(WebAuthValidator _webAuthValidator, AAFactory _aaFactory) public initializer {
     webAuthValidator = _webAuthValidator;
     aaFactory = _aaFactory;
   }
@@ -186,21 +183,37 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
       passkey,
       (bytes, bytes32[2], string)
     );
+
+    require(
+      webAuthValidator.accountAddressByDomainById(originDomain, credentialId) == address(0),
+      "Credential already being used"
+    );
+
     pendingRecoveryData[accountToRecover] = RecoveryRequest(passkey, block.timestamp, accountId);
-    aaFactory.registerRecoveryBlockedAccount(accountId, accountToRecover);
-    webAuthValidator.reserveCredentialId(credentialId, originDomain, accountToRecover);
+    reservedCredentialIds[originDomain][credentialId] = accountToRecover;
+
     emit RecoveryInitiated(accountToRecover, msg.sender);
+  }
+
+  /// @notice This method allows to finish currently pending recovery
+  function finishRecovery() external {
+    _discardRecovery();
+    emit RecoveryFinished(msg.sender);
   }
 
   /// @notice This method allows to discard currently pending recovery
   function discardRecovery() external {
+    _discardRecovery();
+    emit RecoveryDiscarded(msg.sender);
+  }
+
+  function _discardRecovery() internal {
     (bytes memory credentialId, bytes32[2] memory rawPublicKey, string memory originDomain) = abi.decode(
       pendingRecoveryData[msg.sender].passkey,
       (bytes, bytes32[2], string)
     );
-    webAuthValidator.releaseCredentialIdReservation(credentialId, originDomain, msg.sender);
-    aaFactory.unregisterRecoveryBlockedAccount(pendingRecoveryData[msg.sender].accountId, msg.sender);
     delete pendingRecoveryData[msg.sender];
+    delete reservedCredentialIds[originDomain][credentialId];
   }
 
   /// @notice Checks if a given passkey matches a pending recovery request and is ready to be used
@@ -237,52 +250,70 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
   /// @inheritdoc IModuleValidator
   function validateTransaction(bytes32, bytes memory, Transaction calldata transaction) external returns (bool) {
     // If the user has a recovery in progress then:
-    //   1. The method will verify calls to `WebAuthnModule`
+    //   1. The method will verify transaction is a batch call
     //   2. Checks if the transaction is attempting to modify passkeys
     //   3. Verify the new passkey is the one stored in `initRecovery`
     //   4. Allows anyone to call this method, as the recovery was already verified in `initRecovery`
     //   5. Verifies that the required timelock period has passed since `initRecovery` was called
     require(transaction.data.length >= 4, "Only function calls are supported");
-    bytes4 selector = bytes4(transaction.data[:4]);
-
     require(transaction.to <= type(uint160).max, "Overflow");
-    address target = address(uint160(transaction.to));
 
-    if (target != address(webAuthValidator)) {
+    // Verify the transaction is a batch call
+    address target = address(uint160(transaction.to));
+    if (target != msg.sender) {
       return false;
     }
 
-    // Check for calling "addValidationKey" method by anyone on WebAuthValidator contract
-    require(selector == WebAuthValidator.addValidationKey.selector, "Unauthorized function call");
-    bytes memory validationKeyData = transaction.data[4:];
+    bytes4 selector = bytes4(transaction.data[:4]);
+    if (selector != SsoAccount.batchCall.selector) {
+      return false;
+    }
+
+    bytes memory data = transaction.data[4:];
+    Call[] memory calls = abi.decode(data, (Call[]));
+    if (calls.length != 2) {
+      return false;
+    }
+
+    // Verify the first call is to "addValidationKey" method by anyone on WebAuthValidator contract
+    if (calls[0].target != address(webAuthValidator)) {
+      return false;
+    }
+    bytes4 call0Selector = bytes4(calls[0].callData[:4]);
+    if (call0Selector != WebAuthValidator.addValidationKey.selector) {
+      return false;
+    }
+    if (calls[0].allowFailure) {
+      return false;
+    }
+
+    bytes memory validationKeyData = calls[0].callData[4:];
 
     // Verify that current request matches pending one
     if (
       pendingRecoveryData[msg.sender].passkey.length != validationKeyData.length ||
       keccak256(pendingRecoveryData[msg.sender].passkey) != keccak256(validationKeyData)
-    ) revert PasskeyNotMatched();
+    ) {
+      return false;
+    }
 
     // Ensure time constraints
-    uint256 timePassedSinceRequest = block.timestamp - pendingRecoveryData[msg.sender].timestamp;
-    if (timePassedSinceRequest < REQUEST_DELAY_TIME) revert CooldownPeriodNotPassed();
-    if (timePassedSinceRequest > REQUEST_VALIDITY_TIME) revert ExpiredRequest();
-
-    string memory accountId = pendingRecoveryData[msg.sender].accountId;
-
-    // Update account mapping in AAFactory
-    string memory previousAccountId = aaFactory.accountIds(msg.sender);
-    aaFactory.unregisterAccount(previousAccountId, msg.sender);
-    aaFactory.unregisterRecoveryBlockedAccount(accountId, msg.sender);
-    aaFactory.registerAccount(accountId, msg.sender);
-
-    (bytes memory credentialId, bytes32[2] memory rawPublicKey, string memory originDomain) = abi.decode(
-      validationKeyData,
-      (bytes, bytes32[2], string)
+    TimestampAsserterLocator.locate().assertTimestampInRange(
+      pendingRecoveryData[msg.sender].timestamp + REQUEST_DELAY_TIME,
+      pendingRecoveryData[msg.sender].timestamp + REQUEST_VALIDITY_TIME
     );
-    webAuthValidator.releaseCredentialIdReservation(credentialId, originDomain, msg.sender);
 
-    // Cleanup currently processed recovery data
-    delete pendingRecoveryData[msg.sender];
+    // Verify the second call is to "finishRecovery" method by anyone on GuardianRecoveryValidator contract
+    if (calls[1].target != address(this)) {
+      return false;
+    }
+    bytes4 call1Selector = bytes4(calls[1].callData[:4]);
+    if (call1Selector != GuardianRecoveryValidator.finishRecovery.selector) {
+      return false;
+    }
+    if (calls[1].allowFailure) {
+      return false;
+    }
 
     return true;
   }
