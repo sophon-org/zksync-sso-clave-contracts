@@ -105,8 +105,7 @@ task("deploy", "Deploys ZKsync SSO contracts")
       const implementation = await deploy(ACCOUNT_IMPL_NAME, deployer, false);
       const beacon = await deploy(BEACON_NAME, deployer, false, [implementation]);
       const accountFactory = await deploy(FACTORY_NAME, deployer, !cmd.noProxy, [beacon]);
-      const guardianInterface = new ethers.Interface((await hre.artifacts.readArtifact(GUARDIAN_RECOVERY_NAME)).abi);
-      const recovery = await deploy(GUARDIAN_RECOVERY_NAME, deployer, !cmd.noProxy, [passkey, accountFactory], guardianInterface.encodeFunctionData("initialize", [passkey, accountFactory]));
+      const recovery = await deploy(GUARDIAN_RECOVERY_NAME, deployer, !cmd.noProxy, [passkey, accountFactory]);
       const accountPaymaster = await deploy(PAYMASTER_NAME, deployer, false, [accountFactory, session, recovery, passkey]);
 
       await fundPaymaster(deployer, accountPaymaster, cmd.fund);
