@@ -20,7 +20,7 @@ contract GuardianRecoveryValidator is IGuardianRecoveryValidator {
   struct RecoveryRequest {
     bytes32 hashedCredentialId;
     bytes32[2] rawPublicKey;
-    string originDomain;
+    bytes32 hashedOriginDomain;
     uint256 timestamp;
   }
 
@@ -31,7 +31,12 @@ contract GuardianRecoveryValidator is IGuardianRecoveryValidator {
   error CooldownPeriodNotPassed();
   error ExpiredRequest();
 
-  event RecoveryInitiated(address indexed account, address indexed guardian, bytes32 indexed hashedCredentialId);
+  event RecoveryInitiated(
+    address indexed account,
+    bytes32 indexed hashedOriginDomain,
+    bytes32 indexed hashedCredentialId,
+    address guardian
+  );
   event RecoveryFinished(address indexed account);
   event RecoveryDiscarded(address indexed account);
 
@@ -169,20 +174,20 @@ contract GuardianRecoveryValidator is IGuardianRecoveryValidator {
   /// @param accountToRecover Address of account for which given recovery is initiated
   /// @param hashedCredentialId Hashed credential ID of the new passkey
   /// @param rawPublicKey Raw public key of the new passkey
-  /// @param originDomain Origin domain of the new passkey
+  /// @param hashedOriginDomain Hash of origin domain of the new passkey
   function initRecovery(
     address accountToRecover,
     bytes32 hashedCredentialId,
     bytes32[2] memory rawPublicKey,
-    string memory originDomain
+    bytes32 hashedOriginDomain
   ) external onlyGuardianOf(accountToRecover) {
     pendingRecoveryData[accountToRecover] = RecoveryRequest(
       hashedCredentialId,
       rawPublicKey,
-      originDomain,
+      hashedOriginDomain,
       block.timestamp
     );
-    emit RecoveryInitiated(accountToRecover, msg.sender, hashedCredentialId);
+    emit RecoveryInitiated(accountToRecover, hashedOriginDomain, hashedCredentialId, msg.sender);
   }
 
   /// @notice This method allows to discard currently pending recovery
@@ -238,7 +243,7 @@ contract GuardianRecoveryValidator is IGuardianRecoveryValidator {
       keccak256(credentialId) != storedData.hashedCredentialId ||
       rawPublicKey[0] != storedData.rawPublicKey[0] ||
       rawPublicKey[1] != storedData.rawPublicKey[1] ||
-      keccak256(abi.encode(originDomain)) != keccak256(abi.encode(storedData.originDomain))
+      keccak256(abi.encode(originDomain)) != storedData.hashedOriginDomain
     ) {
       return false;
     }

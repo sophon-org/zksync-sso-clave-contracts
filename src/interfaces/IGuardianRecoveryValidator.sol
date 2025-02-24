@@ -13,7 +13,7 @@ interface IGuardianRecoveryValidator is IModuleValidator {
     address accountToRecover,
     bytes32 hashedCredentialId,
     bytes32[2] memory rawPublicKey,
-    string memory originDomain
+    bytes32 hashedOriginDomain
   ) external;
 
   function addValidationKey(bytes memory key) external returns (bool);
