@@ -3,7 +3,6 @@ pragma solidity ^0.8.24;
 
 import { IGuardianRecoveryValidator } from "../interfaces/IGuardianRecoveryValidator.sol";
 import { WebAuthValidator } from "./WebAuthValidator.sol";
-import { AAFactory } from "../AAFactory.sol";
 import { Transaction } from "@matterlabs/zksync-contracts/l2/system-contracts/libraries/TransactionHelper.sol";
 import { IERC165 } from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import { IModuleValidator } from "../interfaces/IModuleValidator.sol";
@@ -17,11 +16,12 @@ contract GuardianRecoveryValidator is IGuardianRecoveryValidator {
     bool isReady;
     uint64 addedAt;
   }
+
   struct RecoveryRequest {
-    bytes passkey;
+    bytes32 hashedCredentialId;
+    bytes32[2] rawPublicKey;
+    string originDomain;
     uint256 timestamp;
-    string accountId;
-    bool isFinished;
   }
 
   error GuardianCannotBeSelf();
@@ -31,10 +31,9 @@ contract GuardianRecoveryValidator is IGuardianRecoveryValidator {
   error CooldownPeriodNotPassed();
   error ExpiredRequest();
 
-  /// @dev Event indicating new recovery process being initiated
-  event RecoveryInitiated(address account, address guardian);
-  event RecoveryFinished(address account);
-  event RecoveryDiscarded(address account);
+  event RecoveryInitiated(address indexed account, address indexed guardian, bytes32 indexed hashedCredentialId);
+  event RecoveryFinished(address indexed account);
+  event RecoveryDiscarded(address indexed account);
 
   uint256 constant REQUEST_VALIDITY_TIME = 72 * 60 * 60; // 72 hours
   uint256 constant REQUEST_DELAY_TIME = 24 * 60 * 60; // 24 hours
@@ -42,15 +41,12 @@ contract GuardianRecoveryValidator is IGuardianRecoveryValidator {
   mapping(address account => Guardian[]) public accountGuardians;
   mapping(address guardian => address[]) public guardedAccounts;
   mapping(address account => RecoveryRequest) public pendingRecoveryData;
-  mapping(string originDomain => mapping(bytes credentialId => address accountAddress)) public reservedCredentialIds;
 
   WebAuthValidator public immutable webAuthValidator;
-  AAFactory public immutable aaFactory;
 
   /// @notice The constructor sets the web authn validator for which recovery process can be initiated. Used only for non proxied deployment
-  constructor(WebAuthValidator _webAuthValidator, AAFactory _aaFactory) {
+  constructor(WebAuthValidator _webAuthValidator) {
     webAuthValidator = _webAuthValidator;
-    aaFactory = _aaFactory;
   }
 
   /// @notice Validator initiator for given sso account. This module does not support initialization on creation
@@ -171,33 +167,22 @@ contract GuardianRecoveryValidator is IGuardianRecoveryValidator {
 
   /// @notice This method initializes a recovery process for a given account
   /// @param accountToRecover Address of account for which given recovery is initiated
-  /// @param passkey Encoded new passkey, that will be passed to WebAuthnModule
+  /// @param hashedCredentialId Hashed credential ID of the new passkey
+  /// @param rawPublicKey Raw public key of the new passkey
+  /// @param originDomain Origin domain of the new passkey
   function initRecovery(
     address accountToRecover,
-    bytes memory passkey,
-    string memory accountId
+    bytes32 hashedCredentialId,
+    bytes32[2] memory rawPublicKey,
+    string memory originDomain
   ) external onlyGuardianOf(accountToRecover) {
-    //Fix overwriting existing
-    (bytes memory credentialId, bytes32[2] memory rawPublicKey, string memory originDomain) = abi.decode(
-      passkey,
-      (bytes, bytes32[2], string)
+    pendingRecoveryData[accountToRecover] = RecoveryRequest(
+      hashedCredentialId,
+      rawPublicKey,
+      originDomain,
+      block.timestamp
     );
-
-    require(
-      webAuthValidator.accountAddressByDomainById(originDomain, credentialId) == address(0),
-      "Credential already being used"
-    );
-
-    pendingRecoveryData[accountToRecover] = RecoveryRequest(passkey, block.timestamp, accountId, false);
-    reservedCredentialIds[originDomain][credentialId] = accountToRecover;
-
-    emit RecoveryInitiated(accountToRecover, msg.sender);
-  }
-
-  /// @notice This method allows to finish currently pending recovery
-  function finishRecovery() external {
-    _discardRecovery();
-    emit RecoveryFinished(msg.sender);
+    emit RecoveryInitiated(accountToRecover, msg.sender, hashedCredentialId);
   }
 
   /// @notice This method allows to discard currently pending recovery
@@ -206,121 +191,65 @@ contract GuardianRecoveryValidator is IGuardianRecoveryValidator {
     emit RecoveryDiscarded(msg.sender);
   }
 
-  function _discardRecovery() internal {
-    (bytes memory credentialId, bytes32[2] memory rawPublicKey, string memory originDomain) = abi.decode(
-      pendingRecoveryData[msg.sender].passkey,
-      (bytes, bytes32[2], string)
-    );
-    delete pendingRecoveryData[msg.sender];
-    delete reservedCredentialIds[originDomain][credentialId];
+  /// @notice This method allows to finish currently pending recovery
+  function finishRecovery() internal {
+    _discardRecovery();
+    emit RecoveryFinished(msg.sender);
   }
 
-  /// @notice Checks if a given passkey matches a pending recovery request and is ready to be used
-  /// @param originDomain Origin domain to check
-  /// @param credentialId The account ID to check
-  /// @return account The account being recovered (zero address if no match)
-  /// @return ready True if the passkey matches and is ready to be used
-  /// @return remainingTime Time in seconds until the passkey can be used (0 if ready or no match)
-  function checkRecoveryRequest(
-    string memory originDomain,
-    bytes memory credentialId
-  ) external view returns (address account, bool ready, uint256 remainingTime) {
-    account = reservedCredentialIds[originDomain][credentialId];
-
-    if (account == address(0)) {
-      return (account, false, 0);
-    }
-
-    RecoveryRequest storage request = pendingRecoveryData[account];
-    uint256 timePassedSinceRequest = block.timestamp - request.timestamp;
-
-    // If request expired
-    if (timePassedSinceRequest > REQUEST_VALIDITY_TIME) {
-      return (account, false, 0);
-    }
-
-    // If still in cooldown period
-    if (timePassedSinceRequest < REQUEST_DELAY_TIME) {
-      return (account, false, REQUEST_DELAY_TIME - timePassedSinceRequest);
-    }
-
-    // Passkey matches and is ready to be used
-    return (account, true, 0);
+  /// @notice This method allows to discard currently pending recovery
+  function _discardRecovery() internal {
+    delete pendingRecoveryData[msg.sender];
   }
 
   /// @inheritdoc IModuleValidator
   function validateTransaction(bytes32, Transaction calldata transaction) external returns (bool) {
-    // Finishing Recovery Process : If the user has a recovery in progress then:
-    //   1. The method will verify transaction is a batch call
-    //   2. Checks if the transaction is attempting to modify passkeys
-    //   3. Verify the new passkey is the one stored in `initRecovery`
-    //   4. Allows anyone to call this method, as the recovery was already verified in `initRecovery`
-    //   5. Verifies that the required timelock period has passed since `initRecovery` was called
+    // Finishing Recovery Process. If the user has a recovery in progress then:
+    //   1. The method will check if the transaction is attempting to modify passkeys
+    //   2. Verify the new passkey matches the one stored in `initRecovery`
+    //   3. Allows anyone to call this method, as the recovery was already verified in `initRecovery`
+    //   4. Verifies that the required timelock period has passed since `initRecovery` was called
+    //   5. If all the above are true, the recovery is finished
     require(transaction.data.length >= 4, "Only function calls are supported");
     require(transaction.to <= type(uint160).max, "Overflow");
 
-    // Verify the transaction is a batch call
+    // Verify the transaction is a call to WebAuthValidator contract
     address target = address(uint160(transaction.to));
-    if (target != msg.sender) {
+    if (target != address(webAuthValidator)) {
       return false;
     }
 
+    // Verify the transaction is a call to `addValidationKey`
     bytes4 selector = bytes4(transaction.data[:4]);
-    if (selector != BatchCaller.batchCall.selector) {
+    if (selector != WebAuthValidator.addValidationKey.selector) {
       return false;
     }
 
-    bytes calldata data = transaction.data[4:];
-    Call[] memory calls = abi.decode(data, (Call[]));
-    if (calls.length != 2) {
-      return false;
-    }
+    // Verify the current request matches pending one
+    bytes calldata transactionData = transaction.data[4:];
+    (bytes memory credentialId, bytes32[2] memory rawPublicKey, string memory originDomain) = abi.decode(
+      transactionData,
+      (bytes, bytes32[2], string)
+    );
 
-    // Verify the first call is to "addValidationKey" method by anyone on WebAuthValidator contract
-    if (calls[0].target != address(webAuthValidator)) {
-      return false;
-    }
+    RecoveryRequest storage storedData = pendingRecoveryData[msg.sender];
 
-    (bytes4 call0Selector, bytes memory credentialId, bytes32[2] memory rawPublicKey, string memory originDomain) = abi
-      .decode(calls[0].callData, (bytes4, bytes, bytes32[2], string));
-    if (call0Selector != WebAuthValidator.addValidationKey.selector) {
-      return false;
-    }
-    if (calls[0].allowFailure) {
-      return false;
-    }
-
-    (bytes memory storedCredentialId, bytes32[2] memory storedRawPublicKey, string memory storedOriginDomain) = abi
-      .decode(pendingRecoveryData[msg.sender].passkey, (bytes, bytes32[2], string));
-
-    // Verify that current request matches pending one
     if (
-      keccak256(credentialId) != keccak256(storedCredentialId) ||
-      rawPublicKey[0] != storedRawPublicKey[0] ||
-      rawPublicKey[1] != storedRawPublicKey[1] ||
-      keccak256(abi.encode(originDomain)) != keccak256(abi.encode(storedOriginDomain))
+      keccak256(credentialId) != storedData.hashedCredentialId ||
+      rawPublicKey[0] != storedData.rawPublicKey[0] ||
+      rawPublicKey[1] != storedData.rawPublicKey[1] ||
+      keccak256(abi.encode(originDomain)) != keccak256(abi.encode(storedData.originDomain))
     ) {
       return false;
     }
 
-    // Ensure time constraints
+    // Verify request is in valid time range
     TimestampAsserterLocator.locate().assertTimestampInRange(
-      pendingRecoveryData[msg.sender].timestamp + REQUEST_DELAY_TIME,
-      pendingRecoveryData[msg.sender].timestamp + REQUEST_VALIDITY_TIME
+      storedData.timestamp + REQUEST_DELAY_TIME,
+      storedData.timestamp + REQUEST_VALIDITY_TIME
     );
 
-    // Verify the second call is to "finishRecovery" method by anyone on GuardianRecoveryValidator contract
-    if (calls[1].target != address(this)) {
-      return false;
-    }
-    bytes4 call1Selector = abi.decode(calls[1].callData, (bytes4));
-    if (call1Selector != GuardianRecoveryValidator.finishRecovery.selector) {
-      return false;
-    }
-    if (calls[1].allowFailure) {
-      return false;
-    }
-
+    finishRecovery();
     return true;
   }
 
