@@ -329,6 +329,7 @@ describe.only("SessionKeyModule tests", function () {
       await factoryContract.getAddress(),
       await sessionModuleContract.getAddress(),
       await guardianRecoveryContract.getAddress(),
+      await verifierContract.getAddress(),
     );
     assert(authServerPaymaster != null, "No Auth Server Paymaster deployed");
 

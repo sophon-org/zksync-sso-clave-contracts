@@ -24,7 +24,8 @@ import type {
   SessionKeyValidator,
   SsoAccount,
   SsoBeacon,
-  WebAuthValidator } from "../typechain-types";
+  WebAuthValidator,
+} from "../typechain-types";
 import {
   AAFactory__factory,
   AccountProxy__factory,
@@ -35,7 +36,8 @@ import {
   SsoAccount__factory,
   SsoBeacon__factory,
   TestPaymaster__factory,
-  WebAuthValidator__factory } from "../typechain-types";
+  WebAuthValidator__factory,
+} from "../typechain-types";
 
 export const ethersStaticSalt = new Uint8Array([
   205, 241, 161, 186, 101, 105, 79,
@@ -108,8 +110,14 @@ export class ContractFixtures {
   async getGuardianRecoveryValidator() {
     if (this._guardianRecoveryValidator === undefined) {
       const webAuthVerifier = await this.getWebAuthnVerifierContract();
-      const contract = await create2("GuardianRecoveryValidator", this.wallet, ethersStaticSalt, [await webAuthVerifier.getAddress()]);
-      this._guardianRecoveryValidator = GuardianRecoveryValidator__factory.connect(await contract.getAddress(), this.wallet);
+      const contract = await create2("GuardianRecoveryValidator", this.wallet, ethersStaticSalt, []);
+      const proxyContract = await create2("TransparentProxy", this.wallet, ethersStaticSalt, [
+        await contract.getAddress(),
+        contract.interface.encodeFunctionData(
+          "initialize",
+          [await webAuthVerifier.getAddress()],
+        )]);
+      this._guardianRecoveryValidator = GuardianRecoveryValidator__factory.connect(await proxyContract.getAddress(), this.wallet);
     }
     return this._guardianRecoveryValidator;
   }
