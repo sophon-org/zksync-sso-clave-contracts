@@ -453,7 +453,6 @@ describe("Passkey validation", function () {
       logInfo(`\`deployProxySsoAccount\` args: ${initPasskeyData}`);
       const deployTx = await factoryContract.deployProxySsoAccount(
         randomSalt,
-        "pass-key-test-id" + randomBytes(32).toString(),
         [passKeyPayload],
         [wallet.address],
       );
