@@ -1,46 +1,46 @@
 import "@matterlabs/hardhat-zksync-node/dist/type-extensions";
 import "@matterlabs/hardhat-zksync-verify/dist/src/type-extensions";
 
+import {
+  SnapshotRestorer,
+  takeSnapshot,
+} from "@nomicfoundation/hardhat-network-helpers";
 import dotenv from "dotenv";
 import { ethers, parseEther, randomBytes } from "ethers";
 import { readFileSync } from "fs";
 import { promises } from "fs";
 import * as hre from "hardhat";
-import {
-  SnapshotRestorer,
-  takeSnapshot,
-} from "@nomicfoundation/hardhat-network-helpers";
+import { AsyncFunc } from "mocha";
+import { Address, isHex, toHex, zeroAddress } from "viem";
 import { ContractFactory, Provider, utils, Wallet } from "zksync-ethers";
 import { base64UrlToUint8Array, getPublicKeyBytesFromPasskeySignature, unwrapEC2Signature } from "zksync-sso/utils";
-import { Address, isHex, toHex, zeroAddress } from "viem";
-import { AsyncFunc } from "mocha";
 
 import type {
   AAFactory,
+  AccountProxy,
   ERC20,
   ExampleAuthServerPaymaster,
+  GuardianRecoveryValidator,
+  OidcKeyRegistry,
+  OidcRecoveryValidator,
   SessionKeyValidator,
   SsoAccount,
-  WebAuthValidator,
   SsoBeacon,
-  AccountProxy,
-  OidcKeyRegistry,
-  GuardianRecoveryValidator,
-  OidcRecoveryValidator,
+  WebAuthValidator,
 } from "../typechain-types";
 import {
   AAFactory__factory,
   AccountProxy__factory,
   ERC20__factory,
   ExampleAuthServerPaymaster__factory,
+  GuardianRecoveryValidator__factory,
+  OidcKeyRegistry__factory,
+  OidcRecoveryValidator__factory,
   SessionKeyValidator__factory,
   SsoAccount__factory,
-  WebAuthValidator__factory,
   SsoBeacon__factory,
   TestPaymaster__factory,
-  OidcKeyRegistry__factory,
-  GuardianRecoveryValidator__factory,
-  OidcRecoveryValidator__factory,
+  WebAuthValidator__factory,
 } from "../typechain-types";
 
 export const ethersStaticSalt = new Uint8Array([
@@ -50,6 +50,9 @@ export const ethersStaticSalt = new Uint8Array([
   62, 140, 111, 128, 47, 32, 21,
   177, 177, 174, 166,
 ]);
+
+export const CIRCOM_BIGINT_K = 17;
+export const CIRCOM_BIGINT_N = 121;
 
 export class ContractFixtures {
   readonly wallet: Wallet = getWallet(LOCAL_RICH_WALLETS[0].privateKey);
@@ -106,26 +109,26 @@ export class ContractFixtures {
 
   async getPasskeyModuleAddress(): Promise<Address> {
     const webAuthnVerifierContract = await this.getWebAuthnVerifierContract();
-    const contractAddress = await webAuthnVerifierContract.getAddress()
+    const contractAddress = await webAuthnVerifierContract.getAddress();
     return isHex(contractAddress) ? contractAddress : toHex(contractAddress);
   }
 
   private _guardianRecoveryValidator: GuardianRecoveryValidator;
-  async getGuardianRecoveryValidator () {
+  async getGuardianRecoveryValidator() {
     if (this._guardianRecoveryValidator === undefined) {
       const webAuthVerifier = await this.getWebAuthnVerifierContract();
       const aaFactoryAddress = await this.getAaFactoryAddress();
       const contract = await create2("GuardianRecoveryValidator", this.wallet, ethersStaticSalt, [await webAuthVerifier.getAddress(), aaFactoryAddress]);
       this._guardianRecoveryValidator = GuardianRecoveryValidator__factory.connect(await contract.getAddress(), this.wallet);
     }
-    return this._guardianRecoveryValidator
+    return this._guardianRecoveryValidator;
   }
 
   private _oidcRecoveryValidator: OidcRecoveryValidator;
-  async getOidcRecoveryValidator () {
+  async getOidcRecoveryValidator() {
     if (this._oidcRecoveryValidator === undefined) {
       const verifierAddress = zeroAddress;
-      const oidcKeyRegistry = await this.deployOidcKeyRegistryContract();
+      const oidcKeyRegistry = await this.getOidcKeyRegistryContract();
       const contract = await create2("OidcRecoveryValidator", this.wallet, ethersStaticSalt, [await oidcKeyRegistry.getAddress(), verifierAddress]);
       this._oidcRecoveryValidator = OidcRecoveryValidator__factory.connect(await contract.getAddress(), this.wallet);
     }
@@ -152,7 +155,7 @@ export class ContractFixtures {
   }
 
   private _oicdKeyRegistryContract: OidcKeyRegistry;
-  async deployOidcKeyRegistryContract() {
+  async getOidcKeyRegistryContract() {
     if (!this._oicdKeyRegistryContract) {
       const contract = await create2("OidcKeyRegistry", this.wallet, randomBytes(32));
       this._oicdKeyRegistryContract = OidcKeyRegistry__factory.connect(await contract.getAddress(), this.wallet);
@@ -356,13 +359,13 @@ const masterWallet = ethers.Wallet.fromPhrase("stuff slice staff easily soup par
 export const LOCAL_RICH_WALLETS = [
   hre.network.name == "dockerizedNode"
     ? {
-      address: masterWallet.address,
-      privateKey: masterWallet.privateKey,
-    }
+        address: masterWallet.address,
+        privateKey: masterWallet.privateKey,
+      }
     : {
-      address: "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
-      privateKey: "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80",
-    },
+        address: "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+        privateKey: "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80",
+      },
   {
     address: "0x36615Cf349d7F6344891B1e7CA7C72883F5dc049",
     privateKey: "0x7726827caac94a7f9e1b160f7ea819f172f7b6f9d2a97f992c38edeab82d4110",
@@ -477,3 +480,17 @@ export function cacheBeforeEach(initializer: AsyncFunc): void {
     }
   });
 }
+
+export const base64ToCircomBigInt = (data: string): string[] => {
+  const vec = Buffer.from(data, "base64");
+  let num = 0n;
+  for (let i = 0; i < vec.length; i++) {
+    num += BigInt(vec[i]) << BigInt(8 * i);
+  }
+  const res: string[] = [];
+  const msk = (1n << BigInt(CIRCOM_BIGINT_N)) - 1n;
+  for (let i = 0; i < CIRCOM_BIGINT_K; ++i) {
+    res.push(((num >> BigInt(i * CIRCOM_BIGINT_N)) & msk).toString());
+  }
+  return res;
+};
