@@ -231,18 +231,7 @@ class SessionTester {
     this.aaTransaction.customData!.paymasterParams ??= tx.paymasterParams;
 
     const signedTransaction = await this.sessionAccount.signTransaction(this.aaTransaction);
-    const test = await this.sessionAccount.call({
-      ...this.aaTransaction,
-      ...this.aaTransaction.customData,
-    });
-    console.log(test);
-    await expect(provider.broadcastTransaction(signedTransaction).then((e) => {
-      console.log(e);
-      return e;
-    }).catch((e) => {
-      console.log(e);
-      throw e;
-    })).to.be.reverted;
+    await expect(provider.broadcastTransaction(signedTransaction)).to.be.reverted;
   };
 
   getSession(session: PartialSession): SessionLib.SessionSpecStruct {
