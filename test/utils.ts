@@ -24,8 +24,7 @@ import type {
   SessionKeyValidator,
   SsoAccount,
   SsoBeacon,
-  WebAuthValidator,
-} from "../typechain-types";
+  WebAuthValidator } from "../typechain-types";
 import {
   AAFactory__factory,
   AccountProxy__factory,
@@ -36,8 +35,7 @@ import {
   SsoAccount__factory,
   SsoBeacon__factory,
   TestPaymaster__factory,
-  WebAuthValidator__factory,
-} from "../typechain-types";
+  WebAuthValidator__factory } from "../typechain-types";
 
 export const ethersStaticSalt = new Uint8Array([
   205, 241, 161, 186, 101, 105, 79,
