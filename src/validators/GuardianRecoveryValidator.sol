@@ -50,9 +50,9 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
     bytes32 indexed hashedOriginDomain,
     bytes32 indexed hashedCredentialId
   );
-  event GuardianProposed(address indexed account, bytes32 indexed hashedOriginDomain, address guardian);
-  event GuardianAdded(address indexed account, bytes32 indexed hashedOriginDomain, address guardian);
-  event GuardianRemoved(address indexed account, bytes32 indexed hashedOriginDomain, address guardian);
+  event GuardianProposed(address indexed account, bytes32 indexed hashedOriginDomain, address indexed guardian);
+  event GuardianAdded(address indexed account, bytes32 indexed hashedOriginDomain, address indexed guardian);
+  event GuardianRemoved(address indexed account, bytes32 indexed hashedOriginDomain, address indexed guardian);
 
   uint256 public constant REQUEST_VALIDITY_TIME = 72 * 60 * 60; // 72 hours
   uint256 public constant REQUEST_DELAY_TIME = 24 * 60 * 60; // 24 hours
