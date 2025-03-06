@@ -30,6 +30,8 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
   error GuardianCannotBeSelf();
   error GuardianNotFound(address guardian);
   error GuardianNotProposed(address guardian);
+  error AccountAlreadyGuardedByGuardian(address account, address guardian);
+  error AccountNotGuardedByAddress(address account, address guardian);
   error PasskeyNotMatched();
   error CooldownPeriodNotPassed();
   error ExpiredRequest();
@@ -85,7 +87,11 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
         address guardian = guardians[i].addr;
 
         EnumerableSetUpgradeable.AddressSet storage accounts = guardedAccounts[hashedOriginDomain][guardian];
-        accounts.remove(msg.sender);
+        bool removalSuccessful = accounts.remove(msg.sender);
+
+        if (!removalSuccessful) {
+          revert AccountNotGuardedByAddress(msg.sender, guardian);
+        }
 
         emit GuardianRemoved(msg.sender, hashedOriginDomain, guardian);
       }
@@ -134,7 +140,11 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
 
         if (wasActiveGuardian) {
           EnumerableSetUpgradeable.AddressSet storage accounts = guardedAccounts[hashedOriginDomain][guardianToRemove];
-          accounts.remove(msg.sender);
+          bool removalSuccessful = accounts.remove(msg.sender);
+
+          if (!removalSuccessful) {
+            revert AccountNotGuardedByAddress(msg.sender, guardianToRemove);
+          }
         }
         emit GuardianRemoved(msg.sender, hashedOriginDomain, guardianToRemove);
         return;
@@ -159,7 +169,13 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
         if (guardians[i].isReady) return false;
 
         guardians[i].isReady = true;
-        guardedAccounts[hashedOriginDomain][msg.sender].add(accountToGuard);
+
+        bool addSuccessful = guardedAccounts[hashedOriginDomain][msg.sender].add(accountToGuard);
+
+        if (!addSuccessful) {
+          revert AccountAlreadyGuardedByGuardian(accountToGuard, msg.sender);
+        }
+
         emit GuardianAdded(accountToGuard, hashedOriginDomain, msg.sender);
         return true;
       }
