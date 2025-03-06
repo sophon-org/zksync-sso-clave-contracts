@@ -4,6 +4,7 @@ pragma solidity ^0.8.24;
 import { Transaction } from "@matterlabs/zksync-contracts/l2/system-contracts/libraries/TransactionHelper.sol";
 import { IERC165 } from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import { EnumerableSetUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/structs/EnumerableSetUpgradeable.sol";
 import { WebAuthValidator } from "./WebAuthValidator.sol";
 import { IGuardianRecoveryValidator } from "../interfaces/IGuardianRecoveryValidator.sol";
 import { IModuleValidator } from "../interfaces/IModuleValidator.sol";
@@ -12,6 +13,8 @@ import { TimestampAsserterLocator } from "../helpers/TimestampAsserterLocator.so
 import { BatchCaller, Call } from "../batch/BatchCaller.sol";
 
 contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator {
+  using EnumerableSetUpgradeable for EnumerableSetUpgradeable.AddressSet;
+
   struct Guardian {
     address addr;
     bool isReady;
@@ -47,6 +50,9 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
     bytes32 indexed hashedOriginDomain,
     bytes32 indexed hashedCredentialId
   );
+  event GuardianProposed(address indexed account, bytes32 indexed hashedOriginDomain, address guardian);
+  event GuardianAdded(address indexed account, bytes32 indexed hashedOriginDomain, address guardian);
+  event GuardianRemoved(address indexed account, bytes32 indexed hashedOriginDomain, address guardian);
 
   uint256 public constant REQUEST_VALIDITY_TIME = 72 * 60 * 60; // 72 hours
   uint256 public constant REQUEST_DELAY_TIME = 24 * 60 * 60; // 24 hours
@@ -54,7 +60,8 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
   bytes30 private _gap; // Gap to claim 30 bytes remaining in slot 0 after fields layout of Initializable contract
   WebAuthValidator public webAuthValidator; // Enforced slot 1 in order to be able to access it during validateTransaction step
   mapping(bytes32 hashedOriginDomain => mapping(address account => Guardian[])) public accountGuardians;
-  mapping(bytes32 hashedOriginDomain => mapping(address guardian => address[])) public guardedAccounts;
+  mapping(bytes32 hashedOriginDomain => mapping(address guardian => EnumerableSetUpgradeable.AddressSet))
+    private guardedAccounts;
   mapping(bytes32 hashedOriginDomain => mapping(address account => RecoveryRequest)) public pendingRecoveryData;
 
   constructor() {
@@ -70,24 +77,21 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
 
   /// @notice Removes all past guardians when this module is disabled in a account
   function onUninstall(bytes calldata data) external {
-    bytes32 hashedOriginDomain = abi.decode(data, (bytes32));
-    Guardian[] storage guardians = accountGuardians[hashedOriginDomain][msg.sender];
-    for (uint256 i = 0; i < guardians.length; i++) {
-      address guardian = guardians[i].addr;
+    bytes32[] memory hashedOriginDomains = abi.decode(data, (bytes32[]));
+    for (uint256 j = 0; j < hashedOriginDomains.length; j++) {
+      bytes32 hashedOriginDomain = hashedOriginDomains[j];
+      Guardian[] storage guardians = accountGuardians[hashedOriginDomain][msg.sender];
+      for (uint256 i = 0; i < guardians.length; i++) {
+        address guardian = guardians[i].addr;
 
-      address[] storage accounts = guardedAccounts[hashedOriginDomain][guardian];
-      for (uint256 j = 0; j < accounts.length; j++) {
-        if (accounts[j] == msg.sender) {
-          // If found last account is moved to current position, and then
-          // last element is removed from array.
-          accounts[j] = accounts[accounts.length - 1];
-          accounts.pop();
-          break;
-        }
+        EnumerableSetUpgradeable.AddressSet storage accounts = guardedAccounts[hashedOriginDomain][guardian];
+        accounts.remove(msg.sender);
+
+        emit GuardianRemoved(msg.sender, hashedOriginDomain, guardian);
       }
-    }
 
-    delete accountGuardians[hashedOriginDomain][msg.sender];
+      delete accountGuardians[hashedOriginDomain][msg.sender];
+    }
   }
 
   /// @notice The `proposeValidationKey` method handles the initial registration of guardians by:
@@ -108,6 +112,7 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
     }
 
     guardians.push(Guardian(newGuardian, false, uint64(block.timestamp)));
+    emit GuardianProposed(msg.sender, hashedOriginDomain, newGuardian);
   }
 
   /// @notice This method handles the removal of guardians by:
@@ -128,17 +133,10 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
         guardians.pop();
 
         if (wasActiveGuardian) {
-          address[] storage accounts = guardedAccounts[hashedOriginDomain][guardianToRemove];
-          for (uint256 i = 0; i < accounts.length; i++) {
-            if (accounts[i] == msg.sender) {
-              // If found last account is moved to current position, and then
-              // last element is removed from array.
-              accounts[i] = accounts[accounts.length - 1];
-              accounts.pop();
-              break;
-            }
-          }
+          EnumerableSetUpgradeable.AddressSet storage accounts = guardedAccounts[hashedOriginDomain][guardianToRemove];
+          accounts.remove(msg.sender);
         }
+        emit GuardianRemoved(msg.sender, hashedOriginDomain, guardianToRemove);
         return;
       }
     }
@@ -161,7 +159,8 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
         if (guardians[i].isReady) return false;
 
         guardians[i].isReady = true;
-        guardedAccounts[hashedOriginDomain][msg.sender].push(accountToGuard);
+        guardedAccounts[hashedOriginDomain][msg.sender].add(accountToGuard);
+        emit GuardianAdded(accountToGuard, hashedOriginDomain, msg.sender);
         return true;
       }
     }
@@ -312,7 +311,7 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
   /// @param guardian Address of guardian to get guarded accounts for
   /// @return Array of accounts guarded by the guardian
   function guardianOf(bytes32 hashedOriginDomain, address guardian) public view returns (address[] memory) {
-    return guardedAccounts[hashedOriginDomain][guardian];
+    return guardedAccounts[hashedOriginDomain][guardian].values();
   }
 
   /// @notice Returns the pending recovery data for an account and origin domain

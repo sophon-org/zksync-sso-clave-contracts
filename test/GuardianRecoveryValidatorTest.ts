@@ -88,66 +88,141 @@ describe("GuardianRecoveryValidator", function () {
     }, provider);
   });
 
-  async function randomWallet(): Promise<[HDNodeWallet, GuardianRecoveryValidator]> {
+  const randomWallet = async (): Promise<[HDNodeWallet, GuardianRecoveryValidator]> => {
     const wallet = Wallet.createRandom(getProvider());
     const connected = GuardianRecoveryValidator__factory.connect(guardiansValidatorAddr, wallet);
     await fixtures.wallet.sendTransaction({ value: parseEther("0.2"), to: wallet.address });
 
     return [wallet, connected];
-  }
+  };
 
-  function callAddValidationKey(contract: GuardianRecoveryValidator, hashedOriginDomain: `0x${string}`, account: string): Promise<ethers.ContractTransactionResponse> {
-    return contract.addValidationKey(hashedOriginDomain, account, { gasLimit: "80000000" });
-  }
+  describe("proposeValidationKey", () => {
+    it("can propose a guardian", async function () {
+      const [user1, user1ConnectedValidator] = await randomWallet();
+      const [guardian] = await randomWallet();
 
-  it("can propose a guardian", async function () {
-    const [user1, connectedUser1] = await randomWallet();
-    const [guardian] = await randomWallet();
+      const tx = await user1ConnectedValidator.proposeValidationKey(hashedOriginDomain, guardian.address);
+      await tx.wait();
 
-    const tx = await connectedUser1.proposeValidationKey(hashedOriginDomain, guardian.address);
-    await tx.wait();
-
-    const res = await connectedUser1.getFunction("guardiansFor").staticCall(hashedOriginDomain, user1.address);
-    expect(res.length).to.equal(1);
-    expect(res[0][0]).to.equal(guardian.address);
-    expect(res[0][1]).to.equal(false);
+      const res = await user1ConnectedValidator.guardiansFor(hashedOriginDomain, user1.address);
+      expect(res.length).to.equal(1);
+      expect(res[0].addr).to.equal(guardian.address);
+      expect(res[0].isReady).to.equal(false);
+      expect(tx).to.emit(user1ConnectedValidator, "GuardianProposed");
+    });
   });
 
-  it("fails when tries to confirm a guardian that was not proposed.", async function () {
-    const [user1] = await randomWallet();
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const [_, guardianConnection] = await randomWallet();
+  describe("addValidationKey", () => {
+    function callAddValidationKey(contract: GuardianRecoveryValidator, hashedOriginDomain: `0x${string}`, account: string): Promise<ethers.ContractTransactionResponse> {
+      return contract.addValidationKey(hashedOriginDomain, account, { gasLimit: "80000000" });
+    }
 
-    await expect(callAddValidationKey(guardianConnection, hashedOriginDomain, user1.address))
-      .to.reverted;
+    it("fails when tries to confirm a guardian that was not proposed.", async function () {
+      const [user1] = await randomWallet();
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const [_, guardianConnection] = await randomWallet();
+
+      await expect(callAddValidationKey(guardianConnection, hashedOriginDomain, user1.address))
+        .to.reverted;
+    });
+
+    it("fails when tries to confirm a was proposed for a different account.", async function () {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const [_, user1Connection] = await randomWallet();
+      const [user2] = await randomWallet();
+      const [guardian, guardianConnection] = await randomWallet();
+
+      const tx1 = await user1Connection.proposeValidationKey(hashedOriginDomain, guardian.address);
+      await tx1.wait();
+
+      await expect(callAddValidationKey(guardianConnection, hashedOriginDomain, user2.address))
+        .to.reverted;
+    });
+
+    it("works to confirm a proposed account.", async function () {
+      const [user1, user1Connected] = await randomWallet();
+      const [guardian, guardianConnected] = await randomWallet();
+
+      await user1Connected.proposeValidationKey(hashedOriginDomain, guardian.address);
+
+      const tx = await callAddValidationKey(guardianConnected, hashedOriginDomain, user1.address);
+
+      const res = await user1Connected.guardiansFor(hashedOriginDomain, user1.address);
+      expect(res.length).to.equal(1);
+      expect(res[0].addr).to.equal(guardian.address);
+      expect(res[0].isReady).to.equal(true);
+      expect(tx).to.emit(user1Connected, "GuardianAdded");
+    });
   });
 
-  it("fails when tries to confirm a was proposed for a different account.", async function () {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const [_, user1Connection] = await randomWallet();
-    const [user2] = await randomWallet();
-    const [guardian, guardianConnection] = await randomWallet();
+  describe("removeValidationKey", () => {
+    let guardian: ethers.Signer;
+    let user1: ethers.Signer;
 
-    const tx1 = await user1Connection.proposeValidationKey(hashedOriginDomain, guardian.address);
-    await tx1.wait();
+    cacheBeforeEach(async () => {
+      const [guardianWallet, guardianConnected] = await randomWallet();
+      guardian = guardianWallet;
+      const [user1Wallet, user1Connected] = await randomWallet();
+      user1 = user1Wallet;
+      await user1Connected.proposeValidationKey(hashedOriginDomain, guardian.getAddress());
+      await guardianConnected.addValidationKey(hashedOriginDomain, user1.getAddress());
+    });
 
-    await expect(callAddValidationKey(guardianConnection, hashedOriginDomain, user2.address))
-      .to.reverted;
+    const sut = async (guardianToRemove: string) => {
+      return guardianValidator.connect(user1).removeValidationKey(hashedOriginDomain, guardianToRemove);
+    };
+
+    it("fails when tries to remove non existing guardian.", async function () {
+      const [randomGeneratedWallet] = await randomWallet();
+
+      await expect(sut(await randomGeneratedWallet.getAddress()))
+        .to.be.revertedWithCustomError(guardianValidator, "GuardianNotFound");
+    });
+
+    it("works to remove existing guardian.", async function () {
+      const tx = await sut(await guardian.getAddress());
+
+      expect(tx).to.emit(guardianValidator, "GuardianRemoved");
+      const guardians = await guardianValidator.guardiansFor(hashedOriginDomain, user1.getAddress());
+      expect(guardians.length).to.equal(0);
+      const guardedAccounts = await guardianValidator.guardianOf(hashedOriginDomain, guardian.getAddress());
+      expect(guardedAccounts.length).to.equal(0);
+    });
   });
 
-  it("works to confirm a proposed account.", async function () {
-    const [user1, user1Connected] = await randomWallet();
-    const [guardian, guardianConnected] = await randomWallet();
+  describe("onUninstall", () => {
+    let user1: ethers.Signer;
+    let guardian: ethers.Signer;
+    let guardian2: ethers.Signer;
+    cacheBeforeEach(async () => {
+      const [guardianWallet, guardianConnected] = await randomWallet();
+      const [guardian2Wallet, guardian2Connected] = await randomWallet();
+      guardian = guardianWallet;
+      guardian2 = guardian2Wallet;
+      const [user1Wallet, user1Connected] = await randomWallet();
+      user1 = user1Wallet;
+      await user1Connected.proposeValidationKey(hashedOriginDomain, guardian.getAddress());
+      await user1Connected.proposeValidationKey(hashedOriginDomain, guardian2.getAddress());
+      await guardianConnected.addValidationKey(hashedOriginDomain, user1.getAddress());
+      await guardian2Connected.addValidationKey(hashedOriginDomain, user1.getAddress());
+    });
 
-    const tx = await user1Connected.proposeValidationKey(hashedOriginDomain, guardian.address);
-    await tx.wait();
+    const sut = async () => {
+      return guardianValidator.connect(user1).onUninstall(ethers.AbiCoder.defaultAbiCoder().encode(["bytes32[]"], [[hashedOriginDomain]]));
+    };
 
-    await callAddValidationKey(guardianConnected, hashedOriginDomain, user1.address);
+    it("Removes existing guardians.", async function () {
+      const tx = await sut();
 
-    const res = await user1Connected.getFunction("guardiansFor").staticCall(hashedOriginDomain, user1.address);
-    expect(res.length).to.equal(1);
-    expect(res[0][0]).to.equal(guardian.address);
-    expect(res[0][1]).to.equal(true);
+      const res = await guardianValidator.guardiansFor(hashedOriginDomain, user1.getAddress());
+      expect(res.length).to.equal(0);
+      expect(tx).to.emit(guardianValidator, "GuardianRemoved");
+
+      const guardian1GuardedAccounts = await guardianValidator.guardianOf(hashedOriginDomain, user1.getAddress());
+      expect(guardian1GuardedAccounts.length).to.equal(0);
+      const guardian2GuardedAccounts = await guardianValidator.guardianOf(hashedOriginDomain, user1.getAddress());
+      expect(guardian2GuardedAccounts.length).to.equal(0);
+    });
   });
 
   describe("When attached to SsoAccount", () => {
