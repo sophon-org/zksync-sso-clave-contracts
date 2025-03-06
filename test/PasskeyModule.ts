@@ -359,8 +359,6 @@ function encodeFatSignature(
 
 const ZEROKEY = toHex(new Uint8Array(32).fill(0));
 
-const ZEROKEY = toHex(new Uint8Array(32).fill(0));
-
 async function verifyKeyStorage(
   passkeyValidator: WebAuthValidator,
   domain: string,

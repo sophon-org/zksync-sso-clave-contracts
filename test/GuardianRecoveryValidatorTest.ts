@@ -33,13 +33,13 @@ describe("GuardianRecoveryValidator", function () {
 
     const accountId = `0x${Buffer.from(ethers.toUtf8Bytes("recovery-key-test-id" + randomBytes(32).toString())).toString("hex")}` as `0x${string}`;
     const generatedKey = await generatePassKey(accountId, keyDomain);
+    const randomSalt = randomBytes(32);
     hashedOriginDomain = generatedKey.hashedOriginDomain;
 
     guardianValidator = (await fixtures.getGuardianRecoveryValidator()).connect(ownerWallet);
     webauthn = (await fixtures.getWebAuthnVerifierContract());
     guardiansValidatorAddr = await guardianValidator.getAddress() as Address;
     factory = await fixtures.getAaFactory();
-    const randomSalt = randomBytes(32);
     const initialValidators = [
       ethers.AbiCoder.defaultAbiCoder().encode(["address", "bytes"], [await webauthn.getAddress(), generatedKey.generatedKey]),
       ethers.AbiCoder.defaultAbiCoder().encode(["address", "bytes"], [await guardianValidator.getAddress(), ethers.AbiCoder.defaultAbiCoder().encode(
@@ -49,7 +49,6 @@ describe("GuardianRecoveryValidator", function () {
     ];
     const tx = await factory.deployProxySsoAccount(
       randomSalt,
-      accountId,
       initialValidators,
       [ownerWallet],
     );
@@ -57,7 +56,7 @@ describe("GuardianRecoveryValidator", function () {
     const accountCreatedLog = receipt?.logs.map((x) => {
       const parsedLog = factory.interface.parseLog(x);
 
-      if (parsedLog?.signature === "AccountCreated(address,string)") {
+      if (parsedLog?.signature === "AccountCreated(address,bytes32)") {
         return parsedLog;
       }
     }).filter((x) => !!x)[0];
@@ -73,8 +72,8 @@ describe("GuardianRecoveryValidator", function () {
             guardianWallet.signingKey.sign(hash).serialized,
             guardiansValidatorAddr,
             abiCoder.encode(
-              ["uint256"],
-              [123],
+              [],
+              [],
             ),
           ],
         );
