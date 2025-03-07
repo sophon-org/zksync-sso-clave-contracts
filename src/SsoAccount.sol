@@ -229,7 +229,7 @@ contract SsoAccount is
     if (nonceKey == 0) {
       nonceCall = abi.encodeCall(INonceHolder.incrementMinNonceIfEquals, (_nonce));
     } else {
-      nonceCall = abi.encodeCall(INonceHolder.setValueUnderNonce, (_nonce, 1));
+      nonceCall = abi.encodeCall(INonceHolder.incrementMinNonceIfEqualsKeyed, (_nonce));
     }
     // Allow-listing slither finding as the call's success is checked+revert within the fn
     // slither-disable-next-line unused-return
