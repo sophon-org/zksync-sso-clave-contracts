@@ -45,20 +45,11 @@ describe("OidcRecoveryValidator", function () {
     it("should add new OIDC validation key", async function () {
       const oidcDigest = ethers.hexlify(randomBytes(32));
       const iss = "https://issuer.com";
-      const oidcData = {
-        oidcDigest,
-        iss,
-      };
 
-      const encodedData = ethers.AbiCoder.defaultAbiCoder().encode(
-        ["tuple(bytes32, string)"],
-        [[oidcData.oidcDigest, oidcData.iss]],
-      );
-
-      const tx = await oidcValidator.connect(ownerWallet).addValidationKey(encodedData);
+      const tx = await oidcValidator.connect(testWallet).addOidcAccount(oidcDigest, iss);
       await tx.wait();
 
-      const storedData = await oidcValidator.oidcDataForAddress(ownerWallet.address);
+      const storedData = await oidcValidator.connect(testWallet).oidcDataForAddress(testWallet.address);
 
       expect(storedData.oidcDigest).to.equal(oidcDigest);
       expect(storedData.iss).to.equal(iss);
@@ -71,18 +62,9 @@ describe("OidcRecoveryValidator", function () {
     it("should prevent duplicate oidc_digest registration", async function () {
       const oidcDigest = ethers.hexlify(randomBytes(32));
       const iss = "https://issuer.com";
-      const oidcData = {
-        oidcDigest,
-        iss,
-      };
-
-      const encodedData = ethers.AbiCoder.defaultAbiCoder().encode(
-        ["tuple(bytes32, string)"],
-        [[oidcData.oidcDigest, oidcData.iss]],
-      );
 
       // First registration should succeed
-      await oidcValidator.connect(ownerWallet).addValidationKey(encodedData);
+      await oidcValidator.connect(ownerWallet).addOidcAccount(oidcDigest, iss);
 
       // Create another wallet
       const otherWallet = new Wallet(Wallet.createRandom().privateKey, provider);
@@ -93,7 +75,7 @@ describe("OidcRecoveryValidator", function () {
 
       // Second registration with same digest should fail
       await expect(
-        oidcValidator.connect(otherWallet).addValidationKey(encodedData),
+        oidcValidator.connect(otherWallet).addOidcAccount(oidcDigest, iss),
       ).to.be.revertedWith("oidc_digest already registered in other account");
     });
   });
