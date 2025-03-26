@@ -2,7 +2,8 @@ import { assert, expect } from "chai";
 import { concat, ethers, keccak256, parseEther, randomBytes } from "ethers";
 import { Wallet, ZeroAddress } from "ethers";
 import { it } from "mocha";
-import { toBytes } from "viem";
+import { Chain, createWalletClient, http, toBytes, WalletClient, zeroAddress } from "viem";
+import { eip712WalletActions, toSmartAccount, zksyncLocalNode } from "viem/zksync";
 import { SmartAccount, utils } from "zksync-ethers";
 
 import { SsoAccount__factory } from "../typechain-types";
@@ -77,7 +78,7 @@ describe("Basic tests", function () {
   });
 
   it("should execute a simple transfer of ETH", async () => {
-    const fundTx = await fixtures.wallet.sendTransaction({ value: parseEther("0.2"), to: proxyAccountAddress });
+    const fundTx = await fixtures.wallet.sendTransaction({ value: parseEther("0.0"), to: proxyAccountAddress });
     await fundTx.wait();
 
     const balanceBefore = await provider.getBalance(proxyAccountAddress);
@@ -106,6 +107,57 @@ describe("Basic tests", function () {
     const fee = receipt.gasUsed * aaTx.gasPrice;
     expect(await provider.getBalance(proxyAccountAddress)).to.equal(balanceBefore - value - fee, "invalid final balance");
     expect(await provider.getBalance(target)).to.equal(value, "invalid final balance");
+  });
+
+  it.only("should use viem smart account", async () => {
+    const aaFactoryContract = await fixtures.getAaFactory();
+    const eoaConnector = Wallet.createRandom();
+    const deployTx = await aaFactoryContract.deployProxySsoAccount(
+      randomBytes(32),
+      [],
+      [eoaConnector.address],
+    );
+    const deployTxReceipt = await deployTx.wait();
+    const smartAccountAddress = deployTxReceipt!.contractAddress!;
+    const smartAccount = toSmartAccount({
+      address: smartAccountAddress as `0x${string}`,
+      sign: async ({ hash }) =>
+        (await eoaConnector?.signMessage(hash)) as `0x${string}`,
+    });
+    const getWalletClient = (chain: Chain): WalletClient | undefined => {
+      const walletClient = createWalletClient({
+        account: smartAccount,
+        chain: chain,
+        transport: http(),
+      }).extend(eip712WalletActions());
+
+      return walletClient;
+    };
+
+    const walletClient = getWalletClient(zksyncLocalNode);
+
+    if (!walletClient) {
+      throw new Error("Wallet client not found");
+    }
+    if (!walletClient.account) {
+      throw new Error("Wallet client not found");
+    }
+
+    const toAddress = zeroAddress;
+    if (!toAddress) {
+      throw new Error("To address is required");
+    }
+
+    const amount = 0.0;
+    const transactionResult = await walletClient.sendTransaction({
+      account: walletClient.account,
+      data: "0x69",
+      to: toAddress,
+      value: amount ? parseEther(amount) : 0n,
+      chain: walletClient.chain,
+    });
+
+    expect(transactionResult).to.not.be.undefined("ok");
   });
 
   it("should execute a multicall", async () => {
