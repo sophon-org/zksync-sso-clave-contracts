@@ -28,6 +28,8 @@ import { BootloaderAuth } from "./auth/BootloaderAuth.sol";
 import { ISsoAccount } from "./interfaces/ISsoAccount.sol";
 import { IModuleValidator } from "./interfaces/IModuleValidator.sol";
 
+import { Logger } from "./helpers/Logger.sol";
+
 /// @title SSO Account
 /// @author Matter Labs
 /// @custom:security-contact security@matterlabs.dev
@@ -92,6 +94,7 @@ contract SsoAccount is
     // on the validation step to prevent paying fees for revertable transactions.
     uint256 requiredBalance = _transaction.totalRequiredBalance();
     if (requiredBalance > address(this).balance) {
+      Logger.logString("INSUFFICIENT_FUNDS");
       revert Errors.INSUFFICIENT_FUNDS(requiredBalance, address(this).balance);
     }
 
@@ -196,13 +199,20 @@ contract SsoAccount is
   /// @return The magic value if the validation was successful and bytes4(0) otherwise.
   function _validateTransaction(bytes32 _signedHash, Transaction calldata _transaction) private returns (bytes4) {
     // Run validation hooks
+    Logger.logString("Running hooks");
     bool hookSuccess = runValidationHooks(_signedHash, _transaction);
     if (!hookSuccess) {
       return bytes4(0);
     }
 
+    Logger.logString("checking signature length");
+    Logger.logUint(_transaction.signature.length);
     if (_transaction.signature.length == 65) {
+      Logger.logString("signature data");
+      Logger.logBytes(_transaction.signature);
       (address signer, ECDSA.RecoverError err) = ECDSA.tryRecover(_signedHash, _transaction.signature);
+      Logger.logString("signer");
+      Logger.logAddress(signer);
       return
         signer == address(0) || err != ECDSA.RecoverError.NoError || !_isK1Owner(signer)
           ? bytes4(0)

@@ -24,6 +24,12 @@ library Logger {
     }
   }
 
+  function logBytes(bytes bytesToLog) internal view {
+    if (block.chainid == 260) {
+      console.logBytes(bytesToLog);
+    }
+  }
+
   function logUint(uint256 intToLog) internal view {
     if (block.chainid == 260) {
       console.logUint(intToLog);
