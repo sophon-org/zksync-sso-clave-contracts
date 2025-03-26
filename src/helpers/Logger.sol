@@ -24,7 +24,7 @@ library Logger {
     }
   }
 
-  function logBytes(bytes bytesToLog) internal view {
+  function logBytes(bytes memory bytesToLog) internal view {
     if (block.chainid == 260) {
       console.logBytes(bytesToLog);
     }
