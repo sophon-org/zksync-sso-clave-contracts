@@ -100,19 +100,23 @@ abstract contract HookManager is IHookManager, SelfAuth {
 
   function _addHook(address hook, bool isValidation, bytes calldata initData) private {
     if (!_supportsHook(hook, isValidation)) {
-      revert Errors.HOOK_ERC165_FAIL(hook, isValidation);
+      // revert Errors.HOOK_ERC165_FAIL(hook, isValidation);
+      revert("Errors.HOOK_ERC165_FAIL(hook, isValidation)");
     }
 
     // Regardless of whether or not it is a validation or an execution hook,
     // if the module is already installed, it cannot be installed again (even as another type).
     if (SsoStorage.validationHooks().contains(hook)) {
-      revert Errors.HOOK_ALREADY_EXISTS(hook, true);
+      // revert Errors.HOOK_ALREADY_EXISTS(hook, true);
+      revert("Errors.HOOK_ALREADY_EXISTS(hook, true)");
     }
     if (SsoStorage.executionHooks().contains(hook)) {
-      revert Errors.HOOK_ALREADY_EXISTS(hook, false);
+      // revert Errors.HOOK_ALREADY_EXISTS(hook, false);
+      revert("Errors.HOOK_ALREADY_EXISTS(hook, false)");
     }
     if (SsoStorage.validators().contains(hook)) {
-      revert Errors.VALIDATOR_ALREADY_EXISTS(hook);
+      // revert Errors.VALIDATOR_ALREADY_EXISTS(hook);
+      revert("Errors.VALIDATOR_ALREADY_EXISTS(hook)");
     }
 
     // No need to check the return value of .add() as we just checked that it is not already present.

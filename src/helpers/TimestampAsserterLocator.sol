@@ -23,6 +23,7 @@ library TimestampAsserterLocator {
     if (block.chainid == 324) {
       return ITimestampAsserter(address(0x958F70e4Fd676c9CeAaFe5c48cB78CDD08b4880d));
     }
-    revert Errors.NO_TIMESTAMP_ASSERTER(block.chainid);
+    // revert Errors.NO_TIMESTAMP_ASSERTER(block.chainid);
+    revert("NO_TIMESTAMP_ASSERTER");
   }
 }

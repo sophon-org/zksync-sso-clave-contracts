@@ -11,7 +11,8 @@ library Utils {
   /// @dev Revert if the value exceeds the maximum size for an address (160 bits).
   function safeCastToAddress(uint256 _value) internal pure returns (address) {
     if (_value > type(uint160).max) {
-      revert Errors.ADDRESS_CAST_OVERFLOW(_value);
+      // revert Errors.ADDRESS_CAST_OVERFLOW(_value);
+      revert("ADDRESS_CAST_OVERFLOW");
     }
     return address(uint160(_value));
   }

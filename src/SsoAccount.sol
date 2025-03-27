@@ -95,7 +95,8 @@ contract SsoAccount is
     uint256 requiredBalance = _transaction.totalRequiredBalance();
     if (requiredBalance > address(this).balance) {
       Logger.logString("INSUFFICIENT_FUNDS");
-      revert Errors.INSUFFICIENT_FUNDS(requiredBalance, address(this).balance);
+      //revert Errors.INSUFFICIENT_FUNDS(requiredBalance, address(this).balance);
+      revert("INSUFFICIENT_FUNDS");
     }
 
     // While the suggested signed hash is usually provided, it is generally
@@ -159,7 +160,8 @@ contract SsoAccount is
   /// forced transactions are accepted by the network.
   /// @dev It is not implemented yet.
   function executeTransactionFromOutside(Transaction calldata) external payable override {
-    revert Errors.METHOD_NOT_IMPLEMENTED();
+    //revert Errors.METHOD_NOT_IMPLEMENTED();
+    revert("METHOD_NOT_IMPLEMENTED");
   }
 
   /// @notice This function allows the account to pay for its own gas and used when there is no paymaster.
@@ -173,7 +175,8 @@ contract SsoAccount is
     bool success = _transaction.payToTheBootloader();
 
     if (!success) {
-      revert Errors.FEE_PAYMENT_FAILED();
+      // revert Errors.FEE_PAYMENT_FAILED();
+      revert("FEE_PAYMENT_FAILED");
     }
   }
   /// @notice This function is called by the system if the transaction has a paymaster

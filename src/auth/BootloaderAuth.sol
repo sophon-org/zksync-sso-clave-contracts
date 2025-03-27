@@ -12,7 +12,8 @@ import { Errors } from "../libraries/Errors.sol";
 abstract contract BootloaderAuth {
   modifier onlyBootloader() {
     if (msg.sender != BOOTLOADER_FORMAL_ADDRESS) {
-      revert Errors.NOT_FROM_BOOTLOADER(msg.sender);
+      //revert Errors.NOT_FROM_BOOTLOADER(msg.sender);
+      revert("NOT_FROM_BOOTLOADER");
     }
     _;
   }

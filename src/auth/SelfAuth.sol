@@ -11,7 +11,8 @@ import { Errors } from "../libraries/Errors.sol";
 abstract contract SelfAuth {
   modifier onlySelf() {
     if (msg.sender != address(this)) {
-      revert Errors.NOT_FROM_SELF(msg.sender);
+      // revert Errors.NOT_FROM_SELF(msg.sender);
+      revert("NOT_FROM_SELF");
     }
     _;
   }

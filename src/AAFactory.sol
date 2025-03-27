@@ -52,7 +52,8 @@ contract AAFactory {
     bytes32 uniqueAccountId = keccak256(abi.encodePacked(uniqueId, msg.sender));
     address existingAccountAddress = accountMappings[uniqueAccountId];
     if (existingAccountAddress != address(0)) {
-      revert Errors.ACCOUNT_ALREADY_EXISTS(existingAccountAddress);
+      // revert Errors.ACCOUNT_ALREADY_EXISTS(existingAccountAddress);
+      revert("ACCOUNT_ALREADY_EXISTS");
     }
 
     bytes memory returnData = SystemContractsCaller.systemCallWithPropagatedRevert(

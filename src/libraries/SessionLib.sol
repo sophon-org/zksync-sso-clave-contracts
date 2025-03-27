@@ -143,13 +143,15 @@ library SessionLib {
   ) internal {
     if (limit.limitType == LimitType.Lifetime) {
       if (tracker.lifetimeUsage[msg.sender] + value > limit.limit) {
-        revert Errors.SESSION_LIFETIME_USAGE_EXCEEDED(tracker.lifetimeUsage[msg.sender], limit.limit);
+        // revert Errors.SESSION_LIFETIME_USAGE_EXCEEDED(tracker.lifetimeUsage[msg.sender], limit.limit);
+        revert("SESSION_LIFETIME_USAGE_EXCEEDED");
       }
       tracker.lifetimeUsage[msg.sender] += value;
     } else if (limit.limitType == LimitType.Allowance) {
       TimestampAsserterLocator.locate().assertTimestampInRange(period * limit.period, (period + 1) * limit.period - 1);
       if (tracker.allowanceUsage[period][msg.sender] + value > limit.limit) {
-        revert Errors.SESSION_ALLOWANCE_EXCEEDED(tracker.allowanceUsage[period][msg.sender], limit.limit, period);
+        // revert Errors.SESSION_ALLOWANCE_EXCEEDED(tracker.allowanceUsage[period][msg.sender], limit.limit, period);
+        revert("SESSION_LIFETIME_USAGE_EXCEEDED");
       }
       tracker.allowanceUsage[period][msg.sender] += value;
     }
@@ -170,7 +172,8 @@ library SessionLib {
   ) internal {
     uint256 expectedLength = 4 + constraint.index * 32 + 32;
     if (data.length < expectedLength) {
-      revert Errors.SESSION_INVALID_DATA_LENGTH(data.length, expectedLength);
+      // revert Errors.SESSION_INVALID_DATA_LENGTH(data.length, expectedLength);
+      revert("Errors.SESSION_INVALID_DATA_LENGTH");
     }
     bytes32 param = data.load(4 + constraint.index * 32);
     Condition condition = constraint.condition;
@@ -184,7 +187,8 @@ library SessionLib {
       (condition == Condition.LessOrEqual && param > refValue) ||
       (condition == Condition.NotEqual && param == refValue)
     ) {
-      revert Errors.SESSION_CONDITION_FAILED(param, refValue, uint8(condition));
+      // revert Errors.SESSION_CONDITION_FAILED(param, refValue, uint8(condition));
+      revert("Errors.SESSION_CONDITION_FAILED");
     }
 
     constraint.limit.checkAndUpdate(tracker, uint256(param), period);
@@ -220,7 +224,8 @@ library SessionLib {
     }
 
     if (!found) {
-      revert Errors.SESSION_CALL_POLICY_VIOLATED(target, selector);
+      // revert Errors.SESSION_CALL_POLICY_VIOLATED(target, selector);
+      revert("Errors.SESSION_CALL_POLICY_VIOLATED");
     }
 
     for (uint256 i = 0; i < callPolicy.constraints.length; i++) {
@@ -280,7 +285,8 @@ library SessionLib {
     uint64[] memory periodIds
   ) internal {
     if (state.status[msg.sender] != Status.Active) {
-      revert Errors.SESSION_NOT_ACTIVE();
+      // revert Errors.SESSION_NOT_ACTIVE();
+      revert("Errors.SESSION_NOT_ACTIVE");
     }
 
     TimestampAsserterLocator.locate().assertTimestampInRange(0, spec.expiresAt);
@@ -294,7 +300,8 @@ library SessionLib {
       // We need to make sure that the session spec allows this.
       if (paymasterInputSelector == IPaymasterFlow.approvalBased.selector) {
         if (transaction.paymasterInput.length < 68) {
-          revert Errors.INVALID_PAYMASTER_INPUT(transaction.paymasterInput);
+          //revert Errors.INVALID_PAYMASTER_INPUT(transaction.paymasterInput);
+          revert("Errors.INVALID_PAYMASTER_INPUT(transaction.paymasterInput)");
         }
         (address token, uint256 amount, ) = abi.decode(transaction.paymasterInput[4:], (address, uint256, bytes));
         address paymasterAddr = Utils.safeCastToAddress(transaction.paymaster);
@@ -326,7 +333,8 @@ library SessionLib {
         periodIdsOffset
       );
       if (transaction.value > callPolicy.maxValuePerUse) {
-        revert Errors.SESSION_MAX_VALUE_EXCEEDED(transaction.value, callPolicy.maxValuePerUse);
+        // revert Errors.SESSION_MAX_VALUE_EXCEEDED(transaction.value, callPolicy.maxValuePerUse);
+        revert("Errors.SESSION_MAX_VALUE_EXCEEDED(transaction.value, callPolicy.maxValuePerUse)");
       }
       callPolicy.valueLimit.checkAndUpdate(state.callValue[target][selector], transaction.value, periodIds[1]);
     } else {
@@ -342,10 +350,12 @@ library SessionLib {
       }
 
       if (!found) {
-        revert Errors.SESSION_TRANSFER_POLICY_VIOLATED(target);
+        // revert Errors.SESSION_TRANSFER_POLICY_VIOLATED(target);
+        revert("Errors.SESSION_TRANSFER_POLICY_VIOLATED(target)");
       }
       if (transaction.value > transferPolicy.maxValuePerUse) {
-        revert Errors.SESSION_MAX_VALUE_EXCEEDED(transaction.value, transferPolicy.maxValuePerUse);
+        // revert Errors.SESSION_MAX_VALUE_EXCEEDED(transaction.value, transferPolicy.maxValuePerUse);
+        revert("Errors.SESSION_MAX_VALUE_EXCEEDED(transaction.value, transferPolicy.maxValuePerUse)");
       }
       transferPolicy.valueLimit.checkAndUpdate(state.transferValue[target], transaction.value, periodIds[1]);
     }
