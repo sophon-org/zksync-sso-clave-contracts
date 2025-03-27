@@ -109,7 +109,7 @@ describe("Basic tests", function () {
     expect(await provider.getBalance(target)).to.equal(value, "invalid final balance");
   });
 
-  it.only("should use viem smart account", async () => {
+  it("should use viem smart account", async () => {
     const aaFactoryContract = await fixtures.getAaFactory();
     const eoaConnector = Wallet.createRandom();
     const deployTx = await aaFactoryContract.deployProxySsoAccount(

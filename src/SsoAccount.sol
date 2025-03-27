@@ -213,6 +213,11 @@ contract SsoAccount is
       (address signer, ECDSA.RecoverError err) = ECDSA.tryRecover(_signedHash, _transaction.signature);
       Logger.logString("signer");
       Logger.logAddress(signer);
+      Logger.logString("error");
+      Logger.logUint(uint(err));
+      Logger.logString("owner");
+      Logger.logBool(_isK1Owner(signer));
+
       return
         signer == address(0) || err != ECDSA.RecoverError.NoError || !_isK1Owner(signer)
           ? bytes4(0)
