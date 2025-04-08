@@ -93,6 +93,18 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
   mapping(bytes32 hashedOriginDomain => mapping(address account => mapping(address guardian => Guardian guardianData)))
     public accountGuardianData;
 
+  /// @notice This modifier allows execution only by active guardian of account
+  /// @param hashedOriginDomain Hash of origin domain
+  /// @param account Address of account for which we verify guardian existence
+  modifier onlyGuardianOf(bytes32 hashedOriginDomain, address account) {
+    bool isGuardian = accountGuardians[hashedOriginDomain][account].contains(msg.sender) &&
+      accountGuardianData[hashedOriginDomain][account][msg.sender].isReady;
+
+    if (!isGuardian) revert GuardianNotFound(msg.sender);
+    // Continue execution if called by guardian
+    _;
+  }
+
   constructor() {
     _disableInitializers();
   }
@@ -221,18 +233,6 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
     return true;
   }
 
-  /// @notice This modifier allows execution only by active guardian of account
-  /// @param hashedOriginDomain Hash of origin domain
-  /// @param account Address of account for which we verify guardian existence
-  modifier onlyGuardianOf(bytes32 hashedOriginDomain, address account) {
-    bool isGuardian = accountGuardians[hashedOriginDomain][account].contains(msg.sender) &&
-      accountGuardianData[hashedOriginDomain][account][msg.sender].isReady;
-
-    if (!isGuardian) revert GuardianNotFound(msg.sender);
-    // Continue execution if called by guardian
-    _;
-  }
-
   /// @notice This method initializes a recovery process for a given account
   /// @param accountToRecover Address of account for which given recovery is initiated
   /// @param hashedCredentialId Hashed credential ID of the new passkey
@@ -268,23 +268,6 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
       pendingRecoveryData[hashedOriginDomain][msg.sender].hashedCredentialId
     );
     _discardRecovery(hashedOriginDomain);
-  }
-
-  /// @notice This method allows to finish currently pending recovery
-  /// @param hashedOriginDomain Hash of origin domain
-  function _finishRecovery(bytes32 hashedOriginDomain) private {
-    emit RecoveryFinished(
-      msg.sender,
-      hashedOriginDomain,
-      pendingRecoveryData[hashedOriginDomain][msg.sender].hashedCredentialId
-    );
-    _discardRecovery(hashedOriginDomain);
-  }
-
-  /// @notice This method allows to discard currently pending recovery
-  /// @param hashedOriginDomain Hash of origin domain
-  function _discardRecovery(bytes32 hashedOriginDomain) private {
-    delete pendingRecoveryData[hashedOriginDomain][msg.sender];
   }
 
   /// @inheritdoc IModuleValidator
@@ -382,5 +365,22 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
     address account
   ) external view returns (RecoveryRequest memory) {
     return pendingRecoveryData[hashedOriginDomain][account];
+  }
+
+  /// @notice This method allows to finish currently pending recovery
+  /// @param hashedOriginDomain Hash of origin domain
+  function _finishRecovery(bytes32 hashedOriginDomain) internal {
+    emit RecoveryFinished(
+      msg.sender,
+      hashedOriginDomain,
+      pendingRecoveryData[hashedOriginDomain][msg.sender].hashedCredentialId
+    );
+    _discardRecovery(hashedOriginDomain);
+  }
+
+  /// @notice This method allows to discard currently pending recovery
+  /// @param hashedOriginDomain Hash of origin domain
+  function _discardRecovery(bytes32 hashedOriginDomain) internal {
+    delete pendingRecoveryData[hashedOriginDomain][msg.sender];
   }
 }
