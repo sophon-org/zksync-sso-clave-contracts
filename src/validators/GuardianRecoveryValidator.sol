@@ -40,6 +40,18 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
   /// @notice Error thrown when the WebAuthValidator is not enabled for the account
   error WebAuthValidatorNotEnabled();
 
+  /// @notice Error thrown when an invalid guardian address is provided
+  error InvalidGuardianAddress();
+
+  /// @notice Error thrown when an invalid web auth validator address is provided
+  error InvalidWebAuthValidatorAddress();
+
+  /// @notice Error thrown when an invalid account to guard address is provided
+  error InvalidAccountToGuardAddress();
+
+  /// @notice Error thrown when an invalid account to recover address is provided
+  error InvalidAccountToRecoverAddress();
+
   event RecoveryInitiated(
     address indexed account,
     bytes32 indexed hashedOriginDomain,
@@ -78,6 +90,7 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
   }
 
   function initialize(WebAuthValidator _webAuthValidator) external initializer {
+    if (address(_webAuthValidator) == address(0)) revert InvalidWebAuthValidatorAddress();
     webAuthValidator = _webAuthValidator;
   }
 
@@ -130,6 +143,7 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
   /// @param newGuardian New Guardian's address
   function proposeGuardian(bytes32 hashedOriginDomain, address newGuardian) external {
     if (msg.sender == newGuardian) revert GuardianCannotBeSelf();
+    if (newGuardian == address(0)) revert InvalidGuardianAddress();
 
     bool additionSuccessful = accountGuardians[hashedOriginDomain][msg.sender].add(newGuardian);
 
@@ -151,25 +165,26 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
   /// @param hashedOriginDomain Hash of origin domain
   /// @param guardianToRemove Guardian's address to remove
   function removeGuardian(bytes32 hashedOriginDomain, address guardianToRemove) external {
+    if (guardianToRemove == address(0)) revert InvalidGuardianAddress();
+
     bool removalSuccessful = accountGuardians[hashedOriginDomain][msg.sender].remove(guardianToRemove);
-
-    if (removalSuccessful) {
-      bool wasActiveGuardian = accountGuardianData[hashedOriginDomain][msg.sender][guardianToRemove].isReady;
-      delete accountGuardianData[hashedOriginDomain][msg.sender][guardianToRemove];
-
-      if (wasActiveGuardian) {
-        EnumerableSetUpgradeable.AddressSet storage accounts = guardedAccounts[hashedOriginDomain][guardianToRemove];
-        bool accountsRemovalSuccessful = accounts.remove(msg.sender);
-
-        if (!accountsRemovalSuccessful) {
-          revert AccountNotGuardedByAddress(msg.sender, guardianToRemove);
-        }
-      }
-      emit GuardianRemoved(msg.sender, hashedOriginDomain, guardianToRemove);
-      return;
+    if (!removalSuccessful) {
+      revert GuardianNotFound(guardianToRemove);
     }
 
-    revert GuardianNotFound(guardianToRemove);
+    bool wasActiveGuardian = accountGuardianData[hashedOriginDomain][msg.sender][guardianToRemove].isReady;
+    delete accountGuardianData[hashedOriginDomain][msg.sender][guardianToRemove];
+
+    if (wasActiveGuardian) {
+      EnumerableSetUpgradeable.AddressSet storage accounts = guardedAccounts[hashedOriginDomain][guardianToRemove];
+      bool accountsRemovalSuccessful = accounts.remove(msg.sender);
+
+      if (!accountsRemovalSuccessful) {
+        revert AccountNotGuardedByAddress(msg.sender, guardianToRemove);
+      }
+    }
+    emit GuardianRemoved(msg.sender, hashedOriginDomain, guardianToRemove);
+    return;
   }
 
   /// @notice This method allows to accept being a guardian of given account
@@ -177,24 +192,25 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
   /// @param accountToGuard Address of account which msg.sender is becoming guardian of
   /// @return Flag indicating whether guardian was already valid or not
   function addGuardian(bytes32 hashedOriginDomain, address accountToGuard) external returns (bool) {
+    if (accountToGuard == address(0)) revert InvalidAccountToGuardAddress();
+
     bool guardianProposed = accountGuardians[hashedOriginDomain][accountToGuard].contains(msg.sender);
-
-    if (guardianProposed) {
-      // We return true if the guardian was not confirmed before.
-      if (accountGuardianData[hashedOriginDomain][accountToGuard][msg.sender].isReady) return false;
-
-      accountGuardianData[hashedOriginDomain][accountToGuard][msg.sender].isReady = true;
-      bool addSuccessful = guardedAccounts[hashedOriginDomain][msg.sender].add(accountToGuard);
-
-      if (!addSuccessful) {
-        revert AccountAlreadyGuardedByGuardian(accountToGuard, msg.sender);
-      }
-
-      emit GuardianAdded(accountToGuard, hashedOriginDomain, msg.sender);
-      return true;
+    if (!guardianProposed) {
+      revert GuardianNotProposed(msg.sender);
     }
 
-    revert GuardianNotProposed(msg.sender);
+    // We return true if the guardian was not confirmed before.
+    if (accountGuardianData[hashedOriginDomain][accountToGuard][msg.sender].isReady) return false;
+
+    accountGuardianData[hashedOriginDomain][accountToGuard][msg.sender].isReady = true;
+    bool addSuccessful = guardedAccounts[hashedOriginDomain][msg.sender].add(accountToGuard);
+
+    if (!addSuccessful) {
+      revert AccountAlreadyGuardedByGuardian(accountToGuard, msg.sender);
+    }
+
+    emit GuardianAdded(accountToGuard, hashedOriginDomain, msg.sender);
+    return true;
   }
 
   /// @notice This modifier allows execution only by active guardian of account
@@ -220,6 +236,8 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
     bytes32[2] calldata rawPublicKey,
     bytes32 hashedOriginDomain
   ) external onlyGuardianOf(hashedOriginDomain, accountToRecover) {
+    if (accountToRecover == address(0)) revert InvalidAccountToRecoverAddress();
+
     pendingRecoveryData[hashedOriginDomain][accountToRecover] = RecoveryRequest(
       hashedCredentialId,
       rawPublicKey,
