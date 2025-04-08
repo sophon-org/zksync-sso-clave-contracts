@@ -56,6 +56,9 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
   /// @notice Error thrown when an invalid account to recover address is provided
   error InvalidAccountToRecoverAddress();
 
+  /// @notice Error thrown when a non-function call transaction is detected
+  error NonFunctionCallTransaction();
+
   event RecoveryInitiated(
     address indexed account,
     bytes32 indexed hashedOriginDomain,
@@ -292,7 +295,10 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
     //   3. Allows anyone to call this method, as the recovery was already verified in `initRecovery`
     //   4. Verifies that the required timelock period has passed since `initRecovery` was called
     //   5. If all the above are true, the recovery is finished
-    require(transaction.data.length >= 4, "Only function calls are supported");
+    if (transaction.data.length < 4) {
+      revert NonFunctionCallTransaction();
+    }
+
     // Verify the transaction is a call to WebAuthValidator contract
     address target = Utils.safeCastToAddress(transaction.to);
     if (target != address(webAuthValidator)) {
