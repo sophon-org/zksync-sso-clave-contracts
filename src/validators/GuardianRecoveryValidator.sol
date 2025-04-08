@@ -9,6 +9,7 @@ import { WebAuthValidator } from "./WebAuthValidator.sol";
 import { IGuardianRecoveryValidator } from "../interfaces/IGuardianRecoveryValidator.sol";
 import { IModuleValidator } from "../interfaces/IModuleValidator.sol";
 import { IModule } from "../interfaces/IModule.sol";
+import { IValidatorManager } from "../interfaces/IValidatorManager.sol";
 import { TimestampAsserterLocator } from "../helpers/TimestampAsserterLocator.sol";
 
 contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator {
@@ -31,6 +32,9 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
   error GuardianNotProposed(address guardian);
   error AccountAlreadyGuardedByGuardian(address account, address guardian);
   error AccountNotGuardedByAddress(address account, address guardian);
+
+  /// @notice Error thrown when the WebAuthValidator is not enabled for the account
+  error WebAuthValidatorNotEnabled();
 
   event RecoveryInitiated(
     address indexed account,
@@ -73,8 +77,14 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
     webAuthValidator = _webAuthValidator;
   }
 
-  /// @notice Validator initiator for given sso account. This module does not support initialization on creation
-  function onInstall(bytes calldata) external {}
+  /// @notice Validator initiator for given sso account.
+  /// @dev This module does not support initialization on creation,
+  /// but ensures that the WebAuthValidator is enabled for calling SsoAccount.
+  function onInstall(bytes calldata) external {
+    if (!IValidatorManager(msg.sender).isModuleValidator(address(webAuthValidator))) {
+      revert WebAuthValidatorNotEnabled();
+    }
+  }
 
   /// @notice Removes all past guardians when this module is disabled in a account
   function onUninstall(bytes calldata data) external {
