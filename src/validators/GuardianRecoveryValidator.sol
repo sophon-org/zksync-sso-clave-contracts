@@ -19,6 +19,7 @@ import { Utils } from "../helpers/Utils.sol";
 /// @dev This contract allows account recovery using trusted guardians.
 contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator {
   using EnumerableSetUpgradeable for EnumerableSetUpgradeable.AddressSet;
+  using EnumerableSetUpgradeable for EnumerableSetUpgradeable.Bytes32Set;
 
   uint256 public constant REQUEST_VALIDITY_TIME = 72 * 60 * 60; // 72 hours
   uint256 public constant REQUEST_DELAY_TIME = 24 * 60 * 60; // 24 hours
@@ -29,6 +30,8 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
     private accountGuardians;
   mapping(bytes32 hashedOriginDomain => mapping(address guardian => EnumerableSetUpgradeable.AddressSet accounts))
     private guardedAccounts;
+  mapping(address account => EnumerableSetUpgradeable.Bytes32Set hashedOriginDomains)
+    private accountHashedOriginDomains;
   mapping(bytes32 hashedOriginDomain => mapping(address account => RecoveryRequest recoveryData))
     private pendingRecoveryData;
   mapping(bytes32 hashedOriginDomain => mapping(address account => mapping(address guardian => Guardian guardianData)))
@@ -65,8 +68,8 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
   }
 
   /// @notice Removes all past guardians when this module is disabled in a account
-  function onUninstall(bytes calldata data) external {
-    bytes32[] memory hashedOriginDomains = abi.decode(data, (bytes32[]));
+  function onUninstall(bytes calldata) external {
+    bytes32[] memory hashedOriginDomains = accountHashedOriginDomains[msg.sender].values();
     for (uint256 j = 0; j < hashedOriginDomains.length; ++j) {
       bytes32 hashedOriginDomain = hashedOriginDomains[j];
       address[] memory guardians = accountGuardians[hashedOriginDomain][msg.sender].values();
@@ -89,6 +92,11 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
 
         emit GuardianRemoved(msg.sender, hashedOriginDomain, guardian);
       }
+
+      // Allow-listing slither finding as the element removal's success is granted due to the element being
+      //  loaded from the accountHashedOriginDomains EnumerableSet on line 74
+      // slither-disable-next-line unused-return
+      accountHashedOriginDomains[msg.sender].remove(hashedOriginDomain);
 
       // Remove pending recovery data if exist
       if (pendingRecoveryData[hashedOriginDomain][msg.sender].timestamp != 0) {
@@ -117,6 +125,11 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
       false,
       uint64(block.timestamp)
     );
+
+    if (accountHashedOriginDomains[msg.sender].add(hashedOriginDomain)) {
+      emit HashedOriginDomainEnabledForAccount(msg.sender, hashedOriginDomain);
+    }
+
     emit GuardianProposed(msg.sender, hashedOriginDomain, newGuardian);
   }
 
@@ -144,6 +157,15 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
         revert AccountNotGuardedByAddress(msg.sender, guardianToRemove);
       }
     }
+
+    if (accountGuardians[hashedOriginDomain][msg.sender].length() == 0) {
+      if (!accountHashedOriginDomains[msg.sender].remove(hashedOriginDomain)) {
+        revert UnknownHashedOriginDomain(hashedOriginDomain);
+      } else {
+        emit HashedOriginDomainDisabledForAccount(msg.sender, hashedOriginDomain);
+      }
+    }
+
     emit GuardianRemoved(msg.sender, hashedOriginDomain, guardianToRemove);
     return;
   }
