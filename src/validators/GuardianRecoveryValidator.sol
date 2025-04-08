@@ -11,6 +11,7 @@ import { IModuleValidator } from "../interfaces/IModuleValidator.sol";
 import { IModule } from "../interfaces/IModule.sol";
 import { IValidatorManager } from "../interfaces/IValidatorManager.sol";
 import { TimestampAsserterLocator } from "../helpers/TimestampAsserterLocator.sol";
+import { Utils } from "../helpers/Utils.sol";
 
 /// @title GuardianRecoveryValidator
 /// @author Matter Labs
@@ -291,9 +292,8 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
     //   4. Verifies that the required timelock period has passed since `initRecovery` was called
     //   5. If all the above are true, the recovery is finished
     require(transaction.data.length >= 4, "Only function calls are supported");
-    require(transaction.to <= type(uint160).max, "Overflow");
     // Verify the transaction is a call to WebAuthValidator contract
-    address target = address(uint160(transaction.to));
+    address target = Utils.safeCastToAddress(transaction.to);
     if (target != address(webAuthValidator)) {
       return false;
     }
