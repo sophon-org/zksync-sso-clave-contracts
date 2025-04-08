@@ -37,6 +37,9 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
   error AccountAlreadyGuardedByGuardian(address account, address guardian);
   error AccountNotGuardedByAddress(address account, address guardian);
 
+  /// @notice Error thrown when an account recovery is already in progress
+  error AccountRecoveryInProgress();
+
   /// @notice Error thrown when the WebAuthValidator is not enabled for the account
   error WebAuthValidatorNotEnabled();
 
@@ -237,6 +240,10 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
     bytes32 hashedOriginDomain
   ) external onlyGuardianOf(hashedOriginDomain, accountToRecover) {
     if (accountToRecover == address(0)) revert InvalidAccountToRecoverAddress();
+
+    if (pendingRecoveryData[hashedOriginDomain][accountToRecover].timestamp + REQUEST_VALIDITY_TIME > block.timestamp) {
+      revert AccountRecoveryInProgress();
+    }
 
     pendingRecoveryData[hashedOriginDomain][accountToRecover] = RecoveryRequest(
       hashedCredentialId,
