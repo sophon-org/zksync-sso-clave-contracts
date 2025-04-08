@@ -61,6 +61,7 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
   /// @notice Validator initiator for given sso account.
   /// @dev This module does not support initialization on creation,
   /// but ensures that the WebAuthValidator is enabled for calling SsoAccount.
+  /// @inheritdoc IModule
   function onInstall(bytes calldata) external {
     if (!IValidatorManager(msg.sender).isModuleValidator(address(webAuthValidator))) {
       revert WebAuthValidatorNotEnabled();
@@ -68,6 +69,7 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
   }
 
   /// @notice Removes all past guardians when this module is disabled in a account
+  /// @inheritdoc IModule
   function onUninstall(bytes calldata) external {
     bytes32[] memory hashedOriginDomains = accountHashedOriginDomains[msg.sender].values();
     for (uint256 j = 0; j < hashedOriginDomains.length; ++j) {
@@ -109,11 +111,6 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
     }
   }
 
-  /// @notice The `proposeGuardian` method handles the initial registration of guardians by:
-  ///   1. Taking an external account address and store it as pending guardian
-  ///   2. Enable `addGuardian` to confirm this account
-  /// @param hashedOriginDomain Hash of origin domain
-  /// @param newGuardian New Guardian's address
   function proposeGuardian(bytes32 hashedOriginDomain, address newGuardian) external {
     if (msg.sender == newGuardian) revert GuardianCannotBeSelf();
     if (newGuardian == address(0)) revert InvalidGuardianAddress();
@@ -137,11 +134,6 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
     emit GuardianProposed(msg.sender, hashedOriginDomain, newGuardian);
   }
 
-  /// @notice This method handles the removal of guardians by:
-  ///   1. Accepting an address as input
-  ///   2. Removing the account from the list of guardians
-  /// @param hashedOriginDomain Hash of origin domain
-  /// @param guardianToRemove Guardian's address to remove
   function removeGuardian(bytes32 hashedOriginDomain, address guardianToRemove) external {
     if (guardianToRemove == address(0)) revert InvalidGuardianAddress();
 
@@ -174,10 +166,6 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
     return;
   }
 
-  /// @notice This method allows to accept being a guardian of given account
-  /// @param hashedOriginDomain Hash of origin domain
-  /// @param accountToGuard Address of account which msg.sender is becoming guardian of
-  /// @return Flag indicating whether guardian was already valid or not
   function addGuardian(bytes32 hashedOriginDomain, address accountToGuard) external returns (bool) {
     if (accountToGuard == address(0)) revert InvalidAccountToGuardAddress();
 
@@ -200,11 +188,6 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
     return true;
   }
 
-  /// @notice This method initializes a recovery process for a given account
-  /// @param accountToRecover Address of account for which given recovery is initiated
-  /// @param hashedCredentialId Hashed credential ID of the new passkey
-  /// @param rawPublicKey Raw public key of the new passkey
-  /// @param hashedOriginDomain Hash of origin domain of the new passkey
   function initRecovery(
     address accountToRecover,
     bytes32 hashedCredentialId,
@@ -226,8 +209,6 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
     emit RecoveryInitiated(accountToRecover, hashedOriginDomain, hashedCredentialId, msg.sender);
   }
 
-  /// @notice This method allows to discard currently pending recovery
-  /// @param hashedOriginDomain Hash of origin domain
   function discardRecovery(bytes32 hashedOriginDomain) public {
     emit RecoveryDiscarded(
       msg.sender,
@@ -299,13 +280,10 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
     return
       interfaceId == type(IERC165).interfaceId ||
       interfaceId == type(IModuleValidator).interfaceId ||
-      interfaceId == type(IModule).interfaceId;
+      interfaceId == type(IModule).interfaceId ||
+      interfaceId == type(IGuardianRecoveryValidator).interfaceId;
   }
 
-  /// @notice Returns all guardians for an account
-  /// @param hashedOriginDomain Hash of origin domain
-  /// @param addr Address of account to get guardians for
-  /// @return Array of guardians for the account
   function guardiansFor(bytes32 hashedOriginDomain, address addr) external view returns (Guardian[] memory) {
     address[] memory guardians = accountGuardians[hashedOriginDomain][addr].values();
     Guardian[] memory result = new Guardian[](guardians.length);
@@ -315,18 +293,10 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
     return result;
   }
 
-  /// @notice Returns all accounts guarded by a guardian
-  /// @param hashedOriginDomain Hash of origin domain
-  /// @param guardian Address of guardian to get guarded accounts for
-  /// @return Array of accounts guarded by the guardian
   function guardianOf(bytes32 hashedOriginDomain, address guardian) external view returns (address[] memory) {
     return guardedAccounts[hashedOriginDomain][guardian].values();
   }
 
-  /// @notice Returns the pending recovery data for an account and origin domain
-  /// @param hashedOriginDomain Hash of the origin domain
-  /// @param account Address of the account
-  /// @return The full RecoveryRequest struct containing hashedCredentialId, rawPublicKey, and timestamp
   function getPendingRecoveryData(
     bytes32 hashedOriginDomain,
     address account
