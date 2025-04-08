@@ -28,7 +28,7 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
   struct RecoveryRequest {
     bytes32 hashedCredentialId;
     bytes32[2] rawPublicKey;
-    uint256 timestamp;
+    uint64 timestamp;
   }
 
   error GuardianCannotBeSelf();
@@ -223,7 +223,7 @@ contract GuardianRecoveryValidator is Initializable, IGuardianRecoveryValidator 
     pendingRecoveryData[hashedOriginDomain][accountToRecover] = RecoveryRequest(
       hashedCredentialId,
       rawPublicKey,
-      block.timestamp
+      uint64(block.timestamp)
     );
 
     emit RecoveryInitiated(accountToRecover, hashedOriginDomain, hashedCredentialId, msg.sender);
