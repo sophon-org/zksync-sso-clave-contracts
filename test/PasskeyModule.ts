@@ -393,8 +393,10 @@ async function validateSignatureTest(
   transactionHash: Buffer,
 ) {
   const passkeyValidator = await deployValidator(wallet);
+  console.log("passkey validator deployed", await passkeyValidator.getAddress());
   const generatedR1Key = await generateES256R1Key();
   const credentialId = toHex(randomBytes(64));
+  console.log("generated credentialId", credentialId);
 
   assert(generatedR1Key != null, "no key was generated");
   const [generatedX, generatedY] = await getRawPublicKeyFromCrypto(generatedR1Key);
@@ -443,10 +445,12 @@ describe("Passkey validation", function () {
     async function deployAccount() {
       const factoryContract = await fixtures.getAaFactory();
       const passKeyModuleAddress = await fixtures.getPasskeyModuleAddress();
+      logInfo(`passKeyModuleAddress ${passKeyModuleAddress}`);
       const passKeyModuleContract = await fixtures.getWebAuthnVerifierContract();
 
       const randomSalt = randomBytes(32);
       const credentialId = toHex(randomBytes(64));
+      logInfo(`credentialId ${credentialId}`);
       const sampleDomain = "http://example.com";
       const generatedR1Key = await generateES256R1Key();
       assert(generatedR1Key != null, "no key was generated");
@@ -456,6 +460,7 @@ describe("Passkey validation", function () {
       const passKeyPayload = encodeAbiParameters(
         [{ name: "moduleAddress", type: "address" }, { name: "moduleData", type: "bytes" }],
         [passKeyModuleAddress, initPasskeyData]);
+      logInfo(`EOA owner key: ${wallet.privateKey}`);
       logInfo(`\`deployProxySsoAccount\` args: ${initPasskeyData}`);
       const deployTx = await factoryContract.deployProxySsoAccount(
         randomSalt,
@@ -524,6 +529,7 @@ describe("Passkey validation", function () {
 
     it("should sign transaction with passkey", async () => {
       const { proxyAccountAddress, signPayload } = await deployAccount();
+      logInfo(`proxyAccountAddress ${proxyAccountAddress}`);
 
       const sessionAccount = new SmartAccount({
         payloadSigner: signPayload,

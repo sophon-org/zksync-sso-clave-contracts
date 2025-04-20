@@ -28,6 +28,8 @@ import { BootloaderAuth } from "./auth/BootloaderAuth.sol";
 import { ISsoAccount } from "./interfaces/ISsoAccount.sol";
 import { IModuleValidator } from "./interfaces/IModuleValidator.sol";
 
+import "hardhat/console.sol";
+
 /// @title SSO Account
 /// @author Matter Labs
 /// @custom:security-contact security@matterlabs.dev
@@ -68,6 +70,9 @@ contract SsoAccount is
       _addModuleValidator(validatorAddr, initData);
     }
     for (uint256 i = 0; i < initialK1Owners.length; ++i) {
+      console.log("Adding K1 owner");
+      console.log(initialK1Owners[i]);
+      console.log(address(this));
       _addK1Owner(initialK1Owners[i]);
     }
   }
@@ -92,10 +97,12 @@ contract SsoAccount is
     // TODO: session txs have their own nonce managers, so they have to not alter this nonce
     _incrementNonce(_transaction.nonce);
 
+    console.log("SsoAccount: validateTransaction");
     // If there is not enough balance for the transaction, the account should reject it
     // on the validation step to prevent paying fees for revertable transactions.
     uint256 requiredBalance = _transaction.totalRequiredBalance();
     if (requiredBalance > address(this).balance) {
+      console.log("Errors.INSUFFICIENT_FUNDS");
       revert Errors.INSUFFICIENT_FUNDS(requiredBalance, address(this).balance);
     }
 
@@ -202,25 +209,37 @@ contract SsoAccount is
     // Run validation hooks
     bool hookSuccess = runValidationHooks(_signedHash, _transaction);
     if (!hookSuccess) {
+      console.log("bad hooks");
       return bytes4(0);
     }
 
     if (_transaction.signature.length == 65) {
+      console.log("eoa signing");
       (address signer, ECDSA.RecoverError err) = ECDSA.tryRecover(_signedHash, _transaction.signature);
+      console.log("signer");
+      console.log(signer);
+      console.log("err");
+      console.log(uint(err));
+      console.log("no err");
+      console.log(uint(ECDSA.RecoverError.NoError));
+      console.log("is k1 owner");
+      console.log(_isK1Owner(signer));
       return
         signer == address(0) || err != ECDSA.RecoverError.NoError || !_isK1Owner(signer)
           ? bytes4(0)
           : ACCOUNT_VALIDATION_SUCCESS_MAGIC;
     }
 
+    console.log("module signing");
     // Extract the signature, validator address and hook data from the _transaction.signature
     //  the signature value is not necessary, omitting it
-    // slither-disable-next-line unused-return
     (, address validator) = SignatureDecoder.decodeSignatureNoHookData(_transaction.signature);
 
+    console.log(validator);
     bool validationSuccess = _isModuleValidator(validator) &&
       IModuleValidator(validator).validateTransaction(_signedHash, _transaction);
     if (!validationSuccess) {
+      console.log("module rejected");
       return bytes4(0);
     }
 

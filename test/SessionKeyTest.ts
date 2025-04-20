@@ -7,7 +7,7 @@ import { SmartAccount, utils } from "zksync-ethers";
 
 import type { ERC20 } from "../typechain-types";
 import type { IPaymasterFlow, SsoBeacon, TestPaymaster } from "../typechain-types";
-import { SessionKeyValidator__factory, SsoAccount__factory, SsoBeacon__factory, TestPaymaster__factory } from "../typechain-types";
+import { SessionKeyValidator__factory, SsoAccount__factory, SsoBeacon__factory } from "../typechain-types";
 import type { SessionLib } from "../typechain-types/src/validators/SessionKeyValidator";
 import { ContractFixtures, getProvider, logInfo } from "./utils";
 
@@ -330,7 +330,7 @@ describe("SessionKeyModule tests", function () {
     logInfo(`Auth Server Paymaster Address  : ${await authServerPaymaster.getAddress()}`);
   });
 
-  it("should deploy proxy account via factory", async () => {
+  it.only("should deploy proxy account via factory", async () => {
     const factoryContract = await fixtures.getAaFactory();
     const sessionKeyModuleAddress = await fixtures.getSessionKeyModuleAddress();
     const transferSessionTarget = Wallet.createRandom().address;
@@ -343,6 +343,9 @@ describe("SessionKeyModule tests", function () {
     const factoryAddress = await factoryContract.getAddress();
     const standardCreate2Address = utils.create2Address(factoryAddress, bytecodeHash, randomSalt, args);
     const tester = new SessionTester(standardCreate2Address, await fixtures.getSessionKeyModuleAddress());
+    logInfo(`tester.sessionOwner.address: ${tester.sessionOwner.address}`);
+    logInfo(`tester.sessionOwner.privateKey: ${tester.sessionOwner.privateKey}`);
+    logInfo(`SessionKeyModuleAddress: ${await fixtures.getSessionKeyModuleAddress()}`);
     const initialSession = tester.getSession({
       transferPolicies: [{
         target: transferSessionTarget,
@@ -363,6 +366,7 @@ describe("SessionKeyModule tests", function () {
 
     proxyAccountAddress = deployTxReceipt!.contractAddress!;
     expect(proxyAccountAddress, "the proxy account location via logs").to.not.equal(ZeroAddress, "be a valid address");
+    logInfo(`account address: ${proxyAccountAddress}`);
 
     const fundTx = await fixtures.wallet.sendTransaction({ value: parseEther("1"), to: proxyAccountAddress });
     await fundTx.wait();
@@ -609,8 +613,10 @@ describe("SessionKeyModule tests", function () {
         to: sessionTarget,
         value: parseEther("0.01"),
       });
-      // @ts-ignore
-      const gas = tester.aaTransaction.gasLimit * tester.aaTransaction.gasPrice;
+
+      const gasLimit = tester.aaTransaction.gasLimit ? BigInt(tester.aaTransaction.gasLimit) : 0n;
+      const gasPrice = tester.aaTransaction.gasPrice ? BigInt(tester.aaTransaction.gasPrice) : 0n;
+      const gas = gasLimit * gasPrice;
       const sessionKeyModuleContract = await fixtures.getSessionKeyContract();
       const state = await sessionKeyModuleContract.sessionState(proxyAccountAddress, tester.session);
       expect(state.feesRemaining).to.equal(parseEther("0.01") - gas, "should have deducted gas fees");

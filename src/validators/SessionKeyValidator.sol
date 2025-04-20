@@ -13,6 +13,9 @@ import { Errors } from "../libraries/Errors.sol";
 import { SignatureDecoder } from "../libraries/SignatureDecoder.sol";
 import { TimestampAsserterLocator } from "../helpers/TimestampAsserterLocator.sol";
 
+import "hardhat/console.sol";
+import { Logger } from "../helpers/Logger.sol";
+
 /// @title SessionKeyValidator
 /// @author Matter Labs
 /// @custom:security-contact security@matterlabs.dev
@@ -104,6 +107,8 @@ contract SessionKeyValidator is IModuleValidator {
 
     sessionCounter[msg.sender]++;
     sessions[sessionHash].status[msg.sender] = SessionLib.Status.Active;
+    console.log("SessionKeyValidator.createSession");
+    Logger.logBytes32(sessionHash);
     emit SessionCreated(msg.sender, sessionHash, sessionSpec);
   }
 
@@ -156,23 +161,31 @@ contract SessionKeyValidator is IModuleValidator {
   /// @return true if the transaction is valid
   /// @dev Session spec and period IDs must be provided as validator data
   function validateTransaction(bytes32 signedHash, Transaction calldata transaction) external returns (bool) {
+    console.log("SessionKeyValidator.validateTransaction");
     (bytes memory transactionSignature, address _validator, bytes memory validatorData) = SignatureDecoder
       .decodeSignature(transaction.signature);
+    console.log(_validator);
     (SessionLib.SessionSpec memory spec, uint64[] memory periodIds) = abi.decode(
       validatorData, // this is passed by the signature builder
       (SessionLib.SessionSpec, uint64[])
     );
+    console.log(spec.signer);
     if (spec.signer == address(0)) {
+      console.log("zero signer");
       revert Errors.SESSION_ZERO_SIGNER();
     }
     bytes32 sessionHash = keccak256(abi.encode(spec));
+    console.log("validating session status");
+    Logger.logBytes32(sessionHash);
     // this generally throws instead of returning false
     sessions[sessionHash].validate(transaction, spec, periodIds);
     (address recoveredAddress, ECDSA.RecoverError recoverError) = ECDSA.tryRecover(signedHash, transactionSignature);
     if (recoverError != ECDSA.RecoverError.NoError || recoveredAddress == address(0)) {
+      console.log("incorrect signature");
       return false;
     }
     if (recoveredAddress != spec.signer) {
+      console.log("mismatched signer");
       revert Errors.SESSION_INVALID_SIGNER(recoveredAddress, spec.signer);
     }
     // This check is separate and performed last to prevent gas estimation failures

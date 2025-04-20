@@ -9,6 +9,8 @@ import { LibBytes } from "solady/src/utils/LibBytes.sol";
 import { Errors } from "./Errors.sol";
 import { Utils } from "../helpers/Utils.sol";
 
+import "hardhat/console.sol";
+
 /// @title Session Library
 /// @author Matter Labs
 /// @notice Library for session management, used by SessionKeyValidator
@@ -143,12 +145,14 @@ library SessionLib {
   ) internal {
     if (limit.limitType == LimitType.Lifetime) {
       if (tracker.lifetimeUsage[msg.sender] + value > limit.limit) {
+        console.log("lifetime usage exceeded");
         revert Errors.SESSION_LIFETIME_USAGE_EXCEEDED(tracker.lifetimeUsage[msg.sender], limit.limit);
       }
       tracker.lifetimeUsage[msg.sender] += value;
     } else if (limit.limitType == LimitType.Allowance) {
       TimestampAsserterLocator.locate().assertTimestampInRange(period * limit.period, (period + 1) * limit.period - 1);
       if (tracker.allowanceUsage[period][msg.sender] + value > limit.limit) {
+        console.log("allowance usage exceeded");
         revert Errors.SESSION_ALLOWANCE_EXCEEDED(tracker.allowanceUsage[period][msg.sender], limit.limit, period);
       }
       tracker.allowanceUsage[period][msg.sender] += value;
@@ -170,6 +174,7 @@ library SessionLib {
   ) internal {
     uint256 expectedLength = 4 + constraint.index * 32 + 32;
     if (data.length < expectedLength) {
+      console.log("data length mismatch");
       revert Errors.SESSION_INVALID_DATA_LENGTH(data.length, expectedLength);
     }
     bytes32 param = data.load(4 + constraint.index * 32);
@@ -184,6 +189,7 @@ library SessionLib {
       (condition == Condition.LessOrEqual && param > refValue) ||
       (condition == Condition.NotEqual && param == refValue)
     ) {
+      console.log("constraint not met");
       revert Errors.SESSION_CONDITION_FAILED(param, refValue, uint8(condition));
     }
 
@@ -220,6 +226,7 @@ library SessionLib {
     }
 
     if (!found) {
+      console.log("call policy not found");
       revert Errors.SESSION_CALL_POLICY_VIOLATED(target, selector);
     }
 
@@ -280,6 +287,8 @@ library SessionLib {
     uint64[] memory periodIds
   ) internal {
     if (state.status[msg.sender] != Status.Active) {
+      console.log("session not active");
+      console.log(uint(state.status[msg.sender]));
       revert Errors.SESSION_NOT_ACTIVE();
     }
 
@@ -294,6 +303,7 @@ library SessionLib {
       // We need to make sure that the session spec allows this.
       if (paymasterInputSelector == IPaymasterFlow.approvalBased.selector) {
         if (transaction.paymasterInput.length < 68) {
+          console.log("paymaster input too short");
           revert Errors.INVALID_PAYMASTER_INPUT(transaction.paymasterInput);
         }
         (address token, uint256 amount, ) = abi.decode(transaction.paymasterInput[4:], (address, uint256, bytes));
@@ -326,6 +336,7 @@ library SessionLib {
         periodIdsOffset
       );
       if (transaction.value > callPolicy.maxValuePerUse) {
+        console.log("call value exceeded");
         revert Errors.SESSION_MAX_VALUE_EXCEEDED(transaction.value, callPolicy.maxValuePerUse);
       }
       callPolicy.valueLimit.checkAndUpdate(state.callValue[target][selector], transaction.value, periodIds[1]);
@@ -342,9 +353,11 @@ library SessionLib {
       }
 
       if (!found) {
+        console.log("transfer policy not found");
         revert Errors.SESSION_TRANSFER_POLICY_VIOLATED(target);
       }
       if (transaction.value > transferPolicy.maxValuePerUse) {
+        console.log("transfer value exceeded");
         revert Errors.SESSION_MAX_VALUE_EXCEEDED(transaction.value, transferPolicy.maxValuePerUse);
       }
       transferPolicy.valueLimit.checkAndUpdate(state.transferValue[target], transaction.value, periodIds[1]);
