@@ -226,7 +226,7 @@ describe("GuardianRecoveryValidator", function () {
     });
   });
 
-  describe.only("onUninstall", () => {
+  describe("onUninstall", () => {
     let user1: ethers.Signer;
     let guardian: ethers.Signer;
     let guardian2: ethers.Signer;
