@@ -333,7 +333,6 @@ describe("SessionKeyModule tests", function () {
   it.only("should deploy proxy account via factory", async () => {
     const factoryContract = await fixtures.getAaFactory();
     const sessionKeyModuleAddress = await fixtures.getSessionKeyModuleAddress();
-    const transferSessionTarget = Wallet.createRandom().address;
     const sessionKeyModuleContract = await fixtures.getSessionKeyContract();
 
     // create a session to encode (before the account is deployed)
@@ -346,11 +345,29 @@ describe("SessionKeyModule tests", function () {
     logInfo(`tester.sessionOwner.address: ${tester.sessionOwner.address}`);
     logInfo(`tester.sessionOwner.privateKey: ${tester.sessionOwner.privateKey}`);
     logInfo(`SessionKeyModuleAddress: ${await fixtures.getSessionKeyModuleAddress()}`);
+    const expiresAt = 68719476735;
     const initialSession = tester.getSession({
-      transferPolicies: [{
-        target: transferSessionTarget,
-        maxValuePerUse: parseEther("0.01"),
-      }],
+      expiresAt: expiresAt,
+      feeLimit: getLimit({
+        limit: parseEther("0.1"),
+      }),
+      callPolicies: [
+        {
+          target: "0x012cBC0ce7d6EA94B680C76b36e20DF89B5198d9", // webauthn address
+          selector: "0x8f5bc2af", // addValidationKeySelector,
+          maxValuePerUse: BigInt(0),
+          valueLimit: getLimit(),
+          constraints: [],
+        },
+        {
+          target: "0x012cBC0ce7d6EA94B680C76b36e20DF89B5198d9", // webauthn address
+          selector: "0x59be375f", // removeValidationKeySelector,
+          maxValuePerUse: BigInt(0),
+          valueLimit: getLimit(),
+          constraints: [],
+        },
+      ],
+      transferPolicies: [],
     });
     const initSessionData = abiCoder.encode(sessionKeyModuleContract.interface.getFunction("createSession").inputs, [initialSession]);
 
