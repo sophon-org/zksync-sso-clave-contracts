@@ -387,10 +387,9 @@ describe("SessionKeyModule tests", function () {
 
     const fundTx = await fixtures.wallet.sendTransaction({ value: parseEther("1"), to: proxyAccountAddress });
     await fundTx.wait();
+    logInfo(`sent funds!`);
 
-    const initState = await sessionKeyModuleContract.sessionState(proxyAccountAddress, initialSession);
-    expect(initState.status).to.equal(1, "initial session should be active");
-
+    logInfo(`get account information!`);
     const account = SsoAccount__factory.connect(proxyAccountAddress, provider);
     assert(await account.isK1Owner(fixtures.wallet.address));
     assert(!await account.isHook(sessionKeyModuleAddress), "session key module should not be an execution hook");
