@@ -45,9 +45,8 @@
     "@openzeppelin/contracts-upgradeable": "4.9",
     "@peculiar/asn1-ecc": "2.3.14",
     "@peculiar/asn1-schema": "2.3.13",
-    "@simplewebauthn/browser": "^10.0.0",
-    "@simplewebauthn/server": "^10.0.1",
-    "@simplewebauthn/types": "^10.0.0",
+    "@simplewebauthn/browser": "^13.1.0",
+    "@simplewebauthn/server": "^13.1.1",
     "@stylistic/eslint-plugin": "2.8.0",
     "@swc-node/register": "1.10.9",
     "@swc/core": "1.7.26",
@@ -86,5 +85,5 @@
     "zksync-ethers": "6.15.0",
     "zksync-sso": "0.0.0-beta.2"
   },
-  "packageManager": "pnpm@9.11.0"
+  "packageManager": "pnpm@10.9.0"
 }
