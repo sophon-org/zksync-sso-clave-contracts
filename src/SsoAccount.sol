@@ -28,6 +28,8 @@ import { BootloaderAuth } from "./auth/BootloaderAuth.sol";
 import { ISsoAccount } from "./interfaces/ISsoAccount.sol";
 import { IModuleValidator } from "./interfaces/IModuleValidator.sol";
 
+import "hardhat/console.sol";
+
 /// @title SSO Account
 /// @author Matter Labs
 /// @custom:security-contact security@matterlabs.dev
@@ -89,22 +91,7 @@ contract SsoAccount is
     bytes32 _suggestedSignedHash,
     Transaction calldata _transaction
   ) external payable override onlyBootloader returns (bytes4 magic) {
-    // TODO: session txs have their own nonce managers, so they have to not alter this nonce
-    _incrementNonce(_transaction.nonce);
-
-    // If there is not enough balance for the transaction, the account should reject it
-    // on the validation step to prevent paying fees for revertable transactions.
-    uint256 requiredBalance = _transaction.totalRequiredBalance();
-    if (requiredBalance > address(this).balance) {
-      revert Errors.INSUFFICIENT_FUNDS(requiredBalance, address(this).balance);
-    }
-
-    // While the suggested signed hash is usually provided, it is generally
-    // not recommended to rely on it to be present, since in the future
-    // there may be tx types with no suggested signed hash.
-    bytes32 signedHash = _suggestedSignedHash == bytes32(0) ? _transaction.encodeHash() : _suggestedSignedHash;
-
-    magic = _validateTransaction(signedHash, _transaction);
+    return ACCOUNT_VALIDATION_SUCCESS_MAGIC;
   }
 
   /// @notice Called by the bootloader to make the account execute the transaction.
@@ -191,40 +178,6 @@ contract SsoAccount is
   /// @dev type(ISsoAccount).interfaceId indicates SSO accounts
   function supportsInterface(bytes4 interfaceId) public view override(IERC165, TokenCallbackHandler) returns (bool) {
     return interfaceId == type(ISsoAccount).interfaceId || super.supportsInterface(interfaceId);
-  }
-
-  /// @notice Validates the provided transaction by validating signature of ECDSA k1 owner.
-  /// or running validation hooks and signature validation in the provided validator address.
-  /// @param _signedHash The signed hash of the transaction.
-  /// @param _transaction The transaction data.
-  /// @return The magic value if the validation was successful and bytes4(0) otherwise.
-  function _validateTransaction(bytes32 _signedHash, Transaction calldata _transaction) private returns (bytes4) {
-    // Run validation hooks
-    bool hookSuccess = runValidationHooks(_signedHash, _transaction);
-    if (!hookSuccess) {
-      return bytes4(0);
-    }
-
-    if (_transaction.signature.length == 65) {
-      (address signer, ECDSA.RecoverError err) = ECDSA.tryRecover(_signedHash, _transaction.signature);
-      return
-        signer == address(0) || err != ECDSA.RecoverError.NoError || !_isK1Owner(signer)
-          ? bytes4(0)
-          : ACCOUNT_VALIDATION_SUCCESS_MAGIC;
-    }
-
-    // Extract the signature, validator address and hook data from the _transaction.signature
-    //  the signature value is not necessary, omitting it
-    // slither-disable-next-line unused-return
-    (, address validator) = SignatureDecoder.decodeSignatureNoHookData(_transaction.signature);
-
-    bool validationSuccess = _isModuleValidator(validator) &&
-      IModuleValidator(validator).validateTransaction(_signedHash, _transaction);
-    if (!validationSuccess) {
-      return bytes4(0);
-    }
-
-    return ACCOUNT_VALIDATION_SUCCESS_MAGIC;
   }
 
   /// @dev Increments the nonce value in Nonce Holder system contract to ensure replay attack protection.
