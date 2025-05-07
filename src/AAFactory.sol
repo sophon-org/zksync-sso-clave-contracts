@@ -13,6 +13,12 @@ import { Errors } from "./libraries/Errors.sol";
 /// @custom:security-contact security@matterlabs.dev
 /// @dev This contract is used to deploy SSO accounts as beacon proxies.
 contract AAFactory {
+  /// @notice Struct representing an account's metadata
+  struct Account {
+    bytes32 accountId;
+    address factoryVersion;
+  }
+
   // Order of Layout: State
   /// @dev The bytecode hash of the beacon proxy, used for deploying proxy accounts.
   bytes32 public immutable beaconProxyBytecodeHash;
@@ -22,9 +28,14 @@ contract AAFactory {
   address public immutable passKeyModule;
   /// @dev The address of the session key module address
   address public immutable sessionKeyModule;
+  /// @dev The address of this contract
+  address private immutable self;
 
   /// @notice A mapping from unique account IDs to their corresponding deployed account addresses.
   mapping(bytes32 accountId => address deployedAccount) public accountMappings;
+
+  /// @notice Mapping from account addresses to their metadata
+  mapping(address accountAddress => Account account) internal accounts;
 
   // Order of Layout: Events
 
@@ -63,6 +74,7 @@ contract AAFactory {
       revert EMPTY_SESSIONKEY_ADDRESS();
     }
     sessionKeyModule = _sessionKeyModule;
+    self = address(this);
   }
 
   function getEncodedBeacon() external view returns (bytes memory) {
@@ -104,6 +116,11 @@ contract AAFactory {
 
     accountMappings[uniqueAccountId] = accountAddress;
 
+    accounts[accountAddress] = Account({
+      accountId: uniqueAccountId,
+      factoryVersion: self
+    });
+
     // Initialize the newly deployed account with validators and K1 owners.
     ISsoAccount(accountAddress).initialize(initialValidators, initialK1Owners);
 
@@ -134,5 +151,22 @@ contract AAFactory {
     initialValidators[0] = passKeyData;
     initialValidators[1] = sessionKeyData;
     return deployProxySsoAccount(uniqueId, initialValidators, ownerKeys);
+  }
+
+  /// @notice Retrieves account metadata for a single account address
+  /// @param accountAddress The address of the account to query
+  /// @return metadata An Account struct containing account metadata
+  function getAccount(address accountAddress) external view returns (Account memory metadata) {
+    return accounts[accountAddress];
+  }
+
+  /// @notice Retrieves account metadata for multiple account addresses
+  /// @param accountAddresses An array of account addresses to query
+  /// @return metadataList An array of Account structs containing account metadata
+  function getAccounts(address[] memory accountAddresses) external view returns (Account[] memory metadataList) {
+    metadataList = new Account[](accountAddresses.length);
+    for(uint256 i = 0; i < accountAddresses.length; i++) {
+      metadataList[i] = accounts[accountAddresses[i]];
+    }
   }
 }
