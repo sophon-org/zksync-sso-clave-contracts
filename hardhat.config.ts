@@ -1,11 +1,15 @@
 import "@typechain/hardhat";
 import "@matterlabs/hardhat-zksync";
 import "@nomicfoundation/hardhat-chai-matchers";
+import "@nomicfoundation/hardhat-verify";
 import "./scripts/deploy";
 import "./scripts/publish";
 import "./scripts/upgrade";
+import * as dotenv from "dotenv";
 
 import { HardhatUserConfig } from "hardhat/config";
+
+dotenv.config();
 
 const config: HardhatUserConfig = {
   paths: {
@@ -26,6 +30,18 @@ const config: HardhatUserConfig = {
       zksync: true,
       verifyURL: "https://zksync2-mainnet-explorer.zksync.io/contract_verification",
     },
+    sophonTestnet: {
+      url: "https://rpc.testnet.sophon.xyz",
+      ethNetwork: "sepolia",
+      zksync: true,
+      verifyURL: "https://api-explorer-verify.testnet.sophon.xyz/contract_verification",
+    },
+    sophonMainnet: {
+      url: "https://rpc.sophon.xyz",
+      ethNetwork: "mainnet",
+      zksync: true,
+      verifyURL: "https://verification-explorer.sophon.xyz/contract_verification",
+    },
     dockerizedNode: {
       url: "http://localhost:3050",
       ethNetwork: "http://localhost:8545",
@@ -45,6 +61,30 @@ const config: HardhatUserConfig = {
       zksync: true,
     },
   },
+  /*etherscan: {
+    apiKey: {
+      sophonTestnet: process.env.SOPHON_TESTNET_API_KEY,
+      sophonMainnet: process.env.SOPHON_MAINNET_API_KEY
+    },
+    customChains: [
+      {
+        network: "sophonTestnet",
+        chainId: 531050104,
+        urls: {
+          apiURL: "https://api-sepolia.sophscan.xyz/api",
+          browserURL: "https://testnet.sophscan.xyz/"
+        }
+      },
+      {
+        network: "sophonMainnet",
+        chainId: 50104,
+        urls: {
+          apiURL: "https://api.sophscan.xyz/api",
+          browserURL: "https://sophscan.xyz/"
+        }
+      }
+    ]
+  },*/
   zksolc: {
     version: "1.5.11",
     settings: {
