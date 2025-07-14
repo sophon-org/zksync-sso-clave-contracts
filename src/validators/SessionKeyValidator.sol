@@ -22,8 +22,8 @@ import { ISsoAccount } from "../interfaces/ISsoAccount.sol";
 contract SessionKeyValidator is ISessionKeyValidator {
   using SessionLib for SessionLib.SessionStorage;
 
-  mapping(bytes32 sessionHash => SessionLib.SessionStorage sessionState) internal sessions;
   mapping(address signer => bytes32 sessionHash) public sessionSigner;
+  mapping(bytes32 sessionHash => SessionLib.SessionStorage sessionState) internal sessions;
 
   /// @notice Get the session state for an account
   /// @param account The account to fetch the session state for
@@ -58,6 +58,9 @@ contract SessionKeyValidator is ISessionKeyValidator {
   /// @param data ABI-encoded array of session hashes to revoke
   /// @dev Revokes provided sessions before uninstalling,
   /// reverts if any session is still active after that.
+  /// @notice Only provided sessions will be revoked, not necessarily all active sessions.
+  /// If any active session is unrevoked on uninstall, it will become active again
+  /// if the module is reinstalled, unless the session expires.
   function onUninstall(bytes calldata data) external virtual {
     // Revoke keys before uninstalling
     bytes32[] memory sessionHashes = abi.decode(data, (bytes32[]));
