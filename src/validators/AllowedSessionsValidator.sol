@@ -28,6 +28,8 @@ import { SessionKeyValidator } from "./SessionKeyValidator.sol";
 contract AllowedSessionsValidator is SessionKeyValidator, AccessControl, IAllowedSessionsValidator {
   using SessionLib for SessionLib.SessionStorage;
 
+  error ALREADY_INITIALIZED();
+
   /// @notice Role identifier for session registry managers.
   bytes32 public constant SESSION_REGISTRY_MANAGER_ROLE = keccak256("SESSION_REGISTRY_MANAGER_ROLE");
 
@@ -35,9 +37,17 @@ contract AllowedSessionsValidator is SessionKeyValidator, AccessControl, IAllowe
   /// @dev The key is the hash of session actions, and the value indicates if the actions are allowed.
   mapping(bytes32 sessionActionsHash => bool active) public areSessionActionsAllowed;
 
+  bool internal _isInitialized;
+
   constructor() {
-    _grantRole(SESSION_REGISTRY_MANAGER_ROLE, msg.sender);
-    _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
+    initialize(msg.sender);
+  }
+
+  function initialize(address admin) public {
+    if (_isInitialized) revert ALREADY_INITIALIZED();
+    _grantRole(SESSION_REGISTRY_MANAGER_ROLE, admin);
+    _grantRole(DEFAULT_ADMIN_ROLE, admin);
+    _isInitialized = true;
   }
 
   /// @notice Set whether a session actions hash is allowed or not.
