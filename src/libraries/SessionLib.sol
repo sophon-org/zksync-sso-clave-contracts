@@ -431,7 +431,7 @@ library SessionLib {
     }
 
     // shrink array to actual size
-    assembly ("memory-safe") {
+    assembly {
       mstore(callParams, paramLimitIndex)
     }
 
