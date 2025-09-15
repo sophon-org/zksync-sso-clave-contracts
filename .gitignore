@@ -147,3 +147,5 @@ deployments-zk/
 
 # typechain
 typechain-types/
+
+*_ignore_*
