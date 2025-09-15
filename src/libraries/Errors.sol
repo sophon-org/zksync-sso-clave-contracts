@@ -30,7 +30,6 @@ library Errors {
   error HOOK_NOT_FOUND(address hook, bool isValidation);
 
   // Sessions errors
-  error UNINSTALL_WITH_OPEN_SESSIONS(uint256 openSessions);
   error SESSION_ZERO_SIGNER();
   error SESSION_INVALID_SIGNER(address recovered, address expected);
   error SESSION_ALREADY_EXISTS(bytes32 sessionHash);
@@ -57,7 +56,6 @@ library Errors {
   error WEBAUTHN_BAD_CREDENTIAL_ID_LENGTH();
 
   // Misc
-  error BATCH_MSG_VALUE_MISMATCH(uint256 actualValue, uint256 expectedValue);
   error MSG_VALUE_MISMATCH(uint256 actualValue, uint256 expectedValue);
   error NO_TIMESTAMP_ASSERTER(uint256 chainId);
   error ADDRESS_CAST_OVERFLOW(uint256 value);

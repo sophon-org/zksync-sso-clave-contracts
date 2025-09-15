@@ -8,12 +8,13 @@ import { assert, expect } from "chai";
 import { randomBytes } from "crypto";
 import { parseEther, ZeroAddress } from "ethers";
 import * as hre from "hardhat";
-import { encodeAbiParameters, Hex, hexToBytes, pad, toHex } from "viem";
+import { encodeAbiParameters, hashMessage, Hex, hexToBytes, pad, toBytes, toHex } from "viem";
 import { SmartAccount, Wallet } from "zksync-ethers";
 import { base64UrlToUint8Array } from "zksync-sso/utils";
+import { wrapTypedDataSignature, hashTypedData } from "viem/experimental/erc7739";
 
 import type { WebAuthValidator } from "../typechain-types";
-import { IERC165__factory, IModuleValidator__factory, SsoAccount__factory, WebAuthValidator__factory } from "../typechain-types";
+import { type ERC1271Caller, type SsoAccount, IERC165__factory, IModuleValidator__factory, SsoAccount__factory, WebAuthValidator__factory } from "../typechain-types";
 import { ContractFixtures, getProvider, getWallet, LOCAL_RICH_WALLETS, logInfo, RecordedResponse } from "./utils";
 
 /**
@@ -322,17 +323,6 @@ async function signStringWithR1Key(privateKey: CryptoKey, messageBuffer: Uint8Ar
   return { r, s, signature: new Uint8Array(signatureBytes) };
 }
 
-async function verifySignatureWithR1Key(
-  messageBuffer: Uint8Array,
-  signatureArray: Uint8Array[],
-  publicKeyBytes: Uint8Array[],
-) {
-  const publicKey = await getCrpytoKeyFromPublicBytes(publicKeyBytes);
-  const verification = await crypto.subtle.verify(r1KeyParams, publicKey, concat(signatureArray), messageBuffer);
-
-  return verification;
-}
-
 function encodeFatSignature(
   passkeyResponse: {
     authenticatorData: string;
@@ -449,6 +439,7 @@ describe("Passkey validation", function () {
   describe("account integration", () => {
     const fixtures = new ContractFixtures();
     const provider = getProvider();
+    let proxyAccountAddress: string;
 
     async function deployAccount() {
       const factoryContract = await fixtures.getAaFactory();
@@ -476,14 +467,45 @@ describe("Passkey validation", function () {
       const deployTxReceipt = await deployTx.wait();
       logInfo(`\`deployProxySsoAccount\` gas used: ${deployTxReceipt?.gasUsed.toString()}`);
 
-      const proxyAccountAddress = deployTxReceipt!.contractAddress!;
+      proxyAccountAddress = deployTxReceipt!.contractAddress!;
       expect(proxyAccountAddress, "the proxy account location via logs").to.not.equal(ZeroAddress, "be a valid address");
 
       const fundTx = await wallet.sendTransaction({ value: parseEther("1"), to: proxyAccountAddress });
       const receipt = await fundTx.wait();
       expect(receipt.status).to.eq(1, "send funds to proxy account");
 
-      return { passKeyModuleContract, sampleDomain, proxyAccountAddress, generatedR1Key, passKeyModuleAddress, credentialId };
+      const signPayload = async (hash: Hex) => {
+        const authData = toBuffer(ethersResponse.authenticatorData);
+        const sampleClientObject = {
+          type: "webauthn.get",
+          challenge: fromBuffer(hexToBytes(hash)),
+          origin: sampleDomain,
+          crossOrigin: false,
+        };
+        const sampleClientString = JSON.stringify(sampleClientObject);
+        const sampleClientBuffer = Buffer.from(sampleClientString);
+        const partiallyHashedData = concat([authData, await toHash(sampleClientBuffer)]);
+        const generatedSignature = await signStringWithR1Key(generatedR1Key.privateKey, partiallyHashedData);
+        assert(generatedSignature != null, "no signature generated");
+        const fatSignature = encodeAbiParameters([
+          { name: "authData", type: "bytes" },
+          { name: "clientDataJson", type: "string" },
+          { name: "rs", type: "bytes32[2]" },
+          { name: "credentialId", type: "bytes" },
+        ], [
+          toHex(authData),
+          sampleClientString,
+          [toHex(normalizeR(generatedSignature.r)), toHex(normalizeS(generatedSignature.s))],
+          credentialId,
+        ]);
+
+        const moduleSignature = encodeAbiParameters(
+          [{ name: "signature", type: "bytes" }, { name: "moduleAddress", type: "address" }, { name: "validatorData", type: "bytes" }],
+          [fatSignature, passKeyModuleAddress, "0x"]);
+        return moduleSignature;
+      };
+
+      return { passKeyModuleContract, sampleDomain, proxyAccountAddress, generatedR1Key, passKeyModuleAddress, credentialId, signPayload };
     }
 
     it("should deploy proxy account via factory", async () => {
@@ -502,39 +524,10 @@ describe("Passkey validation", function () {
     });
 
     it("should sign transaction with passkey", async () => {
-      const authData = toBuffer(ethersResponse.authenticatorData);
-      const { sampleDomain, proxyAccountAddress, generatedR1Key, passKeyModuleAddress, credentialId } = await deployAccount();
+      const { proxyAccountAddress, signPayload } = await deployAccount();
 
       const sessionAccount = new SmartAccount({
-        payloadSigner: async (hash: Hex) => {
-          const sampleClientObject = {
-            type: "webauthn.get",
-            challenge: fromBuffer(hexToBytes(hash)),
-            origin: sampleDomain,
-            crossOrigin: false,
-          };
-          const sampleClientString = JSON.stringify(sampleClientObject);
-          const sampleClientBuffer = Buffer.from(sampleClientString);
-          const partiallyHashedData = concat([authData, await toHash(sampleClientBuffer)]);
-          const generatedSignature = await signStringWithR1Key(generatedR1Key.privateKey, partiallyHashedData);
-          assert(generatedSignature != null, "no signature generated");
-          const fatSignature = encodeAbiParameters([
-            { name: "authData", type: "bytes" },
-            { name: "clientDataJson", type: "string" },
-            { name: "rs", type: "bytes32[2]" },
-            { name: "credentialId", type: "bytes" },
-          ], [
-            toHex(authData),
-            sampleClientString,
-            [toHex(normalizeR(generatedSignature.r)), toHex(normalizeS(generatedSignature.s))],
-            credentialId,
-          ]);
-
-          const moduleSignature = encodeAbiParameters(
-            [{ name: "signature", type: "bytes" }, { name: "moduleAddress", type: "address" }, { name: "validatorData", type: "bytes" }],
-            [fatSignature, passKeyModuleAddress, "0x"]);
-          return moduleSignature;
-        },
+        payloadSigner: signPayload,
         address: proxyAccountAddress,
         secret: wallet.privateKey, // generatedR1Key.privateKey,
       }, provider);
@@ -556,6 +549,114 @@ describe("Passkey validation", function () {
       const transactionReceipt = await transactionResponse.wait();
       expect(transactionReceipt.status).to.eq(1, "transaction should be successful");
       logInfo(`passkey transaction gas used: ${transactionReceipt?.gasUsed.toString()}`);
+    });
+
+    describe("isValidSignature", () => {
+      async function signERC7739(
+        testStruct: ERC1271Caller.TestStructStruct,
+        smartAccount: SsoAccount,
+        erc1271Caller: ERC1271Caller,
+        signPayload: (hash: Hex) => Promise<Hex>,
+      ) {
+        const _callerDomain = await erc1271Caller.eip712Domain();
+        const callerDomain = {
+            name: _callerDomain.name,
+            version: _callerDomain.version,
+            chainId: Number(_callerDomain.chainId),
+            verifyingContract: _callerDomain.verifyingContract as Hex,
+        } as const;
+
+        const _verifierDomain = await smartAccount.eip712Domain();
+        const verifierDomain = {
+          name: _verifierDomain.name,
+          version: _verifierDomain.version,
+          chainId: Number(_verifierDomain.chainId),
+          verifyingContract: _verifierDomain.verifyingContract as Hex,
+          salt: _verifierDomain.salt as Hex,
+        } as const;
+
+        const types = {
+          TestStruct: [
+            { name: "message", type: "string" },
+            { name: "value", type: "uint256" }
+          ]
+        };
+
+        const typedData = hashTypedData({
+          domain: callerDomain,
+          types,
+          primaryType: 'TestStruct',
+          message: testStruct,
+          verifierDomain
+        })
+
+        const signature = await signPayload(typedData);
+        return wrapTypedDataSignature({
+          signature,
+          domain: callerDomain,
+          types,
+          primaryType: 'TestStruct',
+          message: testStruct,
+        });
+      }
+
+      it("should return bytes success (0x1626ba7e) for a valid signature from the owner", async () => {
+        const { proxyAccountAddress, signPayload } = await deployAccount();
+        const smartAccount = SsoAccount__factory.connect(proxyAccountAddress, provider);
+        const erc1271Caller = await fixtures.deployERC1271Caller();
+
+        const testStruct: ERC1271Caller.TestStructStruct = {
+          message: "test",
+          value: 42
+        };
+
+        const signature = await signERC7739(testStruct, smartAccount, erc1271Caller, signPayload);
+        const isValid = await erc1271Caller.validateStruct(testStruct, proxyAccountAddress, signature);
+        expect(isValid).to.be.true;
+      });
+
+      it("should return bytes failure (not 0x1626ba7e) for an invalid signature", async () => {
+        const { proxyAccountAddress, signPayload } = await deployAccount();
+        const smartAccount = SsoAccount__factory.connect(proxyAccountAddress, provider);
+        const erc1271Caller = await fixtures.deployERC1271Caller();
+
+        const testStruct: ERC1271Caller.TestStructStruct = {
+          message: "test",
+          value: 42
+        };
+
+        const wrongTestStruct: ERC1271Caller.TestStructStruct = {
+          message: "wrong",
+          value: 42
+        };
+
+        const signature = await signERC7739(testStruct, smartAccount, erc1271Caller, signPayload);
+        const promise = erc1271Caller.validateStruct(wrongTestStruct, proxyAccountAddress, signature);
+        await expect(promise).to.be.reverted;
+      });
+
+      it("should return bytes failure for a signature from a non-owner", async () => {
+        const { proxyAccountAddress, signPayload } = await deployAccount();
+        const smartAccount = SsoAccount__factory.connect(proxyAccountAddress, provider);
+        const { proxyAccountAddress: otherAccountAddress } = await deployAccount();
+        const erc1271Caller = await fixtures.deployERC1271Caller();
+
+        const testStruct: ERC1271Caller.TestStructStruct = {
+          message: "test",
+          value: 42
+        };
+
+        const signature = await signERC7739(testStruct, smartAccount, erc1271Caller, signPayload);
+        const promise = erc1271Caller.validateStruct(testStruct, otherAccountAddress, signature);
+        await expect(promise).to.be.reverted;
+      });
+
+      it("should return bytes failure for an empty signature", async () => {
+        const smartAccount = SsoAccount__factory.connect(proxyAccountAddress, provider);
+        const messageHash = hashMessage("Hello, world!");
+        await expect(
+          smartAccount.isValidSignature(toBytes(messageHash), "0x")).to.be.reverted;
+      });
     });
   });
 
@@ -625,7 +726,7 @@ describe("Passkey validation", function () {
       const nextR1Key = await generateES256R1Key();
       assert(nextR1Key != null, "no second key was generated");
       const [newX, newY] = await getRawPublicKeyFromCrypto(nextR1Key);
-      await expect(passkeyValidator.addValidationKey(credentialId, [newX, newY], keyDomain)).to.be.revertedWithCustomError(passkeyValidator, "KEY_EXISTS");
+      await expect(passkeyValidator.addValidationKey(credentialId, [newX, newY], keyDomain)).to.be.revertedWithCustomError(passkeyValidator, "WEBAUTHN_KEY_EXISTS");
       await verifyKeyStorage(passkeyValidator, keyDomain, [toHex(generatedX), toHex(generatedY)], credentialId, wallet, "ensure it was untouched");
 
       const newCredentialId = toHex(randomBytes(64));

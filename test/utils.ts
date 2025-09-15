@@ -20,22 +20,33 @@ import type {
   AccountProxy,
   ERC20,
   ExampleAuthServerPaymaster,
+  Groth16VerifierTest,
   GuardianRecoveryValidator,
+  OidcKeyRegistry,
+  OidcRecoveryValidator,
   SessionKeyValidator,
+  AllowedSessionsValidator,
   SsoAccount,
   SsoBeacon,
-  WebAuthValidator } from "../typechain-types";
+  WebAuthValidator,
+} from "../typechain-types";
 import {
   AAFactory__factory,
   AccountProxy__factory,
   ERC20__factory,
   ExampleAuthServerPaymaster__factory,
+  Groth16VerifierTest__factory,
   GuardianRecoveryValidator__factory,
+  OidcKeyRegistry__factory,
+  OidcRecoveryValidator__factory,
   SessionKeyValidator__factory,
   SsoAccount__factory,
   SsoBeacon__factory,
   TestPaymaster__factory,
-  WebAuthValidator__factory } from "../typechain-types";
+  WebAuthValidator__factory,
+  ERC1271Caller__factory,
+  AllowedSessionsValidator__factory,
+} from "../typechain-types";
 
 export const ethersStaticSalt = new Uint8Array([
   205, 241, 161, 186, 101, 105, 79,
@@ -45,15 +56,24 @@ export const ethersStaticSalt = new Uint8Array([
   177, 177, 174, 166,
 ]);
 
+export const CIRCOM_BIGINT_K = 17;
+export const CIRCOM_BIGINT_N = 121;
+
 export class ContractFixtures {
   readonly wallet: Wallet = getWallet(LOCAL_RICH_WALLETS[0].privateKey);
+  readonly keyRegistryOwner: Wallet = getWallet(LOCAL_RICH_WALLETS[1].privateKey);
 
   private _aaFactory: AAFactory;
-  async getAaFactory() {
+  async getAaFactory(utilizingAllowed: boolean = false) {
     const beaconAddress = await this.getBeaconAddress();
     if (!this._aaFactory) {
       const passKeyModuleAddress = await this.getPasskeyModuleAddress();
-      const sessionKeyModuleAddress = await this.getSessionKeyModuleAddress();
+      let sessionKeyModuleAddress: string;
+      if (!utilizingAllowed) {
+        sessionKeyModuleAddress = await this.getSessionKeyModuleAddress();
+      } else {
+        sessionKeyModuleAddress = await this.getAllowedSessionsContractAddress();
+      }
       this._aaFactory = await deployFactory(
         this.wallet,
         beaconAddress,
@@ -79,6 +99,19 @@ export class ContractFixtures {
 
   async getSessionKeyModuleAddress() {
     return (await this.getSessionKeyContract()).getAddress();
+  }
+
+  private _allowedSessionsModule: AllowedSessionsValidator;
+  async getAllowedSessionsContract() {
+    if (!this._allowedSessionsModule) {
+      const contract = await create2("AllowedSessionsValidator", this.wallet, ethersStaticSalt);
+      this._allowedSessionsModule = AllowedSessionsValidator__factory.connect(await contract.getAddress(), this.wallet);
+    }
+    return this._allowedSessionsModule;
+  }
+
+  async getAllowedSessionsContractAddress() {
+    return (await this.getAllowedSessionsContract()).getAddress();
   }
 
   private _beacon: SsoBeacon;
@@ -109,6 +142,35 @@ export class ContractFixtures {
     const webAuthnVerifierContract = await this.getWebAuthnVerifierContract();
     const contractAddress = await webAuthnVerifierContract.getAddress();
     return isHex(contractAddress) ? contractAddress : toHex(contractAddress);
+  }
+
+  private _oidcVerifier: Groth16VerifierTest;
+  async getOidcVerifier() {
+    if (!this._oidcVerifier) {
+      const contract = await create2("Groth16VerifierTest", this.wallet, ethersStaticSalt);
+      this._oidcVerifier = Groth16VerifierTest__factory.connect(await contract.getAddress(), this.wallet);
+    }
+    return this._oidcVerifier;
+  }
+
+  private _oidcRecoveryValidator: OidcRecoveryValidator;
+  async getOidcRecoveryValidator() {
+    if (this._oidcRecoveryValidator === undefined) {
+      const verifier = await this.getOidcVerifier();
+      const oidcKeyRegistry = await this.getOidcKeyRegistryContract();
+      const webAuthValidator = await this.getWebAuthnVerifierContract();
+      const contract = await create2("OidcRecoveryValidator", this.wallet, ethersStaticSalt, []);
+      const proxyContract = await create2("TransparentProxy", this.wallet, ethersStaticSalt, [
+        await contract.getAddress(),
+        contract.interface.encodeFunctionData(
+          "initialize",
+          [await oidcKeyRegistry.getAddress(), await verifier.getAddress(), await webAuthValidator.getAddress()],
+        ),
+      ]);
+      this._oidcRecoveryValidator = OidcRecoveryValidator__factory.connect(await proxyContract.getAddress(), this.wallet);
+    }
+
+    return this._oidcRecoveryValidator;
   }
 
   private _guardianRecoveryValidator: GuardianRecoveryValidator;
@@ -145,6 +207,17 @@ export class ContractFixtures {
     return this._accountProxyContract;
   }
 
+  private _oicdKeyRegistryContract: OidcKeyRegistry;
+  async getOidcKeyRegistryContract() {
+    if (!this._oicdKeyRegistryContract) {
+      const contract = await create2("OidcKeyRegistry", this.wallet, randomBytes(32));
+      const proxyContract = await create2("TransparentProxy", this.wallet, ethersStaticSalt, [await contract.getAddress(), "0x"]);
+      this._oicdKeyRegistryContract = OidcKeyRegistry__factory.connect(await proxyContract.getAddress(), this.keyRegistryOwner);
+      await this._oicdKeyRegistryContract.initialize();
+    }
+    return this._oicdKeyRegistryContract;
+  }
+
   async getAccountImplAddress(salt?: ethers.BytesLike) {
     return (await this.getAccountImplContract(salt)).getAddress();
   }
@@ -159,11 +232,17 @@ export class ContractFixtures {
     return TestPaymaster__factory.connect(await contract.getAddress(), this.wallet);
   }
 
+  async deployERC1271Caller() {
+    const contract = await create2("ERC1271Caller", this.wallet, ethersStaticSalt);
+    return ERC1271Caller__factory.connect(await contract.getAddress(), this.wallet);
+  }
+
   async deployExampleAuthServerPaymaster(
     aaFactoryAddress: string,
     sessionKeyValidatorAddress: string,
     guardianRecoveryValidatorAddress: string,
     webAuthValidatorAddress: string,
+    oidcRecoveryValidatorAddress: string,
   ): Promise<ExampleAuthServerPaymaster> {
     const contract = await create2(
       "ExampleAuthServerPaymaster",
@@ -174,6 +253,7 @@ export class ContractFixtures {
         sessionKeyValidatorAddress,
         guardianRecoveryValidatorAddress,
         webAuthValidatorAddress,
+        oidcRecoveryValidatorAddress,
       ],
     );
     const paymasterAddress = ExampleAuthServerPaymaster__factory.connect(await contract.getAddress(), this.wallet);
@@ -472,3 +552,17 @@ export function cacheBeforeEach(initializer: AsyncFunc): void {
     }
   });
 }
+
+export const base64ToCircomBigInt = (data: string): string[] => {
+  const vec = Buffer.from(data, "base64url").reverse();
+  let num = 0n;
+  for (let i = 0; i < vec.length; i++) {
+    num += BigInt(vec[i]) << BigInt(8 * i);
+  }
+  const res: string[] = [];
+  const msk = (1n << BigInt(CIRCOM_BIGINT_N)) - 1n;
+  for (let i = 0; i < CIRCOM_BIGINT_K; ++i) {
+    res.push(((num >> BigInt(i * CIRCOM_BIGINT_N)) & msk).toString());
+  }
+  return res;
+};

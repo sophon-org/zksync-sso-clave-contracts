@@ -4,6 +4,7 @@ import { randomBytes } from "crypto";
 import { ethers, HDNodeWallet, keccak256 } from "ethers";
 import { Address, parseEther, toHex } from "viem";
 import { Provider, SmartAccount, utils, Wallet } from "zksync-ethers";
+import hre from "hardhat";
 
 import { GuardianRecoveryValidator, GuardianRecoveryValidator__factory, SsoAccount, SsoAccount__factory, WebAuthValidator } from "../typechain-types";
 import { encodeKeyFromBytes, generateES256R1Key, getRawPublicKeyFromCrypto } from "./PasskeyModule";
@@ -98,7 +99,7 @@ describe("GuardianRecoveryValidator", function () {
       const [user1, user1ConnectedValidator] = await randomWallet();
 
       await expect(user1ConnectedValidator.proposeGuardian(hashedOriginDomain, ethers.ZeroAddress))
-        .to.be.revertedWithCustomError(user1ConnectedValidator, "InvalidGuardianAddress");
+        .to.be.revertedWithCustomError(user1ConnectedValidator, "GUARDIAN_INVALID_ADDRESS");
     });
   });
 
@@ -121,7 +122,7 @@ describe("GuardianRecoveryValidator", function () {
       const [_, guardianConnection] = await randomWallet();
 
       await expect(callAddGuardian(guardianConnection, hashedOriginDomain, ethers.ZeroAddress))
-        .to.revertedWithCustomError(guardianConnection, "InvalidAccountToGuardAddress");
+        .to.revertedWithCustomError(guardianConnection, "GUARDIAN_INVALID_ACCOUNT");
     });
 
     it("fails when tries to confirm a was proposed for a different account.", async function () {
@@ -174,14 +175,12 @@ describe("GuardianRecoveryValidator", function () {
       const [randomGeneratedWallet] = await randomWallet();
 
       await expect(sut(await randomGeneratedWallet.getAddress()))
-        .to.be.revertedWithCustomError(guardianValidator, "GuardianNotFound");
+        .to.be.revertedWithCustomError(guardianValidator, "GUARDIAN_NOT_FOUND");
     });
 
     it("fails when tries to remove zero address guardian.", async function () {
-      const [randomGeneratedWallet] = await randomWallet();
-
       await expect(sut(ethers.ZeroAddress))
-        .to.be.revertedWithCustomError(guardianValidator, "InvalidGuardianAddress");
+        .to.be.revertedWithCustomError(guardianValidator, "GUARDIAN_INVALID_ADDRESS");
     });
 
     it("works to remove existing guardian.", async function () {
@@ -221,12 +220,12 @@ describe("GuardianRecoveryValidator", function () {
       };
 
       it("Reverts with WebAuthValidatorNotEnabled error", async function () {
-        await expect(sut()).to.be.revertedWithCustomError(guardianValidator, "WebAuthValidatorNotEnabled");
+        await expect(sut()).to.be.revertedWithCustomError(guardianValidator, "WEBAUTH_VALIDATOR_NOT_INSTALLED");
       });
     });
   });
 
-  describe.only("onUninstall", () => {
+  describe("onUninstall", () => {
     let user1: ethers.Signer;
     let guardian: ethers.Signer;
     let guardian2: ethers.Signer;
@@ -302,7 +301,7 @@ describe("GuardianRecoveryValidator", function () {
     };
 
     it("Should revert when passed non function call data.", async function () {
-      await expect(sut("0x1234")).to.be.revertedWithCustomError(guardianValidator, "NonFunctionCallTransaction");
+      await expect(sut("0x1234")).to.be.revertedWithCustomError(guardianValidator, "GUARDIAN_INVALID_RECOVERY_CALL");
     });
   });
 
@@ -412,9 +411,9 @@ describe("GuardianRecoveryValidator", function () {
         it("it reverts due to active recovery process", async () => {
           await sut();
           await validatePendingRecovery();
-          await expect(sut()).to.be.revertedWithCustomError(guardianValidator, "AccountRecoveryInProgress");
+          await expect(sut()).to.be.revertedWithCustomError(guardianValidator, "GUARDIAN_RECOVERY_IN_PROGRESS");
           await helpers.time.increase(3 * 24 * 60 * 60 - 1 * 60 * 60); // Increase by < 72 hours
-          await expect(sut()).to.be.revertedWithCustomError(guardianValidator, "AccountRecoveryInProgress");
+          await expect(sut()).to.be.revertedWithCustomError(guardianValidator, "GUARDIAN_RECOVERY_IN_PROGRESS");
         });
         it("it overwrites expired recovery process", async () => {
           await sut();
@@ -443,7 +442,11 @@ describe("GuardianRecoveryValidator", function () {
           await guardianValidator.connect(guardianWallet)
             .initRecovery(newGuardianConnectedSsoAccount.address, hashedAccountId, newKeyArgs[1], hashDomain);
         });
-        const sut = async (keyToAddArgs: Awaited<ReturnType<typeof generatePassKey>>["args"], ssoAccount: SmartAccount = newGuardianConnectedSsoAccount) => {
+        const sut = async (
+          keyToAddArgs: Awaited<ReturnType<typeof generatePassKey>>["args"],
+          ssoAccount: SmartAccount = newGuardianConnectedSsoAccount,
+          paymasterParams?: { paymaster: string, paymasterInput: string }
+        ) => {
           const functionData = webauthn.interface.encodeFunctionData(
             "addValidationKey",
             [...keyToAddArgs],
@@ -454,6 +457,10 @@ describe("GuardianRecoveryValidator", function () {
             data: functionData,
           };
           txToSign.gasLimit = await provider.estimateGas(txToSign);
+          if (paymasterParams) {
+            // @ts-ignore
+            txToSign.customData.paymasterParams = paymasterParams;
+          }
           return await ssoAccount.sendTransaction(txToSign);
         };
         describe("but not enough time has passed", () => {
@@ -473,6 +480,20 @@ describe("GuardianRecoveryValidator", function () {
           it("it should revert due to expired recovery process.", async function () {
             await helpers.time.increase(4 * 24 * 60 * 60);
             await expect(sut(newKeyArgs)).to.be.reverted;
+          });
+          it("it should revert when using an approval-based paymaster.", async function () {
+            // deploy and fund paymaster
+            const erc20 = await fixtures.deployERC20(newGuardianConnectedSsoAccount.address);
+            const paymaster = await fixtures.deployTestPaymaster();
+            const paymasterFlow = await hre.ethers.getContractAt("IPaymasterFlow", ethers.ZeroAddress);
+            const tx = await fixtures.wallet.sendTransaction({ to: await paymaster.getAddress(), value: parseEther("1") });
+            await tx.wait();
+
+            await helpers.time.increase(2 * 24 * 60 * 60);
+            await expect(sut(newKeyArgs, newGuardianConnectedSsoAccount, {
+              paymaster: await paymaster.getAddress(),
+              paymasterInput: paymasterFlow.interface.encodeFunctionData("approvalBased", [await erc20.getAddress(), 1000, "0x"]),
+            })).to.be.reverted;
           });
           it("it should clean up pending request if recovery process is active.", async function () {
             await helpers.time.increase(2 * 24 * 60 * 60);
@@ -522,7 +543,7 @@ export async function generatePassKey(accountId: `0x${string}`, keyDomain: strin
   return {
     generatedKey,
     hashedOriginDomain,
-    args: [accountId, [generatedX, generatedY], keyDomain] as [`0x${string}`, [Uint8Array<ArrayBuffer>, Uint8Array<ArrayBuffer>], string],
+    args: [accountId, [generatedX, generatedY], keyDomain] as [`0x${string}`, [Uint8Array, Uint8Array], string],
   };
 }
 
@@ -538,6 +559,7 @@ async function aaTxTemplate(proxyAccountAddress: string, provider: Provider) {
     customData: {
       gasPerPubdata: utils.DEFAULT_GAS_PER_PUBDATA_LIMIT,
       customSignature: undefined,
+      paymasterParams: undefined,
     },
     gasLimit: 0n,
   };
